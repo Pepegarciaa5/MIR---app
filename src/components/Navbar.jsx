@@ -52,14 +52,24 @@ const IcoTimer = ({ active }) => (
   </svg>
 )
 
-const TABS = [
-  { id: 'inicio',     label: 'Inicio',     Icon: IcoHome     },
-  { id: 'calendario', label: 'Calendario', Icon: IcoCalendar },
-  { id: 'repasos',    label: 'Repasos',    Icon: IcoRepeat   },
-  { id: 'progreso',   label: 'Progreso',   Icon: IcoChart    },
+const IcoPen = ({ active }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+    stroke={active ? ACCENT : '#999'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 20h9" />
+    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+  </svg>
+)
+
+const ALL_TABS = [
+  { id: 'inicio',     label: 'Inicio',     Icon: IcoHome,     adminOnly: true  },
+  { id: 'calendario', label: 'Calendario', Icon: IcoCalendar, adminOnly: true  },
+  { id: 'repasos',    label: 'Repasos',    Icon: IcoRepeat,   adminOnly: true  },
+  { id: 'progreso',   label: 'Progreso',   Icon: IcoChart,    adminOnly: false },
+  { id: 'diario',     label: 'Diario',     Icon: IcoPen,      adminOnly: false },
 ]
 
-export default function Navbar({ active, setActive }) {
+export default function Navbar({ active, setActive, isAdmin }) {
+  const tabs = isAdmin ? ALL_TABS : ALL_TABS.filter(t => !t.adminOnly)
   return (
     <nav style={{
       display: 'flex',
@@ -69,7 +79,7 @@ export default function Navbar({ active, setActive }) {
       borderRight: '1px solid #f0f0f0',
       padding: '20px 0',
     }}>
-      {TABS.map(({ id, label, Icon }) => {
+      {tabs.map(({ id, label, Icon }) => {
         const isActive = active === id
         return (
           <button

@@ -6,17 +6,19 @@ import Inicio from './screens/Inicio'
 import Calendario from './screens/Calendario'
 import Repasos from './screens/Repasos'
 import Progreso from './screens/Progreso'
+import Diario from './screens/Diario'
 import { loadAppData, migrarDesdeLocalStorage } from './data/mockData'
+import { isAdminMode } from './lib/supabase'
 
 export default function App() {
-  const [tab, setTab] = useState('inicio')
+  const [tab, setTab] = useState(isAdminMode ? 'inicio' : 'diario')
   const [dataReady, setDataReady] = useState(false)
 
   useEffect(() => {
     async function init() {
       // One-time migration: if localStorage has data and Supabase is empty, migrate it
       const hasMigracion = localStorage.getItem('supabase_migrated')
-      if (!hasMigracion) {
+      if (!hasMigracion && isAdminMode) {
         const hasLocalData =
           localStorage.getItem('trackerEntries') ||
           localStorage.getItem('repasosData') ||
@@ -56,14 +58,15 @@ export default function App() {
         flexDirection: 'row',
         background: '#fff',
       }}>
-        <Navbar active={tab} setActive={setTab} />
+        <Navbar active={tab} setActive={setTab} isAdmin={isAdminMode} />
         <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <TrackerBar />
+          {isAdminMode && <TrackerBar />}
           <div style={{ flex: 1, overflow: 'auto', overflowX: 'hidden', padding: '20px' }}>
             {tab === 'inicio'     && <Inicio />}
             {tab === 'calendario' && <Calendario />}
             {tab === 'repasos'    && <Repasos />}
             {tab === 'progreso'   && <Progreso />}
+            {tab === 'diario'     && <Diario />}
           </div>
         </main>
       </div>

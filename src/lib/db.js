@@ -211,3 +211,42 @@ export async function migrarDesdeLocalStorage() {
   console.log('✅ Migración completada:', results)
   return results
 }
+
+// ─── DIARIO / BLOG POSTS ─────────────────────────────────────────────────────
+
+export async function getDiarioPosts() {
+  const { data, error } = await supabase
+    .from('diario_posts')
+    .select('*')
+    .order('created_at', { ascending: false })
+  if (error) { console.error('getDiarioPosts:', error); return [] }
+  return data.map(p => ({
+    id: p.id,
+    titulo: p.titulo,
+    contenido: p.contenido,
+    emoji: p.emoji,
+    horasEstudiadas: p.horas_estudiadas,
+    asignaturas: p.asignaturas || [],
+    fecha: p.fecha,
+    createdAt: p.created_at,
+  }))
+}
+
+export async function upsertDiarioPost(post) {
+  const { error } = await supabase.from('diario_posts').upsert({
+    id: post.id,
+    titulo: post.titulo,
+    contenido: post.contenido,
+    emoji: post.emoji || '📖',
+    horas_estudiadas: post.horasEstudiadas || 0,
+    asignaturas: post.asignaturas || [],
+    fecha: post.fecha,
+  })
+  if (error) console.error('upsertDiarioPost:', error)
+}
+
+export async function deleteDiarioPost(id) {
+  const { error } = await supabase.from('diario_posts').delete().eq('id', id)
+  if (error) console.error('deleteDiarioPost:', error)
+}
+
