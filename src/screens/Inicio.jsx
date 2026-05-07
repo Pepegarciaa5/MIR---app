@@ -3,6 +3,7 @@ import { MIR_DATE } from '../data/mockData'
 import { curiosidadesHumanisticas, datosMedicos } from '../data/pildorasDiarias'
 import SesionDia from './SesionDia'
 import SesionCalendario from './SesionCalendario'
+import ProgresoDiario from '../components/ProgresoDiario'
 
 const ACCENT = '#BA7517'
 const ACCENT_BG = '#fef3e2'
@@ -51,6 +52,11 @@ export default function Inicio() {
           {' '}para el MIR
         </h1>
         <p style={{ margin: '4px 0 0', fontSize: 12, color: '#bbb' }}>MIR 2027 · 25 de enero</p>
+      </div>
+
+      {/* Progreso diario compacto */}
+      <div style={{ marginBottom: 14 }}>
+        <ProgresoDiario compact />
       </div>
 
       {/* Cards */}

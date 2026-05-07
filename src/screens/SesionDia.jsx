@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react'
-import { planDia, repasosData, tareasPendientesGlobal, planesAdicionales, todayStr, persistData, bloquesCompletados, bloquesDescartados } from '../data/mockData'
+import { useState, useEffect, useRef } from 'react'
+import { planDia, repasosData, tareasPendientesGlobal, planesAdicionales, todayStr, bloquesCompletados, bloquesDescartados } from '../data/mockData'
+import { upsertRepaso } from '../lib/db'
 import { useTracker } from '../context/TrackerContext'
+import { especialidadesMIR, especialidadNombres, getEspecialidadColor } from '../data/especialidadesMIR'
 
 const ACCENT = '#BA7517'
 const HOUR_HEIGHT = 72
@@ -47,22 +49,112 @@ function getBlockStyle(titulo) {
 
 const hours = Array.from({ length: END_HOUR - START_HOUR }, (_, i) => START_HOUR + i)
 
+function toTimeStr(ts) {
+  const d = new Date(ts)
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
+}
+function applyTime(ts, timeStr) {
+  const d = new Date(ts)
+  const [h, m] = timeStr.split(':').map(Number)
+  d.setHours(isNaN(h) ? 0 : h, isNaN(m) ? 0 : m, 0, 0)
+  return d.getTime()
+}
+
 export default function SesionDia() {
-  const { entries, activeEntry, elapsed, startTracking, stopTracking, getBlockSeconds } = useTracker()
+  const { entries, activeEntry, elapsed, startTracking, stopTracking, getBlockSeconds, editEntry, deleteEntry } = useTracker()
   const [now, setNow] = useState(new Date())
   const [manualCompleted, setManualCompleted] = useState([...bloquesCompletados])
   const [removedBlocks, setRemovedBlocks] = useState([...bloquesDescartados])
   const [hoveredBlock, setHoveredBlock] = useState(null)
+  const [hoveredTracker, setHoveredTracker] = useState(null)
   const [finishingBlock, setFinishingBlock] = useState(null)
   const [skippingBlock, setSkippingBlock] = useState(null)
   const [wantsReview, setWantsReview] = useState(null)
   const [destino, setDestino] = useState('')
   const [nuevaFecha, setNuevaFecha] = useState('')
+  // Edit tracker entry state
+  const [editingTracker, setEditingTracker] = useState(null)
+  const [editDesc, setEditDesc] = useState('')
+  const [editEsp, setEditEsp] = useState('')
+  const [editTema, setEditTema] = useState('')
+  const [editInicio, setEditInicio] = useState('')
+  const [editFin, setEditFin] = useState('')
+  const [confirmDeleteTracker, setConfirmDeleteTracker] = useState(null)
+  // Send to repasos state
+  const [repasoTracker, setRepasoTracker] = useState(null)
+  const [repasoTitulo, setRepasoTitulo] = useState('')
+  const [repasoDestino, setRepasoDestino] = useState('')
+  const [repasoConfianza, setRepasoConfianza] = useState(2)
+  const [repasoEnviados, setRepasoEnviados] = useState(new Set())
+
+  function openEditTracker(t) {
+    setEditingTracker(t)
+    setEditDesc(t.descripcion)
+    setEditEsp(t.especialidad || '')
+    setEditTema(t.tema || '')
+    setEditInicio(toTimeStr(t.inicio))
+    setEditFin(toTimeStr(t.fin))
+    setRepasoTracker(null)
+    setFinishingBlock(null)
+    setSkippingBlock(null)
+  }
+
+  function openRepasoTracker(t) {
+    setRepasoTracker(t)
+    setRepasoTitulo(t.descripcion)
+    setRepasoDestino('')
+    setRepasoConfianza(2)
+    setEditingTracker(null)
+    setFinishingBlock(null)
+    setSkippingBlock(null)
+  }
+
+  function enviarTrackerARepasos() {
+    const todayMs = new Date().setHours(0, 0, 0, 0)
+    const durH = (repasoTracker.duracionSegundos || 0) / 3600
+    const minutosRepaso = Math.max(1, Math.round(durH * 8))
+    const newRepaso = {
+      id: Date.now(),
+      titulo: repasoTitulo.trim() || repasoTracker.descripcion,
+      especialidad: repasoTracker.especialidad || 'Sin asignar',
+      tema: repasoTracker.tema || null,
+      destinoGuardado: repasoDestino.trim() || null,
+      minutosRepaso,
+      fase: 0,
+      fechaProximoRepaso: todayMs,
+      confianza: repasoConfianza,
+    }
+    repasosData.unshift(newRepaso)
+    upsertRepaso(newRepaso)
+    setRepasoEnviados(prev => new Set([...prev, repasoTracker.id]))
+    setRepasoTracker(null)
+  }
+
+  function saveEditTracker() {
+    const newInicio = applyTime(editingTracker.inicio, editInicio)
+    const newFin = applyTime(editingTracker.fin, editFin)
+    editEntry(editingTracker.id, {
+      descripcion: editDesc.trim() || editingTracker.descripcion,
+      especialidad: editEsp || null,
+      tema: editTema || null,
+      inicio: newInicio,
+      fin: newFin,
+    })
+    setEditingTracker(null)
+  }
+
+  const timelineRef = useRef(null)
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 30000)
     return () => clearInterval(id)
   }, [])
+
+  useEffect(() => {
+    if (!timelineRef.current) return
+    const scrollTo = Math.max(0, nowPx - 120)
+    timelineRef.current.scrollTop = scrollTo
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const nowMins = now.getHours() * 60 + now.getMinutes()
   const nowPx = minsToPx(nowMins)
@@ -89,9 +181,10 @@ export default function SesionDia() {
     const durationHours = workedSeconds > 0 ? workedSeconds / 3600 : (b.endMins - b.startMins) / 60
     const minutosRepaso = Math.max(1, Math.round(durationHours * 8))
     const numConfianza = { flojo: 1, regular: 2, bien: 3 }[confStr]
-    repasosData.unshift({ id: Date.now(), titulo: b.titulo, especialidad: b.especialidad || 'Sin asignar', tema: b.tema, destinoGuardado: destino, minutosRepaso, fase: 0, fechaProximoRepaso: new Date().setHours(0,0,0,0), confianza: numConfianza })
+    const newRepaso = { id: Date.now(), titulo: b.titulo, especialidad: b.especialidad || 'Sin asignar', tema: b.tema, destinoGuardado: destino, minutosRepaso, fase: 0, fechaProximoRepaso: new Date().setHours(0,0,0,0), confianza: numConfianza }
+    repasosData.unshift(newRepaso)
+    upsertRepaso(newRepaso)
     bloquesCompletados.push(b.id)
-    persistData()
     if (activeEntry?.bloqueId === b.id) stopTracking()
     setManualCompleted(prev => [...prev, b.id])
     setFinishingBlock(null)
@@ -101,7 +194,6 @@ export default function SesionDia() {
 
   const guardarBloqueSinRepaso = (b) => {
     bloquesCompletados.push(b.id)
-    persistData()
     if (activeEntry?.bloqueId === b.id) stopTracking()
     setManualCompleted(prev => [...prev, b.id])
     setFinishingBlock(null)
@@ -143,7 +235,7 @@ export default function SesionDia() {
       </div>
 
       {/* Timeline */}
-      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', minHeight: 0 }}>
+      <div ref={timelineRef} style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', minHeight: 0 }}>
         <div style={{ display: 'flex', minHeight: `${(END_HOUR - START_HOUR) * HOUR_HEIGHT}px`, position: 'relative' }}>
 
           {/* Hour labels */}
@@ -268,7 +360,6 @@ export default function SesionDia() {
 
             {/* Tracked Blocks */}
             {(() => {
-              // 1. Sort ascending by inicio
               const sortedTrackers = [...todayTrackers].sort((a, b) => a.inicio - b.inicio)
               let lastBottom = 0
 
@@ -279,29 +370,30 @@ export default function SesionDia() {
                 const endMins = endD.getHours() * 60 + endD.getMinutes()
                 if (isNaN(startMins) || isNaN(endMins)) return null
                 if (endMins <= START_HOUR * 60 || startMins >= END_HOUR * 60) return null
-                
+
                 const clampedStart = Math.max(startMins, START_HOUR * 60)
                 const clampedEnd = Math.min(endMins, END_HOUR * 60)
-                
                 const exactTop = minsToPx(clampedStart)
                 const exactHeight = ((clampedEnd - clampedStart) / 60) * HOUR_HEIGHT
-                
                 const height = Math.max(exactHeight - 3, 28)
                 const top = Math.max(exactTop + 1, lastBottom)
-                
                 lastBottom = top + height + 3
-                
-                const bStyle = getBlockStyle(t.descripcion)
+
                 const dur = t.duracionSegundos || 0
-                
+                const isHovered = hoveredTracker === (t.id || idx)
+                const isBeingEdited = editingTracker?.id === t.id
+                const tColor = getEspecialidadColor(t.especialidad)
+
                 return (
                   <div
                     key={t.id || idx}
+                    onMouseEnter={() => setHoveredTracker(t.id || idx)}
+                    onMouseLeave={() => setHoveredTracker(null)}
                     style={{
                       position: 'absolute', top, left: '40%', right: 3, height,
-                      background: t.isActivo ? '#fffbfa' : '#f0fdf4',
-                      border: `1px solid ${t.isActivo ? ACCENT : '#4ade80'}`,
-                      borderLeft: `5px solid ${t.isActivo ? ACCENT : '#22c55e'}`,
+                      background: isBeingEdited ? '#eff6ff' : t.isActivo ? tColor.bg : tColor.bg,
+                      border: `1px solid ${isBeingEdited ? '#3b82f6' : t.isActivo ? ACCENT : tColor.border}`,
+                      borderLeft: `5px solid ${isBeingEdited ? '#3b82f6' : t.isActivo ? ACCENT : tColor.text}`,
                       borderRadius: 7,
                       padding: '4px 8px',
                       overflow: 'hidden',
@@ -311,27 +403,47 @@ export default function SesionDia() {
                       flexDirection: 'column',
                     }}
                   >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, height: '100%' }}>
-                    <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                      <div style={{ fontSize: 11, color: t.isActivo ? '#78350f' : '#14532d', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.3 }}>
-                        {t.descripcion}
-                      </div>
-                      {height > 35 && (
-                        <div style={{ fontSize: 9, color: t.isActivo ? '#b45309' : '#166534', marginTop: 2, opacity: 0.8 }}>
-                          {String(startD.getHours()).padStart(2,'0')}:{String(startD.getMinutes()).padStart(2,'0')} – {t.isActivo ? '...' : `${String(endD.getHours()).padStart(2,'0')}:${String(endD.getMinutes()).padStart(2,'0')}`}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 4, height: '100%' }}>
+                      <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                        <div style={{ fontSize: 11, color: tColor.text, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.3 }}>
+                          {t.descripcion}
                         </div>
-                      )}
-                    </div>
-                    {dur > 0 && (
-                      <div style={{ fontFamily: 'monospace', fontSize: 11, fontWeight: 700, color: t.isActivo ? ACCENT : '#15803d', flexShrink: 0 }}>
-                        ⏱ {fmt(dur)}
+                        {height > 35 && (
+                          <div style={{ fontSize: 9, color: tColor.text, marginTop: 2, opacity: 0.7 }}>
+                            {String(startD.getHours()).padStart(2,'0')}:{String(startD.getMinutes()).padStart(2,'0')} – {t.isActivo ? '...' : `${String(endD.getHours()).padStart(2,'0')}:${String(endD.getMinutes()).padStart(2,'0')}`}
+                          </div>
+                        )}
                       </div>
-                    )}
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3, flexShrink: 0 }}>
+                        {dur > 0 && (
+                          <div style={{ fontFamily: 'monospace', fontSize: 11, fontWeight: 700, color: t.isActivo ? ACCENT : tColor.text }}>
+                            ⏱ {fmt(dur)}
+                          </div>
+                        )}
+                        {!t.isActivo && (isHovered || isBeingEdited || repasoTracker?.id === t.id) && (
+                          <div style={{ display: 'flex', gap: 2 }}>
+                            {repasoEnviados.has(t.id) ? (
+                              <span style={{ fontSize: 9, color: '#16a34a', fontWeight: 800 }}>📚✓</span>
+                            ) : (
+                              <button
+                                onClick={() => repasoTracker?.id === t.id ? setRepasoTracker(null) : openRepasoTracker(t)}
+                                style={{ padding: '2px 4px', border: 'none', borderRadius: 4, fontSize: 10, cursor: 'pointer', background: repasoTracker?.id === t.id ? '#dcfce7' : tColor.border, color: '#16a34a', fontWeight: 700 }}>
+                                📚
+                              </button>
+                            )}
+                            <button
+                              onClick={() => isBeingEdited ? setEditingTracker(null) : openEditTracker(t)}
+                              style={{ padding: '2px 4px', border: 'none', borderRadius: 4, fontSize: 10, cursor: 'pointer', background: isBeingEdited ? '#3b82f6' : tColor.border, color: isBeingEdited ? '#fff' : tColor.text, fontWeight: 700 }}>
+                              ✏️
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              )
-            })
-          })()}
+                )
+              })
+            })()}
           </div>
         </div>
       </div>
@@ -372,6 +484,146 @@ export default function SesionDia() {
               </>
             )}
             <button onClick={() => { setFinishingBlock(null); setWantsReview(null); }} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: 12, cursor: 'pointer', marginTop: 10 }}>Cancelar</button>
+          </div>
+        )
+      })()}
+
+      {/* Send to repasos panel */}
+      {repasoTracker && (
+        <div style={{ borderTop: '1px solid #86efac', padding: '14px 16px', background: '#f0fdf4', flexShrink: 0 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#166534', marginBottom: 12 }}>
+            Enviar a Repasos
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 700, color: '#166534', display: 'block', marginBottom: 4 }}>Título</label>
+              <input
+                value={repasoTitulo} onChange={e => setRepasoTitulo(e.target.value)}
+                style={{ width: '100%', padding: '7px 10px', borderRadius: 8, border: '1px solid #86efac', fontSize: 13, fontWeight: 600, boxSizing: 'border-box' }}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 700, color: '#166534', display: 'block', marginBottom: 4 }}>¿Dónde está guardado?</label>
+              <input
+                value={repasoDestino} onChange={e => setRepasoDestino(e.target.value)}
+                placeholder="Notion, Anki, libreta..."
+                style={{ width: '100%', padding: '7px 10px', borderRadius: 8, border: '1px solid #86efac', fontSize: 13, boxSizing: 'border-box' }}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 700, color: '#166534', display: 'block', marginBottom: 6 }}>Nivel de dominio</label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {CONFIANZA_OPTS.map(opt => (
+                  <button key={opt.id} onClick={() => setRepasoConfianza(opt.id)}
+                    style={{ flex: 1, padding: '8px 0', border: repasoConfianza === opt.id ? `2px solid ${opt.color}` : '2px solid transparent', borderRadius: 8, background: opt.bg, color: opt.color, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button onClick={() => setRepasoTracker(null)}
+                style={{ padding: '7px 14px', background: 'none', border: 'none', color: '#94a3b8', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>
+                Cancelar
+              </button>
+              <button onClick={enviarTrackerARepasos}
+                style={{ padding: '7px 18px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                Añadir a Repasos
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit tracker panel */}
+      {editingTracker && (() => {
+        const editTemas = editEsp ? (especialidadesMIR[editEsp]?.temas || []) : []
+        const previewSecs = Math.max(0, Math.floor((applyTime(editingTracker.fin, editFin) - applyTime(editingTracker.inicio, editInicio)) / 1000))
+        const previewH = Math.floor(previewSecs / 3600)
+        const previewM = Math.floor((previewSecs % 3600) / 60)
+        const previewStr = previewH > 0 ? `${previewH}h ${previewM}m` : `${previewM}m`
+        return (
+          <div style={{ borderTop: '1px solid #bfdbfe', padding: '14px 16px', background: '#eff6ff', flexShrink: 0 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#1e40af', marginBottom: 12 }}>
+              Editar actividad trackeada
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {/* Nombre */}
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 700, color: '#3b82f6', display: 'block', marginBottom: 4 }}>Nombre</label>
+                <input value={editDesc} onChange={ev => setEditDesc(ev.target.value)}
+                  style={{ width: '100%', padding: '6px 10px', borderRadius: 8, border: '1px solid #bfdbfe', fontSize: 13, fontWeight: 600, boxSizing: 'border-box' }} />
+              </div>
+              {/* Asignatura + Tema */}
+              <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: '#3b82f6', display: 'block', marginBottom: 4 }}>Asignatura</label>
+                  <select value={editEsp} onChange={ev => { setEditEsp(ev.target.value); setEditTema('') }}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: 8, border: '1px solid #bfdbfe', fontSize: 12, background: '#fff', color: editEsp ? '#374151' : '#9ca3af' }}>
+                    <option value="">— Ninguna —</option>
+                    {especialidadNombres.map(n => <option key={n} value={n}>{n}</option>)}
+                    <option value="_libre">Actividad libre</option>
+                    <option value="_pausa">Pausa</option>
+                  </select>
+                </div>
+                {editEsp && editTemas.length > 0 && (
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: '#3b82f6', display: 'block', marginBottom: 4 }}>Tema</label>
+                    <select value={editTema} onChange={ev => setEditTema(ev.target.value)}
+                      style={{ width: '100%', padding: '6px 8px', borderRadius: 8, border: '1px solid #bfdbfe', fontSize: 12, background: '#fff', color: editTema ? '#374151' : '#9ca3af' }}>
+                      <option value="">— Ninguno —</option>
+                      {editTemas.map((t, i) => <option key={i} value={t}>{t}</option>)}
+                    </select>
+                  </div>
+                )}
+              </div>
+              {/* Inicio / Fin */}
+              <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: '#3b82f6', display: 'block', marginBottom: 4 }}>Inicio</label>
+                  <input type="time" value={editInicio} onChange={ev => setEditInicio(ev.target.value)}
+                    style={{ padding: '6px 8px', borderRadius: 8, border: '1px solid #bfdbfe', fontSize: 13, fontWeight: 600 }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: '#3b82f6', display: 'block', marginBottom: 4 }}>Fin</label>
+                  <input type="time" value={editFin} onChange={ev => setEditFin(ev.target.value)}
+                    style={{ padding: '6px 8px', borderRadius: 8, border: '1px solid #bfdbfe', fontSize: 13, fontWeight: 600 }} />
+                </div>
+                <div style={{ fontSize: 12, color: '#64748b', paddingBottom: 8 }}>{previewStr}</div>
+              </div>
+              {/* Botones */}
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between', alignItems: 'center' }}>
+                <button
+                  onClick={() => { setConfirmDeleteTracker(editingTracker.id) }}
+                  style={{ padding: '6px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, color: '#ef4444', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
+                  🗑️ Eliminar
+                </button>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={() => setEditingTracker(null)}
+                    style={{ padding: '6px 14px', background: 'none', border: 'none', color: '#94a3b8', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>
+                    Cancelar
+                  </button>
+                  <button onClick={saveEditTracker}
+                    style={{ padding: '6px 16px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
+                    Guardar
+                  </button>
+                </div>
+              </div>
+              {/* Confirm delete */}
+              {confirmDeleteTracker && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: '#fef2f2', borderRadius: 10, border: '1px solid #fecaca' }}>
+                  <span style={{ fontSize: 12, color: '#ef4444', fontWeight: 600, flex: 1 }}>¿Eliminar esta entrada?</span>
+                  <button onClick={() => { deleteEntry(confirmDeleteTracker); setEditingTracker(null); setConfirmDeleteTracker(null) }}
+                    style={{ padding: '4px 12px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
+                    Eliminar
+                  </button>
+                  <button onClick={() => setConfirmDeleteTracker(null)}
+                    style={{ padding: '4px 8px', background: 'none', border: 'none', color: '#94a3b8', fontSize: 12, cursor: 'pointer' }}>
+                    Cancelar
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         )
       })()}

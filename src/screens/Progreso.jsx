@@ -1,6 +1,8 @@
-import { useState } from 'react'
 import { useTracker } from '../context/TrackerContext'
-import { repasosData, planesCalendarioGlobal, bloquesCompletados } from '../data/mockData'
+import { repasosData, bloquesCompletados } from '../data/mockData'
+import { getEspecialidadColor } from '../data/especialidadesMIR'
+import EntradaEditable from '../components/EntradaEditable'
+import ProgresoDiario from '../components/ProgresoDiario'
 
 const ACCENT = '#BA7517'
 const BLUE = '#2563eb'
@@ -37,12 +39,20 @@ function MetricCard({ label, value, sub, color, progress }) {
 const DAY_LABELS = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
 const PLAN_HOURS = [7, 7, 7, 7, 7, 3.5, 0]
 
+function toTimeStr(ts) {
+  const d = new Date(ts)
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
+}
+
+function applyTime(ts, timeStr) {
+  const d = new Date(ts)
+  const [h, m] = timeStr.split(':').map(Number)
+  d.setHours(h, m, 0, 0)
+  return d.getTime()
+}
+
 export default function Progreso() {
-  const { entries, deleteEntry, editEntryDuration } = useTracker()
-  const [editingId, setEditingId] = useState(null)
-  const [editH, setEditH] = useState('')
-  const [editM, setEditM] = useState('')
-  const [confirmDeleteId, setConfirmDeleteId] = useState(null)
+  const { entries } = useTracker()
 
   const { monday, sunday } = getWeekBounds()
   const weekEntries = entries.filter(e => e.inicio >= monday.getTime() && e.inicio <= sunday.getTime())
@@ -74,7 +84,11 @@ export default function Progreso() {
 
   return (
     <div style={{ padding: '0' }}>
-      <h2 style={{ margin: '0 0 18px', fontSize: 20, fontWeight: 800, letterSpacing: '-0.3px' }}>Progreso semanal</h2>
+      <h2 style={{ margin: '0 0 14px', fontSize: 20, fontWeight: 800, letterSpacing: '-0.3px' }}>Progreso</h2>
+
+      <ProgresoDiario />
+
+      <h3 style={{ margin: '4px 0 14px', fontSize: 15, fontWeight: 700, color: '#64748b', letterSpacing: '-0.2px' }}>Esta semana</h3>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
         <MetricCard
@@ -148,16 +162,19 @@ export default function Progreso() {
               const pct = Math.round((horas / maxEspH) * 100)
               const h = Math.floor(horas)
               const m = Math.round((horas - h) * 60)
+              const c = getEspecialidadColor(nombre)
               return (
                 <div key={nombre}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                    <span style={{ fontSize: 13, color: '#444', fontWeight: 500 }}>{nombre}</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: ACCENT }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: c.text, background: c.bg, border: `1px solid ${c.border}`, padding: '2px 9px', borderRadius: 12 }}>
+                      {nombre}
+                    </span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: c.text }}>
                       {h > 0 ? `${h}h ` : ''}{m > 0 ? `${m}m` : h === 0 ? '<1m' : ''}
                     </span>
                   </div>
                   <div style={{ background: '#e8e8e8', borderRadius: 4, height: 6, overflow: 'hidden' }}>
-                    <div style={{ width: `${pct}%`, background: ACCENT, height: '100%', borderRadius: 4, transition: 'width 0.4s' }} />
+                    <div style={{ width: `${pct}%`, background: c.text, height: '100%', borderRadius: 4, transition: 'width 0.4s', opacity: 0.85 }} />
                   </div>
                 </div>
               )
@@ -170,109 +187,10 @@ export default function Progreso() {
       {entries.length > 0 && (
         <div style={{ background: '#fafafa', borderRadius: 16, padding: '14px 16px' }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#1a1a1a', marginBottom: 12 }}>Últimas actividades</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {entries.slice(0, 15).map(e => {
-              const h = Math.floor(e.duracionSegundos / 3600)
-              const m = Math.floor((e.duracionSegundos % 3600) / 60)
-              const s = e.duracionSegundos % 60
-              const dur = h > 0 ? `${h}h ${m}m` : m > 0 ? `${m}m ${s}s` : `${s}s`
-              const d = new Date(e.inicio)
-              const hora = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
-              const isEditing = editingId === e.id
-              return (
-                <div key={e.id} style={{ padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: '#1a1a1a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.descripcion}</div>
-                      {e.especialidad && <div style={{ fontSize: 11, color: '#999', marginTop: 1 }}>{e.especialidad}{e.tema ? ` · ${e.tema}` : ''}</div>}
-                    </div>
-                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: ACCENT }}>{dur}</div>
-                      <div style={{ fontSize: 10, color: '#bbb' }}>{e.fecha} {hora}</div>
-                    </div>
-                    {/* Edit / Delete buttons */}
-                    <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-                      <button
-                        onClick={() => {
-                          if (isEditing) {
-                            setEditingId(null)
-                          } else {
-                            setEditingId(e.id)
-                            setEditH(String(Math.floor(e.duracionSegundos / 3600)))
-                            setEditM(String(Math.floor((e.duracionSegundos % 3600) / 60)))
-                          }
-                        }}
-                        title="Editar duración"
-                        style={{ background: isEditing ? '#e0e7ff' : '#f0f0f0', border: 'none', borderRadius: 6, padding: '4px 7px', fontSize: 13, cursor: 'pointer', color: isEditing ? '#4f46e5' : '#666' }}>
-                        ✏️
-                      </button>
-                      <button
-                        onClick={() => {
-                          setConfirmDeleteId(e.id)
-                          setEditingId(null)
-                        }}
-                        title="Eliminar entrada"
-                        style={{ background: '#fef2f2', border: 'none', borderRadius: 6, padding: '4px 7px', fontSize: 13, cursor: 'pointer', color: '#ef4444' }}>
-                        🗑️
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Inline delete confirmation */}
-                  {confirmDeleteId === e.id && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, padding: '8px 12px', background: '#fef2f2', borderRadius: 10, border: '1px solid #fecaca' }}>
-                      <span style={{ fontSize: 12, color: '#ef4444', fontWeight: 600, flex: 1 }}>¿Eliminar esta entrada?</span>
-                      <button
-                        onClick={() => { deleteEntry(e.id); setConfirmDeleteId(null) }}
-                        style={{ padding: '4px 12px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
-                        Eliminar
-                      </button>
-                      <button
-                        onClick={() => setConfirmDeleteId(null)}
-                        style={{ padding: '4px 8px', background: 'none', border: 'none', color: '#94a3b8', fontSize: 12, cursor: 'pointer' }}>
-                        Cancelar
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Inline duration editor */}
-                  {isEditing && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, padding: '10px 12px', background: '#eff6ff', borderRadius: 10, border: '1px solid #bfdbfe' }}>
-                      <span style={{ fontSize: 12, color: '#3b82f6', fontWeight: 600 }}>Nueva duración:</span>
-                      <input
-                        type="number" min="0" max="23"
-                        value={editH}
-                        onChange={e2 => setEditH(e2.target.value)}
-                        style={{ width: 48, padding: '4px 6px', borderRadius: 6, border: '1px solid #bfdbfe', textAlign: 'center', fontWeight: 700, fontSize: 13 }}
-                      />
-                      <span style={{ fontSize: 12, color: '#64748b' }}>h</span>
-                      <input
-                        type="number" min="0" max="59"
-                        value={editM}
-                        onChange={e2 => setEditM(e2.target.value)}
-                        style={{ width: 48, padding: '4px 6px', borderRadius: 6, border: '1px solid #bfdbfe', textAlign: 'center', fontWeight: 700, fontSize: 13 }}
-                      />
-                      <span style={{ fontSize: 12, color: '#64748b' }}>min</span>
-                      <button
-                        onClick={() => {
-                          const newSecs = (parseInt(editH) || 0) * 3600 + (parseInt(editM) || 0) * 60
-                          if (newSecs < 0) return
-                          editEntryDuration(e.id, newSecs)
-                          setEditingId(null)
-                        }}
-                        style={{ marginLeft: 4, padding: '4px 12px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 6, fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
-                        Guardar
-                      </button>
-                      <button
-                        onClick={() => setEditingId(null)}
-                        style={{ padding: '4px 8px', background: 'none', border: 'none', color: '#94a3b8', fontSize: 12, cursor: 'pointer' }}>
-                        Cancelar
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )
-            })}
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {entries.slice(0, 15).map(e => (
+              <EntradaEditable key={e.id} entry={e} />
+            ))}
           </div>
         </div>
       )}

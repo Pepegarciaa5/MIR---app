@@ -166,6 +166,62 @@ export const codigoCTOInverso = Object.fromEntries(
   Object.entries(codigoCTO).map(([cod, nombre]) => [nombre, cod])
 )
 
+// Paleta de colores por especialidad
+// { bg, text, border } — bg claro para tarjetas, text para etiquetas, border para bordes
+export const especialidadColores = {
+  // ── Rojos ────────────────────────────────────────────────────────────────
+  'Cardiología':                    { bg: '#fff0f0', text: '#b91c1c', border: '#fca5a5' },
+  'Hematología':                    { bg: '#fef2f2', text: '#dc2626', border: '#f87171' },
+  'Oncología':                      { bg: '#fdf2f8', text: '#9f1239', border: '#f9a8d4' },
+  'Urgencias':                      { bg: '#fff1f2', text: '#e11d48', border: '#fda4af' },
+  // ── Rosas ────────────────────────────────────────────────────────────────
+  'Ginecología y Obstetricia':      { bg: '#fdf2f8', text: '#be185d', border: '#f9a8d4' },
+  'Dermatología':                   { bg: '#fff0f6', text: '#c2185b', border: '#f48fb1' },
+  // ── Morados ──────────────────────────────────────────────────────────────
+  'Neurología y Neurocirugía':      { bg: '#f5f3ff', text: '#6d28d9', border: '#c4b5fd' },
+  'Psiquiatría':                    { bg: '#faf5ff', text: '#7e22ce', border: '#d8b4fe' },
+  'Farmacología':                   { bg: '#fdf4ff', text: '#86198f', border: '#e879f9' },
+  'Endocrinología y Metabolismo':   { bg: '#f3f0ff', text: '#7c3aed', border: '#a78bfa' },
+  'Alergología':                    { bg: '#ede9fe', text: '#5b21b6', border: '#a78bfa' },
+  'Inmunología':                    { bg: '#f5f0ff', text: '#7c3aed', border: '#c4b5fd' },
+  'Genética':                       { bg: '#eef2ff', text: '#4338ca', border: '#a5b4fc' },
+  // ── Azules ───────────────────────────────────────────────────────────────
+  'Pediatría':                      { bg: '#eff6ff', text: '#1d4ed8', border: '#93c5fd' },
+  'Nefrología':                     { bg: '#eef2ff', text: '#3730a3', border: '#a5b4fc' },
+  'Radiología':                     { bg: '#eff6ff', text: '#1e40af', border: '#93c5fd' },
+  'Bioética y Medicina Legal':      { bg: '#f0f4ff', text: '#3b4fc8', border: '#93c5fd' },
+  // ── Azul claro / Cian ────────────────────────────────────────────────────
+  'Neumología':                     { bg: '#f0f9ff', text: '#0369a1', border: '#7dd3fc' },
+  'Oftalmología':                   { bg: '#ecfeff', text: '#0e7490', border: '#a5f3fc' },
+  'Anatomía':                       { bg: '#f0f9ff', text: '#0284c7', border: '#bae6fd' },
+  // ── Verdes ───────────────────────────────────────────────────────────────
+  'Anestesiología':                 { bg: '#f0fdf4', text: '#15803d', border: '#86efac' },
+  'Medicina Familiar y Comunitaria':{ bg: '#dcfce7', text: '#166534', border: '#6ee7b7' },
+  'Rehabilitación':                 { bg: '#f7fee7', text: '#4d7c0f', border: '#bef264' },
+  'Estadística y Epidemiología':    { bg: '#ecfdf5', text: '#047857', border: '#6ee7b7' },
+  // ── Teal ─────────────────────────────────────────────────────────────────
+  'Bioquímica':                     { bg: '#f0fdfa', text: '#0f766e', border: '#99f6e4' },
+  'Fisiología':                     { bg: '#f0fdfa', text: '#0d9488', border: '#99f6e4' },
+  // ── Amarillos ────────────────────────────────────────────────────────────
+  'Infecciosas':                    { bg: '#fffbeb', text: '#b45309', border: '#fcd34d' },
+  'Otorrinolaringología':           { bg: '#fefce8', text: '#854d0e', border: '#fde047' },
+  'Geriatría':                      { bg: '#fefce8', text: '#a16207', border: '#fde047' },
+  'Reumatología':                   { bg: '#fffbeb', text: '#92400e', border: '#fde68a' },
+  // ── Naranja ──────────────────────────────────────────────────────────────
+  'Urología':                       { bg: '#fff7ed', text: '#c2410c', border: '#fdba74' },
+  'Cirugía General':                { bg: '#fff7ed', text: '#ea580c', border: '#fed7aa' },
+  'Traumatología':                  { bg: '#fff3e0', text: '#9a3412', border: '#fdba74' },
+  'Digestivo':                      { bg: '#fef3c7', text: '#92400e', border: '#fcd34d' },
+  // ── Gris (sin clasificar) ─────────────────────────────────────────────────
+  'Anatomía Patológica':            { bg: '#f8f5ff', text: '#581c87', border: '#d8b4fe' },
+  '_libre':                         { bg: '#f8fafc', text: '#64748b', border: '#e2e8f0' },
+  '_pausa':                         { bg: '#f1f5f9', text: '#94a3b8', border: '#cbd5e1' },
+}
+
+export function getEspecialidadColor(especialidad) {
+  return especialidadColores[especialidad] || { bg: '#f8fafc', text: '#475569', border: '#e2e8f0' }
+}
+
 export const ESPECIALIDADES = {
   ALERGOLOGIA: 'Alergología',
   ANATOMIA: 'Anatomía',

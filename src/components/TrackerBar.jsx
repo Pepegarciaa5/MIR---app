@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTracker } from '../context/TrackerContext'
-import { especialidadesMIR, especialidadNombres } from '../data/especialidadesMIR'
+import { especialidadesMIR, especialidadNombres, getEspecialidadColor } from '../data/especialidadesMIR'
 
 const ACCENT = '#BA7517'
 
@@ -46,11 +46,14 @@ export default function TrackerBar() {
         <div style={{ flex: 1, fontSize: 14, fontWeight: 600, color: '#166534', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {activeEntry.descripcion}
         </div>
-        {activeEntry.especialidad && (
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#166534', background: '#dcfce7', padding: '3px 8px', borderRadius: 12, whiteSpace: 'nowrap', flexShrink: 0 }}>
-            {activeEntry.especialidad}{activeEntry.tema ? ` · ${activeEntry.tema}` : ''}
-          </span>
-        )}
+        {activeEntry.especialidad && (() => {
+          const c = getEspecialidadColor(activeEntry.especialidad)
+          return (
+            <span style={{ fontSize: 11, fontWeight: 700, color: c.text, background: c.bg, border: `1px solid ${c.border}`, padding: '3px 8px', borderRadius: 12, whiteSpace: 'nowrap', flexShrink: 0 }}>
+              {activeEntry.especialidad}{activeEntry.tema ? ` · ${activeEntry.tema}` : ''}
+            </span>
+          )
+        })()}
         <span style={{ fontFamily: 'monospace', fontSize: 17, fontWeight: 800, color: '#16a34a', minWidth: 88, textAlign: 'right', flexShrink: 0 }}>
           {fmt(elapsed)}
         </span>

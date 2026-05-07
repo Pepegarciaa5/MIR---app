@@ -95,16 +95,22 @@ export function TrackerProvider({ children }) {
     setEntries(prev => prev.filter(e => e.id !== id))
   }
 
-  const editEntryDuration = async (id, newDuracionSegundos) => {
-    const updated = entries.find(e => e.id === id)
-    if (!updated) return
-    const patched = { ...updated, duracionSegundos: newDuracionSegundos, fin: updated.inicio + newDuracionSegundos * 1000 }
+  const editEntry = async (id, changes) => {
+    const existing = entries.find(e => e.id === id)
+    if (!existing) return
+    const patched = { ...existing, ...changes }
+    // Keep duracionSegundos consistent with inicio/fin
+    if (changes.inicio !== undefined || changes.fin !== undefined) {
+      patched.duracionSegundos = Math.max(0, Math.floor((patched.fin - patched.inicio) / 1000))
+    } else if (changes.duracionSegundos !== undefined) {
+      patched.fin = patched.inicio + patched.duracionSegundos * 1000
+    }
     await upsertTrackerEntry(patched)
     setEntries(prev => prev.map(e => e.id === id ? patched : e))
   }
 
   return (
-    <TrackerContext.Provider value={{ entries, activeEntry, elapsed, loaded, startTracking, stopTracking, getBlockSeconds, deleteEntry, editEntryDuration }}>
+    <TrackerContext.Provider value={{ entries, activeEntry, elapsed, loaded, startTracking, stopTracking, getBlockSeconds, deleteEntry, editEntry }}>
       {children}
     </TrackerContext.Provider>
   )
