@@ -7,6 +7,7 @@ import Calendario from './screens/Calendario'
 import Repasos from './screens/Repasos'
 import Progreso from './screens/Progreso'
 import Diario from './screens/Diario'
+import PublicView from './screens/PublicView'
 import { loadAppData, migrarDesdeLocalStorage } from './data/mockData'
 import { isAdminMode } from './lib/supabase'
 
@@ -48,6 +49,11 @@ export default function App() {
         </div>
       </div>
     )
+  }
+
+  // Public visitors see the new single-page view
+  if (!isAdminMode) {
+    return <PublicView />
   }
 
   return (
