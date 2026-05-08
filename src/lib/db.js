@@ -212,6 +212,47 @@ export async function migrarDesdeLocalStorage() {
   return results
 }
 
+// ─── COMENTARIOS ─────────────────────────────────────────────────────────────
+
+export async function getComentarios() {
+  const { data, error } = await supabase
+    .from('comentarios')
+    .select('*')
+    .order('created_at', { ascending: true })
+  if (error) { console.error('getComentarios:', error); return [] }
+  return data.map(c => ({
+    id: c.id,
+    autor: c.autor,
+    texto: c.texto,
+    tipo: c.tipo,         // 'foro' | 'timeline'
+    refId: c.ref_id,     // null para foro, id de entry/post para timeline
+    createdAt: new Date(c.created_at).getTime(),
+  }))
+}
+
+export async function addComentario({ autor, texto, tipo = 'foro', refId = null }) {
+  const { data, error } = await supabase.from('comentarios').insert({
+    autor: autor.trim(),
+    texto: texto.trim(),
+    tipo,
+    ref_id: refId ? String(refId) : null,
+  }).select().single()
+  if (error) { console.error('addComentario:', error); return null }
+  return {
+    id: data.id,
+    autor: data.autor,
+    texto: data.texto,
+    tipo: data.tipo,
+    refId: data.ref_id,
+    createdAt: new Date(data.created_at).getTime(),
+  }
+}
+
+export async function deleteComentario(id) {
+  const { error } = await supabase.from('comentarios').delete().eq('id', id)
+  if (error) console.error('deleteComentario:', error)
+}
+
 // ─── DIARIO / BLOG POSTS ─────────────────────────────────────────────────────
 
 export async function getDiarioPosts() {

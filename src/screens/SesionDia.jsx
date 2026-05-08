@@ -134,7 +134,7 @@ export default function SesionDia() {
   const [repasoTracker, setRepasoTracker] = useState(null)
   const [repasoTitulo, setRepasoTitulo] = useState('')
   const [repasoDestino, setRepasoDestino] = useState('')
-  const [repasoConfianza, setRepasoConfianza] = useState(2)
+  const [repasoConfianza, setRepasoConfianza] = useState('regular')
   const [repasoEnviados, setRepasoEnviados] = useState(new Set())
 
   const timelineRef = useRef(null)
@@ -235,7 +235,7 @@ export default function SesionDia() {
     setRepasoTracker(t)
     setRepasoTitulo(t.descripcion)
     setRepasoDestino('')
-    setRepasoConfianza(2)
+    setRepasoConfianza('regular')
     setEditingTracker(null)
     setFinishingBlock(null)
     setSkippingBlock(null)
@@ -254,7 +254,7 @@ export default function SesionDia() {
       minutosRepaso,
       fase: 0,
       fechaProximoRepaso: todayMs,
-      confianza: repasoConfianza,
+      confianza: { flojo: 1, regular: 2, bien: 3 }[repasoConfianza] ?? (typeof repasoConfianza === 'number' ? repasoConfianza : 2),
     }
     repasosData.unshift(newRepaso)
     upsertRepaso(newRepaso)

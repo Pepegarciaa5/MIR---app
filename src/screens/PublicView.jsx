@@ -1,18 +1,40 @@
+/**
+ * PublicView.jsx — Vista pública de Pepe estudiando el MIR
+ *
+ * Tres pestañas:
+ *  "Hoy"    → sesión diaria de hoy en modo read-only (plan + tracker entries)
+ *  "Diario" → timeline de entradas de tracker + posts con comentarios
+ *  "Foro"   → tablón de comentarios libres
+ *
+ * Layout desktop: col izquierda tabs (65%) + col derecha stats sticky (35%)
+ * Layout mobile:  stats strip arriba + tab bar + contenido
+ */
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
+import { getComentarios, addComentario } from '../lib/db'
 import { getEspecialidadColor } from '../data/especialidadesMIR'
+import { planificacionCTO } from '../data/planificacionBridge'
 
-const ACCENT = '#BA7517'
-const NAME = 'Pepe'
-const POLL_MS = 30_000
+const ACCENT   = '#BA7517'
+const NAME     = 'Pepe'
+const POLL_MS  = 30_000
+const IS_ADMIN = !!import.meta.env.VITE_SUPABASE_SERVICE_KEY
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Date helpers ─────────────────────────────────────────────────────────────
+
+function getTodayStr() {
+  const d = new Date()
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${dd}`
+}
 
 function relTime(ts) {
   const diff = Date.now() - ts
-  const mins = Math.floor(diff / 60_000)
+  const mins  = Math.floor(diff / 60_000)
   const hours = Math.floor(diff / 3_600_000)
-  const days = Math.floor(diff / 86_400_000)
+  const days  = Math.floor(diff / 86_400_000)
   if (mins < 1)   return 'ahora mismo'
   if (mins < 60)  return `hace ${mins} min`
   if (hours < 24) return `hace ${hours}h`
@@ -27,6 +49,12 @@ function durStr(secs) {
   if (h > 0)           return `${h}h`
   if (m > 0)           return `${m}m`
   return `${secs}s`
+}
+
+function timeToMins(t) {
+  if (!t) return 0
+  const [h, m] = t.split(':').map(Number)
+  return h * 60 + (m || 0)
 }
 
 function getWeekBounds() {
@@ -59,14 +87,16 @@ function last7Days() {
   return days
 }
 
-// ─── Fetch functions ─────────────────────────────────────────────────────────
+const todayStr = getTodayStr()
+
+// ─── Fetch functions ──────────────────────────────────────────────────────────
 
 async function fetchEntries() {
   const { data, error } = await supabase
     .from('tracker_entries')
     .select('*')
     .order('inicio', { ascending: false })
-    .limit(200)
+    .limit(300)
   if (error) { console.error(error); return [] }
   return data.map(e => ({
     _type:            'entry',
@@ -100,7 +130,18 @@ async function fetchPosts() {
   }))
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+async function fetchBlockStatus() {
+  const [{ data: comp }, { data: desc }] = await Promise.all([
+    supabase.from('bloques_completados').select('id'),
+    supabase.from('bloques_descartados').select('id'),
+  ])
+  return {
+    completados: (comp || []).map(r => r.id),
+    descartados: (desc || []).map(r => r.id),
+  }
+}
+
+// ─── Shared UI pieces ─────────────────────────────────────────────────────────
 
 function LiveBadge() {
   const [dot, setDot] = useState(true)
@@ -127,102 +168,410 @@ function LiveBadge() {
   )
 }
 
-function EntryCard({ item, isLive, elapsed }) {
-  const c = item.especialidad ? getEspecialidadColor(item.especialidad) : null
-  const secs = isLive ? elapsed : item.duracionSegundos
+// ─── Comment pieces ───────────────────────────────────────────────────────────
+
+function CommentList({ comentarios, refId, tipo, onAdd, onDelete }) {
+  const list = comentarios.filter(c => c.tipo === tipo && c.refId === (refId ? String(refId) : null))
+  const [autor, setAutor] = useState('')
+  const [texto, setTexto] = useState('')
+  const [sending, setSending] = useState(false)
+  const [err, setErr] = useState('')
+
+  async function send() {
+    if (!autor.trim() || !texto.trim()) { setErr('Rellena nombre y comentario'); return }
+    if (texto.trim().length > 1000) { setErr('Máximo 1000 caracteres'); return }
+    setSending(true); setErr('')
+    const c = await onAdd({ autor: autor.trim(), texto: texto.trim(), tipo, refId: refId || null })
+    if (c) { setAutor(''); setTexto('') }
+    else setErr('Error al enviar. Inténtalo de nuevo.')
+    setSending(false)
+  }
 
   return (
-    <div style={{
-      background: '#fff',
-      border: isLive ? `1.5px solid ${ACCENT}` : '1px solid #f0f0f0',
-      borderRadius: 14,
-      padding: '14px 16px',
-      boxShadow: isLive ? `0 2px 16px ${ACCENT}18` : '0 1px 4px rgba(0,0,0,0.04)',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          {isLive && (
-            <div style={{ marginBottom: 6 }}>
-              <LiveBadge />
-            </div>
-          )}
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#1a1a1a', marginBottom: 4 }}>
-            {isLive
-              ? <>📚 {NAME} está estudiando <em style={{ fontStyle: 'normal', color: ACCENT }}>{item.descripcion}</em></>
-              : <>{NAME} ha estudiado <em style={{ fontStyle: 'normal' }}>{item.descripcion}</em></>}
-          </div>
-          {item.especialidad && !item.especialidad.startsWith('_') && c && (
-            <span style={{
-              fontSize: 11, fontWeight: 600,
-              color: c.text, background: c.bg, border: `1px solid ${c.border}`,
-              padding: '1px 8px', borderRadius: 10, display: 'inline-block',
+    <div style={{ marginTop: 12, borderTop: '1px solid #f0f0f0', paddingTop: 12 }}>
+      {list.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+          {list.map(c => (
+            <div key={c.id} style={{
+              display: 'flex', gap: 10, alignItems: 'flex-start',
             }}>
-              {item.especialidad}{item.tema ? ` · ${item.tema}` : ''}
-            </span>
-          )}
+              <div style={{
+                width: 28, height: 28, borderRadius: '50%', background: '#f0f0f0',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 12, fontWeight: 700, color: '#666', flexShrink: 0,
+              }}>
+                {c.autor[0]?.toUpperCase() || '?'}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#1a1a1a' }}>{c.autor}</span>
+                  <span style={{ fontSize: 10, color: '#bbb' }}>{relTime(c.createdAt)}</span>
+                  {IS_ADMIN && (
+                    <button
+                      onClick={() => onDelete(c.id)}
+                      style={{ fontSize: 10, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginLeft: 4 }}
+                    >
+                      Eliminar
+                    </button>
+                  )}
+                </div>
+                <div style={{ fontSize: 13, color: '#374151', lineHeight: 1.5, marginTop: 2, wordBreak: 'break-word' }}>
+                  {c.texto}
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
-        <div style={{ textAlign: 'right', flexShrink: 0 }}>
-          <div style={{ fontSize: 15, fontWeight: 800, color: ACCENT, letterSpacing: '-0.5px' }}>
-            {secs > 0 ? durStr(secs) : '—'}
-          </div>
-          <div style={{ fontSize: 11, color: '#bbb', marginTop: 2 }}>
-            {isLive ? 'ahora mismo' : relTime(item._ts)}
-          </div>
+      )}
+
+      {/* Form */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input
+            value={autor}
+            onChange={e => setAutor(e.target.value)}
+            placeholder="Tu nombre"
+            maxLength={40}
+            style={{
+              flex: '0 0 140px', padding: '7px 10px',
+              borderRadius: 8, border: '1px solid #e2e8f0',
+              fontSize: 12, outline: 'none',
+            }}
+          />
+          <input
+            value={texto}
+            onChange={e => setTexto(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send()}
+            placeholder="Escribe un comentario..."
+            maxLength={1000}
+            style={{
+              flex: 1, padding: '7px 10px',
+              borderRadius: 8, border: '1px solid #e2e8f0',
+              fontSize: 12, outline: 'none',
+            }}
+          />
+          <button
+            onClick={send}
+            disabled={sending || !autor.trim() || !texto.trim()}
+            style={{
+              padding: '7px 14px', background: autor.trim() && texto.trim() ? ACCENT : '#e2e8f0',
+              color: autor.trim() && texto.trim() ? '#fff' : '#94a3b8',
+              border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 12,
+              cursor: autor.trim() && texto.trim() ? 'pointer' : 'default', flexShrink: 0,
+            }}
+          >
+            {sending ? '...' : '↑'}
+          </button>
         </div>
+        {err && <div style={{ fontSize: 11, color: '#ef4444' }}>{err}</div>}
       </div>
     </div>
   )
 }
 
-function PostCard({ item }) {
+// ─── HOY: read-only session ───────────────────────────────────────────────────
+
+function SesionPublica({ entries, completados, descartados }) {
+  const plan = planificacionCTO[todayStr] || []
+  const todayEntries = entries.filter(e => e.fecha === todayStr)
+
+  const now = new Date()
+  const currentMins = now.getHours() * 60 + now.getMinutes()
+
+  // Detect likely-live: last entry from today if it ended < 3 min ago (heuristic)
+  const lastEntry = todayEntries[0]
+  const likelyLive = lastEntry && (Date.now() - lastEntry.fin) < 3 * 60_000
+
+  const todayHours = todayEntries.reduce((s, e) => s + e.duracionSegundos, 0) / 3600
+
+  if (plan.length === 0 && todayEntries.length === 0) {
+    return (
+      <div style={{ textAlign: 'center', padding: '40px 20px', color: '#94a3b8' }}>
+        <div style={{ fontSize: 40, marginBottom: 12 }}>🌿</div>
+        <div style={{ fontSize: 15, fontWeight: 600 }}>Sin plan para hoy</div>
+        <div style={{ fontSize: 13, marginTop: 6 }}>Puede que sea día de descanso o aún no ha empezado.</div>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+
+      {/* Summary bar */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 12,
+        padding: '10px 14px', background: '#fafafa', borderRadius: 12,
+        border: '1px solid #f0f0f0', marginBottom: 4,
+      }}>
+        {likelyLive && <LiveBadge />}
+        <div style={{ fontSize: 13, color: '#64748b' }}>
+          <span style={{ fontWeight: 800, color: ACCENT, fontSize: 16 }}>
+            {Math.round(todayHours * 10) / 10}h
+          </span>
+          {' '}estudiadas hoy
+        </div>
+        <div style={{ fontSize: 12, color: '#bbb', marginLeft: 'auto' }}>
+          {new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+        </div>
+      </div>
+
+      {/* Plan blocks */}
+      {plan.length > 0 && (
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: 8 }}>
+            Plan del día
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {plan.map(b => {
+              const done     = completados.includes(String(b.id))
+              const skipped  = descartados.includes(String(b.id))
+              const startM   = timeToMins(b.inicio)
+              const endM     = timeToMins(b.fin)
+              const active   = !done && !skipped && currentMins >= startM && currentMins < endM
+              const c        = b.especialidad ? getEspecialidadColor(b.especialidad) : null
+
+              let statusIcon = '○'
+              let statusColor = '#cbd5e1'
+              let borderColor = '#f0f0f0'
+              let bgColor = '#fff'
+              if (done)    { statusIcon = '✓'; statusColor = '#16a34a'; borderColor = '#bbf7d0'; bgColor = '#f0fdf4' }
+              if (skipped) { statusIcon = '—'; statusColor = '#94a3b8'; borderColor = '#e2e8f0'; bgColor = '#f8fafc' }
+              if (active)  { statusIcon = '▶'; statusColor = ACCENT;    borderColor = ACCENT;   bgColor = '#fffbf0' }
+
+              return (
+                <div key={b.id} style={{
+                  display: 'flex', alignItems: 'flex-start', gap: 10,
+                  padding: '10px 12px', borderRadius: 10,
+                  border: `1px solid ${borderColor}`,
+                  background: bgColor,
+                  opacity: skipped ? 0.55 : 1,
+                  transition: 'all 0.2s',
+                }}>
+                  <div style={{
+                    width: 22, height: 22, borderRadius: '50%',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 12, fontWeight: 700, color: statusColor,
+                    background: done ? '#dcfce7' : active ? `${ACCENT}18` : '#f0f0f0',
+                    flexShrink: 0, marginTop: 1,
+                  }}>
+                    {statusIcon}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: skipped ? '#94a3b8' : '#1a1a1a', lineHeight: 1.3 }}>
+                      {b.titulo}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 11, color: '#94a3b8' }}>{b.inicio} – {b.fin}</span>
+                      {c && b.especialidad && (
+                        <span style={{
+                          fontSize: 10, fontWeight: 600,
+                          color: c.text, background: c.bg, border: `1px solid ${c.border}`,
+                          padding: '1px 7px', borderRadius: 8,
+                        }}>
+                          {b.especialidad}
+                        </span>
+                      )}
+                      {active && (
+                        <span style={{ fontSize: 10, fontWeight: 700, color: ACCENT }}>● Activo ahora</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Tracker entries for today */}
+      {todayEntries.length > 0 && (
+        <div style={{ marginTop: 4 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: 8 }}>
+            Sesiones registradas
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {todayEntries.map(e => {
+              const c = e.especialidad ? getEspecialidadColor(e.especialidad) : null
+              const startStr = new Date(e.inicio).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+              const endStr   = new Date(e.fin).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+              return (
+                <div key={e.id} style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '8px 12px', borderRadius: 10,
+                  border: '1px solid #f0f0f0', background: '#fff',
+                }}>
+                  <div style={{
+                    width: 22, height: 22, borderRadius: '50%',
+                    background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 11, flexShrink: 0,
+                  }}>⏱</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#1a1a1a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {e.descripcion}
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 2 }}>
+                      <span style={{ fontSize: 10, color: '#94a3b8' }}>{startStr} – {endStr}</span>
+                      {c && e.especialidad && (
+                        <span style={{
+                          fontSize: 10, fontWeight: 600,
+                          color: c.text, background: c.bg, border: `1px solid ${c.border}`,
+                          padding: '0px 6px', borderRadius: 6,
+                        }}>
+                          {e.especialidad}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: ACCENT, flexShrink: 0 }}>
+                    {durStr(e.duracionSegundos)}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── DIARIO: timeline with comments ──────────────────────────────────────────
+
+function TimelineItem({ item, comentarios, onAdd, onDelete }) {
+  const [showComments, setShowComments] = useState(false)
+  const refId = String(item.id)
+  const itemComments = comentarios.filter(c => c.tipo === 'timeline' && c.refId === refId)
+
+  if (item._type === 'entry') {
+    const c = item.especialidad ? getEspecialidadColor(item.especialidad) : null
+    return (
+      <div style={{
+        background: '#fff', border: '1px solid #f0f0f0',
+        borderRadius: 14, overflow: 'hidden',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+      }}>
+        <div style={{ padding: '14px 16px' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#1a1a1a', marginBottom: 4 }}>
+                {NAME} estudió <em style={{ fontStyle: 'normal' }}>{item.descripcion}</em>
+              </div>
+              {c && item.especialidad && !item.especialidad.startsWith('_') && (
+                <span style={{
+                  fontSize: 11, fontWeight: 600,
+                  color: c.text, background: c.bg, border: `1px solid ${c.border}`,
+                  padding: '1px 8px', borderRadius: 10, display: 'inline-block',
+                }}>
+                  {item.especialidad}{item.tema ? ` · ${item.tema}` : ''}
+                </span>
+              )}
+            </div>
+            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: ACCENT }}>{durStr(item.duracionSegundos)}</div>
+              <div style={{ fontSize: 11, color: '#bbb', marginTop: 2 }}>{relTime(item._ts)}</div>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setShowComments(v => !v)}
+            style={{
+              marginTop: 10, background: 'none', border: 'none',
+              cursor: 'pointer', color: '#64748b', fontSize: 12,
+              fontWeight: 600, padding: 0, display: 'flex', alignItems: 'center', gap: 4,
+            }}
+          >
+            💬 {itemComments.length > 0 ? `${itemComments.length} comentario${itemComments.length > 1 ? 's' : ''}` : 'Comentar'}
+            <span style={{ fontSize: 10 }}>{showComments ? '▲' : '▼'}</span>
+          </button>
+        </div>
+
+        {showComments && (
+          <div style={{ padding: '0 16px 14px', borderTop: '1px solid #f8f8f8' }}>
+            <CommentList
+              comentarios={comentarios}
+              refId={refId}
+              tipo="timeline"
+              onAdd={onAdd}
+              onDelete={onDelete}
+            />
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // Post
   return (
     <div style={{
-      background: '#fffbf5',
-      border: '1px solid #fde68a',
-      borderRadius: 14,
-      padding: '14px 16px',
+      background: '#fffbf5', border: '1px solid #fde68a',
+      borderRadius: 14, overflow: 'hidden',
       boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
     }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 11, color: '#b45309', fontWeight: 700, marginBottom: 4 }}>
-            {item.emoji} Entrada del diario
-          </div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#1a1a1a', marginBottom: 4 }}>
-            {item.titulo}
-          </div>
-          {item.contenido && (
-            <div style={{
-              fontSize: 12, color: '#64748b', lineHeight: 1.5,
-              display: '-webkit-box', WebkitLineClamp: 3,
-              WebkitBoxOrient: 'vertical', overflow: 'hidden',
-            }}>
-              {item.contenido}
+      <div style={{ padding: '14px 16px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 11, color: '#b45309', fontWeight: 700, marginBottom: 4 }}>
+              {item.emoji} Entrada del diario
             </div>
-          )}
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#1a1a1a', marginBottom: 4 }}>
+              {item.titulo}
+            </div>
+            {item.contenido && (
+              <div style={{
+                fontSize: 13, color: '#64748b', lineHeight: 1.55,
+                display: '-webkit-box', WebkitLineClamp: 4,
+                WebkitBoxOrient: 'vertical', overflow: 'hidden',
+              }}>
+                {item.contenido}
+              </div>
+            )}
+          </div>
+          <div style={{ fontSize: 11, color: '#bbb', flexShrink: 0, marginTop: 2 }}>
+            {relTime(item._ts)}
+          </div>
         </div>
-        <div style={{ fontSize: 11, color: '#bbb', flexShrink: 0, marginTop: 2 }}>
-          {relTime(item._ts)}
-        </div>
+
+        <button
+          onClick={() => setShowComments(v => !v)}
+          style={{
+            marginTop: 10, background: 'none', border: 'none',
+            cursor: 'pointer', color: '#b45309', fontSize: 12,
+            fontWeight: 600, padding: 0, display: 'flex', alignItems: 'center', gap: 4,
+          }}
+        >
+          💬 {itemComments.length > 0 ? `${itemComments.length} comentario${itemComments.length > 1 ? 's' : ''}` : 'Comentar'}
+          <span style={{ fontSize: 10 }}>{showComments ? '▲' : '▼'}</span>
+        </button>
       </div>
+
+      {showComments && (
+        <div style={{ padding: '0 16px 14px', borderTop: '1px solid #fde68a40' }}>
+          <CommentList
+            comentarios={comentarios}
+            refId={refId}
+            tipo="timeline"
+            onAdd={onAdd}
+            onDelete={onDelete}
+          />
+        </div>
+      )}
     </div>
   )
 }
 
-// ─── Stats panel ──────────────────────────────────────────────────────────────
+// ─── STATS panel ──────────────────────────────────────────────────────────────
 
-function StatsPanel({ entries, compact = false }) {
+function StatsPanel({ entries, onShowMore, compact = false }) {
   const { start: todayStart, end: todayEnd } = todayBounds()
   const { mon, sun } = getWeekBounds()
 
-  const todayEntries = entries.filter(e => e.inicio >= todayStart && e.inicio <= todayEnd)
-  const weekEntries  = entries.filter(e => e.inicio >= mon.getTime() && e.inicio <= sun.getTime())
-
-  const horasHoy     = todayEntries.reduce((s, e) => s + e.duracionSegundos, 0) / 3600
-  const horasSemana  = weekEntries.reduce((s, e) => s + e.duracionSegundos, 0) / 3600
+  const todayEnts  = entries.filter(e => e.inicio >= todayStart && e.inicio <= todayEnd)
+  const weekEnts   = entries.filter(e => e.inicio >= mon.getTime() && e.inicio <= sun.getTime())
+  const horasHoy   = todayEnts.reduce((s, e) => s + e.duracionSegundos, 0) / 3600
+  const horasSem   = weekEnts.reduce((s, e) => s + e.duracionSegundos, 0) / 3600
 
   const byEsp = {}
-  weekEntries.forEach(e => {
+  weekEnts.forEach(e => {
     if (e.especialidad && !e.especialidad.startsWith('_')) {
       byEsp[e.especialidad] = (byEsp[e.especialidad] || 0) + e.duracionSegundos / 3600
     }
@@ -230,81 +579,42 @@ function StatsPanel({ entries, compact = false }) {
   const topEsp = Object.entries(byEsp).sort((a, b) => b[1] - a[1])
   const mejorEsp = topEsp[0]?.[0] || '—'
 
-  const stats = [
-    { label: 'Horas hoy',     value: horasHoy  > 0 ? `${Math.round(horasHoy * 10) / 10}h`   : '0h',  icon: '⏱️' },
-    { label: 'Esta semana',   value: horasSemana > 0 ? `${Math.round(horasSemana * 10) / 10}h` : '0h', icon: '📅' },
-    { label: 'Top asignatura',value: mejorEsp,   icon: '🏆' },
+  const statsData = [
+    { label: 'Horas hoy',    value: horasHoy  > 0 ? `${Math.round(horasHoy  * 10) / 10}h` : '0h',  icon: '⏱️' },
+    { label: 'Esta semana',  value: horasSem  > 0 ? `${Math.round(horasSem  * 10) / 10}h` : '0h',  icon: '📅' },
+    { label: 'Top semana',   value: mejorEsp, icon: '🏆' },
   ]
 
   if (compact) {
     return (
       <div style={{
-        display: 'flex', gap: 8,
-        padding: '10px 16px',
-        background: '#fff',
-        borderBottom: '1px solid #f0f0f0',
-        overflowX: 'auto',
+        display: 'flex', gap: 8, padding: '10px 16px',
+        background: '#fff', borderBottom: '1px solid #f0f0f0', overflowX: 'auto',
       }}>
-        {stats.map(s => (
+        {statsData.map(s => (
           <div key={s.label} style={{
-            flex: '0 0 auto', background: '#fafafa',
-            border: '1px solid #f0f0f0', borderRadius: 12,
-            padding: '8px 14px', minWidth: 80, textAlign: 'center',
+            flex: '0 0 auto', background: '#fafafa', border: '1px solid #f0f0f0',
+            borderRadius: 12, padding: '8px 14px', minWidth: 80, textAlign: 'center',
           }}>
             <div style={{ fontSize: 18 }}>{s.icon}</div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: ACCENT, letterSpacing: '-0.5px', lineHeight: 1.2 }}>
-              {s.value}
-            </div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: ACCENT, letterSpacing: '-0.5px', lineHeight: 1.2 }}>{s.value}</div>
             <div style={{ fontSize: 10, color: '#999', marginTop: 2 }}>{s.label}</div>
           </div>
         ))}
+        <button onClick={onShowMore} style={{
+          flex: '0 0 auto', background: '#fff', border: `1px solid ${ACCENT}`,
+          borderRadius: 12, padding: '8px 14px', color: ACCENT,
+          fontWeight: 700, fontSize: 11, cursor: 'pointer',
+        }}>
+          Ver más →
+        </button>
       </div>
     )
   }
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      {stats.map(s => (
-        <div key={s.label} style={{
-          background: '#fff', border: '1px solid #f0f0f0',
-          borderRadius: 14, padding: '14px 16px',
-          boxShadow: '0 1px 6px rgba(0,0,0,0.04)',
-        }}>
-          <div style={{ fontSize: 22 }}>{s.icon}</div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: ACCENT, letterSpacing: '-1px', marginTop: 4 }}>
-            {s.value}
-          </div>
-          <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>{s.label}</div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-// ─── Full stats overlay ───────────────────────────────────────────────────────
-
-function StatsOverlay({ entries, onClose }) {
-  const { start: todayStart, end: todayEnd } = todayBounds()
-  const { mon, sun } = getWeekBounds()
-
-  const todayEntries = entries.filter(e => e.inicio >= todayStart && e.inicio <= todayEnd)
-  const weekEntries  = entries.filter(e => e.inicio >= mon.getTime() && e.inicio <= sun.getTime())
-
-  const horasHoy    = Math.round((todayEntries.reduce((s, e) => s + e.duracionSegundos, 0) / 3600) * 10) / 10
-  const horasSemana = Math.round((weekEntries.reduce((s, e) => s + e.duracionSegundos, 0) / 3600) * 10) / 10
-
-  const byEsp = {}
-  weekEntries.forEach(e => {
-    if (e.especialidad && !e.especialidad.startsWith('_')) {
-      byEsp[e.especialidad] = (byEsp[e.especialidad] || 0) + e.duracionSegundos / 3600
-    }
-  })
-  const topEsp   = Object.entries(byEsp).sort((a, b) => b[1] - a[1]).slice(0, 8)
-  const maxEspH  = topEsp[0]?.[1] || 1
-
-  // Last 7 days chart
-  const days7 = last7Days()
-  const byDay7 = days7.map(dayStart => {
+  // Desktop sidebar
+  const days7   = last7Days()
+  const byDay7  = days7.map(dayStart => {
     const dayEnd = dayStart + 86_400_000 - 1
     return entries
       .filter(e => e.inicio >= dayStart && e.inicio <= dayEnd)
@@ -314,127 +624,203 @@ function StatsOverlay({ entries, onClose }) {
   const DAY_NAMES = ['L','M','X','J','V','S','D']
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, background: '#fff',
-      zIndex: 100, overflowY: 'auto',
-    }}>
-      {/* Header */}
-      <div style={{
-        position: 'sticky', top: 0, background: '#fff',
-        borderBottom: '1px solid #f0f0f0',
-        padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 12,
-        zIndex: 10,
-      }}>
-        <button onClick={onClose} style={{
-          display: 'flex', alignItems: 'center', gap: 6,
-          background: 'none', border: 'none', cursor: 'pointer',
-          fontSize: 14, color: '#64748b', fontWeight: 600, padding: '6px 0',
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {/* Mini stats */}
+      {statsData.map(s => (
+        <div key={s.label} style={{
+          background: '#fff', border: '1px solid #f0f0f0',
+          borderRadius: 14, padding: '14px 16px',
+          boxShadow: '0 1px 6px rgba(0,0,0,0.04)',
         }}>
-          ← Volver
-        </button>
-        <div style={{ fontSize: 16, fontWeight: 800, color: '#1a1a1a' }}>
-          Progreso de {NAME}
+          <div style={{ fontSize: 20 }}>{s.icon}</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: ACCENT, letterSpacing: '-0.8px', marginTop: 4 }}>
+            {s.value}
+          </div>
+          <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>{s.label}</div>
+        </div>
+      ))}
+
+      {/* 7-day mini chart */}
+      <div style={{ background: '#fff', border: '1px solid #f0f0f0', borderRadius: 14, padding: '14px 16px', boxShadow: '0 1px 6px rgba(0,0,0,0.04)' }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: '#1a1a1a', marginBottom: 12 }}>Últimos 7 días</div>
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 60 }}>
+          {byDay7.map((h, i) => {
+            const barH   = Math.max(h > 0 ? 3 : 0, Math.round((h / maxDay) * 56))
+            const d      = new Date(days7[i])
+            const dow    = d.getDay()
+            const isToday = i === 6
+            return (
+              <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', width: '100%' }}>
+                  <div style={{
+                    width: '100%', height: barH,
+                    background: isToday ? ACCENT : '#e8c878',
+                    borderRadius: '3px 3px 0 0',
+                    opacity: isToday ? 1 : 0.65,
+                  }} />
+                </div>
+                <div style={{ fontSize: 9, color: isToday ? ACCENT : '#aaa', fontWeight: isToday ? 700 : 400, marginTop: 3 }}>
+                  {DAY_NAMES[dow === 0 ? 6 : dow - 1]}
+                </div>
+              </div>
+            )
+          })}
         </div>
       </div>
 
-      <div style={{ padding: '20px', maxWidth: 600, margin: '0 auto' }}>
-
-        {/* Top stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
-          {[
-            { label: 'Horas hoy',     value: `${horasHoy}h`,    sub: 'sesión activa', color: ACCENT },
-            { label: 'Horas semana',  value: `${horasSemana}h`, sub: '/ 35h objetivo', color: '#2563eb' },
-            { label: 'Asignaturas',   value: topEsp.length,     sub: 'esta semana', color: '#7c3aed' },
-            { label: 'Entradas',      value: weekEntries.length, sub: 'esta semana', color: '#059669' },
-          ].map(s => (
-            <div key={s.label} style={{
-              background: '#fff', border: '1px solid #f0f0f0',
-              borderRadius: 14, padding: '14px',
-              boxShadow: '0 1px 6px rgba(0,0,0,0.04)',
-            }}>
-              <div style={{ fontSize: 26, fontWeight: 800, color: s.color, letterSpacing: '-1px', lineHeight: 1 }}>
-                {s.value}
-              </div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#1a1a1a', marginTop: 2 }}>{s.label}</div>
-              <div style={{ fontSize: 11, color: '#bbb', marginTop: 1 }}>{s.sub}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* 7-day chart */}
-        <div style={{ background: '#fafafa', borderRadius: 16, padding: '16px', marginBottom: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#1a1a1a', marginBottom: 14 }}>Últimos 7 días</div>
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 80, marginBottom: 8 }}>
-            {byDay7.map((h, i) => {
-              const barH = Math.max(h > 0 ? 4 : 0, Math.round((h / maxDay) * 76))
-              const d    = new Date(days7[i])
-              const dow  = d.getDay()
-              const isToday = days7[i] === last7Days()[6]
+      {/* Top specialties mini */}
+      {topEsp.length > 0 && (
+        <div style={{ background: '#fff', border: '1px solid #f0f0f0', borderRadius: 14, padding: '14px 16px', boxShadow: '0 1px 6px rgba(0,0,0,0.04)' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#1a1a1a', marginBottom: 10 }}>Asignaturas (semana)</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {topEsp.slice(0, 5).map(([nombre, horas]) => {
+              const pct = Math.round((horas / (topEsp[0][1] || 1)) * 100)
+              const c   = getEspecialidadColor(nombre)
               return (
-                <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end' }}>
-                    <div style={{
-                      width: '100%', height: barH,
-                      background: isToday ? ACCENT : '#d4a855',
-                      borderRadius: '3px 3px 0 0',
-                      opacity: isToday ? 1 : 0.6,
-                      minHeight: h > 0 ? 4 : 0,
-                    }} />
+                <div key={nombre}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: c.text }}>{nombre}</span>
+                    <span style={{ fontSize: 11, color: '#64748b' }}>{Math.round(horas * 10) / 10}h</span>
                   </div>
-                  <div style={{ fontSize: 10, color: isToday ? ACCENT : '#aaa', fontWeight: isToday ? 700 : 400, marginTop: 4 }}>
-                    {DAY_NAMES[dow === 0 ? 6 : dow - 1]}
+                  <div style={{ background: '#f0f0f0', borderRadius: 4, height: 5, overflow: 'hidden' }}>
+                    <div style={{ width: `${pct}%`, background: c.text, height: '100%', borderRadius: 4, opacity: 0.8 }} />
                   </div>
-                  {h > 0 && (
-                    <div style={{ fontSize: 9, color: '#bbb' }}>
-                      {Math.round(h * 10) / 10}h
-                    </div>
-                  )}
                 </div>
               )
             })}
           </div>
         </div>
+      )}
+    </div>
+  )
+}
 
-        {/* Top specialties */}
-        {topEsp.length > 0 && (
-          <div style={{ background: '#fafafa', borderRadius: 16, padding: '16px' }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#1a1a1a', marginBottom: 14 }}>
-              Tiempo por asignatura (semana)
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {topEsp.map(([nombre, horas]) => {
-                const pct = Math.round((horas / maxEspH) * 100)
-                const h   = Math.floor(horas)
-                const m   = Math.round((horas - h) * 60)
-                const c   = getEspecialidadColor(nombre)
-                return (
-                  <div key={nombre}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
-                      <span style={{
-                        fontSize: 12, fontWeight: 600,
-                        color: c.text, background: c.bg, border: `1px solid ${c.border}`,
-                        padding: '2px 9px', borderRadius: 12,
-                      }}>
-                        {nombre}
-                      </span>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: c.text }}>
-                        {h > 0 ? `${h}h ` : ''}{m > 0 ? `${m}m` : h === 0 ? '<1m' : ''}
-                      </span>
-                    </div>
-                    <div style={{ background: '#e8e8e8', borderRadius: 4, height: 6, overflow: 'hidden' }}>
-                      <div style={{
-                        width: `${pct}%`, background: c.text,
-                        height: '100%', borderRadius: 4,
-                        transition: 'width 0.4s', opacity: 0.85,
-                      }} />
-                    </div>
+// ─── FORO: general comment board ──────────────────────────────────────────────
+
+function Foro({ comentarios, onAdd, onDelete }) {
+  const foroComments = comentarios
+    .filter(c => c.tipo === 'foro')
+    .sort((a, b) => b.createdAt - a.createdAt)
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ fontSize: 13, color: '#64748b', lineHeight: 1.5, background: '#fafafa', borderRadius: 12, padding: '12px 14px', border: '1px solid #f0f0f0' }}>
+        💬 Deja aquí tus mensajes, preguntas o palabras de ánimo. Responde libremente, sin registro.
+      </div>
+
+      {/* New comment form */}
+      <div style={{
+        background: '#fff', border: `1.5px solid ${ACCENT}30`,
+        borderRadius: 14, padding: '16px',
+        boxShadow: '0 1px 6px rgba(0,0,0,0.04)',
+      }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: '#1a1a1a', marginBottom: 12 }}>Nuevo mensaje</div>
+        <ForoForm onAdd={onAdd} />
+      </div>
+
+      {/* Comments list */}
+      {foroComments.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '30px', color: '#94a3b8', fontSize: 13 }}>
+          Aún no hay mensajes. ¡Sé el primero!
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {foroComments.map(c => (
+            <div key={c.id} style={{
+              background: '#fff', border: '1px solid #f0f0f0',
+              borderRadius: 12, padding: '12px 14px',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
+            }}>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                <div style={{
+                  width: 32, height: 32, borderRadius: '50%',
+                  background: `hsl(${c.autor.charCodeAt(0) * 47 % 360}, 60%, 88%)`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 13, fontWeight: 700, color: `hsl(${c.autor.charCodeAt(0) * 47 % 360}, 50%, 35%)`,
+                  flexShrink: 0,
+                }}>
+                  {c.autor[0]?.toUpperCase() || '?'}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: '#1a1a1a' }}>{c.autor}</span>
+                    <span style={{ fontSize: 11, color: '#bbb' }}>{relTime(c.createdAt)}</span>
+                    {IS_ADMIN && (
+                      <button
+                        onClick={() => onDelete(c.id)}
+                        style={{ fontSize: 11, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                      >
+                        Eliminar
+                      </button>
+                    )}
                   </div>
-                )
-              })}
+                  <div style={{ fontSize: 13, color: '#374151', lineHeight: 1.6, wordBreak: 'break-word' }}>
+                    {c.texto}
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-        )}
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
+function ForoForm({ onAdd }) {
+  const [autor, setAutor] = useState('')
+  const [texto, setTexto] = useState('')
+  const [sending, setSending] = useState(false)
+  const [sent, setSent] = useState(false)
+  const [err, setErr] = useState('')
+
+  async function send() {
+    if (!autor.trim() || !texto.trim()) { setErr('Rellena tu nombre y el mensaje'); return }
+    if (texto.trim().length > 1000) { setErr('Máximo 1000 caracteres'); return }
+    setSending(true); setErr('')
+    const c = await onAdd({ autor: autor.trim(), texto: texto.trim(), tipo: 'foro', refId: null })
+    if (c) {
+      setAutor(''); setTexto('')
+      setSent(true)
+      setTimeout(() => setSent(false), 3000)
+    } else {
+      setErr('Error al enviar. Inténtalo de nuevo.')
+    }
+    setSending(false)
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <input
+        value={autor}
+        onChange={e => setAutor(e.target.value)}
+        placeholder="Tu nombre o alias *"
+        maxLength={40}
+        style={{ padding: '9px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 13, outline: 'none' }}
+      />
+      <textarea
+        value={texto}
+        onChange={e => setTexto(e.target.value)}
+        placeholder="Escribe tu mensaje..."
+        maxLength={1000}
+        rows={3}
+        style={{ padding: '9px 12px', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 13, outline: 'none', resize: 'vertical', fontFamily: 'inherit' }}
+      />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        <div style={{ fontSize: 11, color: err ? '#ef4444' : '#bbb' }}>{err || `${texto.length}/1000`}</div>
+        <button
+          onClick={send}
+          disabled={sending || !autor.trim() || !texto.trim()}
+          style={{
+            padding: '8px 20px', background: autor.trim() && texto.trim() ? ACCENT : '#e2e8f0',
+            color: autor.trim() && texto.trim() ? '#fff' : '#94a3b8',
+            border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13,
+            cursor: autor.trim() && texto.trim() ? 'pointer' : 'default',
+            transition: 'all 0.15s',
+          }}
+        >
+          {sending ? 'Enviando...' : sent ? '¡Enviado! ✓' : 'Enviar mensaje'}
+        </button>
       </div>
     </div>
   )
@@ -442,26 +828,40 @@ function StatsOverlay({ entries, onClose }) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
+const TABS = [
+  { id: 'hoy',    label: '📅 Hoy' },
+  { id: 'diario', label: '📖 Diario' },
+  { id: 'foro',   label: '💬 Foro' },
+]
+
 export default function PublicView() {
+  const [tab, setTab]           = useState('hoy')
   const [entries, setEntries]   = useState([])
   const [posts, setPosts]       = useState([])
+  const [comentarios, setComentarios] = useState([])
+  const [completados, setCompletados] = useState([])
+  const [descartados, setDescartados] = useState([])
   const [loading, setLoading]   = useState(true)
-  const [showStats, setShowStats] = useState(false)
-  const [elapsed, setElapsed]   = useState(0)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
 
-  // Responsive
   useEffect(() => {
     const handle = () => setIsMobile(window.innerWidth < 768)
     window.addEventListener('resize', handle)
     return () => window.removeEventListener('resize', handle)
   }, [])
 
-  // Fetch data
   const load = async () => {
-    const [e, p] = await Promise.all([fetchEntries(), fetchPosts()])
-    setEntries(e)
-    setPosts(p)
+    const [ents, psts, coms, blocks] = await Promise.all([
+      fetchEntries(),
+      fetchPosts(),
+      getComentarios(),
+      fetchBlockStatus(),
+    ])
+    setEntries(ents)
+    setPosts(psts)
+    setComentarios(coms)
+    setCompletados(blocks.completados)
+    setDescartados(blocks.descartados)
     setLoading(false)
   }
 
@@ -471,169 +871,191 @@ export default function PublicView() {
     return () => clearInterval(poll)
   }, [])
 
-  // Check for live tracker: entry with fin = null (started but not committed)
-  // This works if the admin device has an in-progress entry stored in localStorage
-  // For now we check for an entry with no fin in recent tracker_entries
-  // (the active entry is only in localStorage on Pepe's device so we can't poll it;
-  //  instead we detect entries from today that appear "open" via a separate column)
-  // Since we can't know for sure, we skip the live detection for now.
-  const liveEntry = null
-  const liveElapsed = elapsed
+  async function handleAddComment(args) {
+    const c = await addComentario(args)
+    if (c) setComentarios(prev => [...prev, c])
+    return c
+  }
 
-  // Build merged timeline: entries + posts sorted newest first
+  async function handleDeleteComment(id) {
+    const { supabase: sb } = await import('../lib/supabase')
+    await sb.from('comentarios').delete().eq('id', id)
+    setComentarios(prev => prev.filter(c => c.id !== id))
+  }
+
   const timeline = [...entries, ...posts].sort((a, b) => b._ts - a._ts)
 
   if (loading) {
     return (
-      <div style={{
-        height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: '#fafafa',
-      }}>
+      <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fafafa' }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 32, marginBottom: 12 }}>📚</div>
-          <div style={{ fontSize: 15, fontWeight: 600, color: '#64748b' }}>
-            Cargando progreso de {NAME}...
-          </div>
+          <div style={{ fontSize: 15, fontWeight: 600, color: '#64748b' }}>Cargando progreso de {NAME}...</div>
         </div>
       </div>
     )
   }
 
-  // ── Mobile layout ──────────────────────────────────────────────────────────
-  if (isMobile) {
-    return (
-      <div style={{ minHeight: '100vh', background: '#fafafa' }}>
-        {showStats && (
-          <StatsOverlay entries={entries} onClose={() => setShowStats(false)} />
-        )}
+  // ── Tab content ────────────────────────────────────────────────────────────
 
-        {/* Header */}
-        <div style={{
-          background: '#fff', borderBottom: '1px solid #f0f0f0',
-          padding: '16px 16px 12px',
-        }}>
-          <div style={{ fontSize: 20, fontWeight: 800, color: '#1a1a1a', letterSpacing: '-0.3px' }}>
-            {NAME} estudia MIR
-          </div>
-          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>
-            Progreso en tiempo real
-          </div>
-        </div>
-
-        {/* Stats strip */}
-        <StatsPanel entries={entries} compact />
-
-        {/* Ver todo button */}
-        <div style={{ padding: '10px 16px 0' }}>
-          <button onClick={() => setShowStats(true)} style={{
-            width: '100%', padding: '10px', background: '#fff',
-            border: `1.5px solid ${ACCENT}`, borderRadius: 12,
-            color: ACCENT, fontWeight: 700, fontSize: 13, cursor: 'pointer',
-          }}>
-            Ver todas las estadísticas →
-          </button>
-        </div>
-
-        {/* Timeline */}
-        <div style={{ padding: '12px 12px 40px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+  function renderTab() {
+    if (tab === 'hoy') {
+      return (
+        <SesionPublica
+          entries={entries}
+          completados={completados}
+          descartados={descartados}
+        />
+      )
+    }
+    if (tab === 'diario') {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {timeline.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px 20px', color: '#bbb', fontSize: 14 }}>
               Aún no hay actividad registrada.
             </div>
-          ) : timeline.map(item =>
-            item._type === 'entry'
-              ? <EntryCard key={`e-${item.id}`} item={item} isLive={false} elapsed={0} />
-              : <PostCard  key={`p-${item.id}`} item={item} />
-          )}
+          ) : timeline.map(item => (
+            <TimelineItem
+              key={`${item._type}-${item.id}`}
+              item={item}
+              comentarios={comentarios}
+              onAdd={handleAddComment}
+              onDelete={handleDeleteComment}
+            />
+          ))}
+        </div>
+      )
+    }
+    if (tab === 'foro') {
+      return (
+        <Foro
+          comentarios={comentarios}
+          onAdd={handleAddComment}
+          onDelete={handleDeleteComment}
+        />
+      )
+    }
+  }
+
+  // ── Tab bar ────────────────────────────────────────────────────────────────
+
+  function TabBar({ fullWidth = false }) {
+    const foroCount = comentarios.filter(c => c.tipo === 'foro').length
+    return (
+      <div style={{
+        display: 'flex', gap: 0,
+        background: '#f0f0f0', borderRadius: 12, padding: 4,
+        ...(fullWidth ? { width: '100%' } : {}),
+      }}>
+        {TABS.map(t => {
+          const badge = t.id === 'foro' && foroCount > 0 ? foroCount : null
+          return (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              style={{
+                flex: 1, padding: '8px 16px', border: 'none', borderRadius: 9,
+                background: tab === t.id ? '#fff' : 'transparent',
+                color: tab === t.id ? ACCENT : '#666',
+                fontWeight: tab === t.id ? 700 : 500,
+                fontSize: 13, cursor: 'pointer',
+                boxShadow: tab === t.id ? '0 1px 4px rgba(0,0,0,0.1)' : 'none',
+                transition: 'all 0.15s',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+              }}
+            >
+              {t.label}
+              {badge && (
+                <span style={{
+                  background: ACCENT, color: '#fff',
+                  borderRadius: 20, fontSize: 9, fontWeight: 700,
+                  padding: '1px 5px',
+                }}>
+                  {badge}
+                </span>
+              )}
+            </button>
+          )
+        })}
+      </div>
+    )
+  }
+
+  // ── MOBILE layout ──────────────────────────────────────────────────────────
+  if (isMobile) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#fafafa' }}>
+        {/* Header */}
+        <div style={{ background: '#fff', borderBottom: '1px solid #f0f0f0', padding: '14px 16px 12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: '#1a1a1a', letterSpacing: '-0.3px' }}>
+                {NAME} estudia MIR
+              </div>
+              <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>MIR 2027 · Progreso en directo</div>
+            </div>
+            <LiveBadge />
+          </div>
+        </div>
+
+        {/* Stats strip */}
+        <StatsPanel entries={entries} compact onShowMore={() => setTab('hoy')} />
+
+        {/* Tab bar */}
+        <div style={{ padding: '10px 12px 0', background: '#fafafa' }}>
+          <TabBar fullWidth />
+        </div>
+
+        {/* Content */}
+        <div style={{ padding: '12px 12px 40px' }}>
+          {renderTab()}
         </div>
       </div>
     )
   }
 
-  // ── Desktop layout ─────────────────────────────────────────────────────────
+  // ── DESKTOP layout ─────────────────────────────────────────────────────────
   return (
     <div style={{ minHeight: '100vh', background: '#fafafa', display: 'flex', flexDirection: 'column' }}>
-      {showStats && (
-        <StatsOverlay entries={entries} onClose={() => setShowStats(false)} />
-      )}
-
-      {/* Top header bar */}
+      {/* Top bar */}
       <div style={{
         background: '#fff', borderBottom: '1px solid #f0f0f0',
-        padding: '16px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '14px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         position: 'sticky', top: 0, zIndex: 10,
       }}>
         <div>
           <div style={{ fontSize: 20, fontWeight: 800, color: '#1a1a1a', letterSpacing: '-0.3px' }}>
             {NAME} estudia MIR
           </div>
-          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 1 }}>
-            Progreso en tiempo real
-          </div>
+          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 1 }}>MIR 2027 · Progreso en directo</div>
         </div>
-        <div style={{
-          fontSize: 12, color: '#94a3b8', fontWeight: 500,
-          background: '#f8fafc', border: '1px solid #e2e8f0',
-          borderRadius: 8, padding: '4px 10px',
-        }}>
-          📚 Preparando el MIR 2027
-        </div>
+        <LiveBadge />
       </div>
 
-      {/* Main body */}
+      {/* Body */}
       <div style={{
-        flex: 1, display: 'flex', maxWidth: 1100,
+        flex: 1, display: 'flex', maxWidth: 1160,
         margin: '0 auto', width: '100%', padding: '24px 24px 40px', gap: 24,
         alignItems: 'flex-start',
       }}>
 
-        {/* ── Left: timeline (5/8) ── */}
-        <div style={{ flex: '0 0 62.5%', maxWidth: '62.5%', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#64748b', marginBottom: 4 }}>
-            Últimas actividades
-          </div>
-
-          {liveEntry && (
-            <EntryCard item={liveEntry} isLive elapsed={liveElapsed} />
-          )}
-
-          {timeline.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '60px 20px', color: '#bbb', fontSize: 14 }}>
-              Aún no hay actividad registrada.
-            </div>
-          ) : timeline.map(item =>
-            item._type === 'entry'
-              ? <EntryCard key={`e-${item.id}`} item={item} isLive={false} elapsed={0} />
-              : <PostCard  key={`p-${item.id}`} item={item} />
-          )}
+        {/* Left: tabs + content */}
+        <div style={{ flex: '0 0 63%', maxWidth: '63%', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <TabBar />
+          {renderTab()}
         </div>
 
-        {/* ── Right: sticky stats (3/8) ── */}
+        {/* Right: sticky stats */}
         <div style={{
-          flex: '0 0 37.5%', maxWidth: '37.5%',
-          position: 'sticky', top: 80, display: 'flex', flexDirection: 'column', gap: 12,
+          flex: '0 0 37%', maxWidth: '37%',
+          position: 'sticky', top: 80, display: 'flex', flexDirection: 'column', gap: 0,
         }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#64748b', marginBottom: 4 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', letterSpacing: '0.8px', textTransform: 'uppercase', marginBottom: 10 }}>
             Estadísticas
           </div>
-
           <StatsPanel entries={entries} />
-
-          <button onClick={() => setShowStats(true)} style={{
-            width: '100%', padding: '12px', background: '#fff',
-            border: `1.5px solid ${ACCENT}`, borderRadius: 14,
-            color: ACCENT, fontWeight: 700, fontSize: 13, cursor: 'pointer',
-            boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
-            transition: 'background 0.15s',
-          }}
-            onMouseEnter={e => e.currentTarget.style.background = '#fffbf0'}
-            onMouseLeave={e => e.currentTarget.style.background = '#fff'}
-          >
-            Ver todas las estadísticas →
-          </button>
-
-          {/* Small footer note */}
-          <div style={{ fontSize: 11, color: '#cbd5e1', textAlign: 'center', marginTop: 4 }}>
+          <div style={{ fontSize: 11, color: '#cbd5e1', textAlign: 'center', marginTop: 10 }}>
             Actualiza cada 30 segundos
           </div>
         </div>

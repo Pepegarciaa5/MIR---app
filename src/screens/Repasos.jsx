@@ -246,7 +246,7 @@ export default function Repasos() {
       <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         {items.map(item => {
           if (item.estado === 'eliminado') return null;
-          const conf = CONF[item.confianza]
+          const conf = CONF[item.confianza] || CONF[2]
           const done = !!item.estado
           const tracking = isReviewActive(item.id)
           return (
