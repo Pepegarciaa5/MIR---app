@@ -4,6 +4,7 @@ import { curiosidadesHumanisticas, datosMedicos } from '../data/pildorasDiarias'
 import SesionDia from './SesionDia'
 import SesionCalendario from './SesionCalendario'
 import ProgresoDiario from '../components/ProgresoDiario'
+import Asistente from '../components/Asistente'
 
 const ACCENT = '#BA7517'
 const ACCENT_BG = '#fef3e2'
@@ -58,6 +59,9 @@ export default function Inicio() {
       <div style={{ marginBottom: 14 }}>
         <ProgresoDiario compact />
       </div>
+
+      {/* Asistente */}
+      <Asistente />
 
       {/* Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
