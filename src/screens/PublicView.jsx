@@ -203,9 +203,17 @@ function StatsStrip({ entries }) {
 
   const todayEnts = entries.filter(e => e.inicio >= todayStart.getTime() && e.inicio <= todayEnd.getTime())
   const weekEnts  = entries.filter(e => e.inicio >= mon.getTime() && e.inicio <= sun.getTime())
+  const studyEnts = entries.filter(e => e.especialidad && !e.especialidad.startsWith('_') && e.especialidad !== 'Pausa')
 
-  const horasHoy = todayEnts.reduce((s, e) => s + e.duracionSegundos, 0) / 3600
-  const horasSem = weekEnts.reduce((s, e) => s + e.duracionSegundos, 0) / 3600
+  const horasHoy   = todayEnts.reduce((s, e) => s + e.duracionSegundos, 0) / 3600
+  const horasSem   = weekEnts.reduce((s, e) => s + e.duracionSegundos, 0) / 3600
+  const horasTotal = studyEnts.reduce((s, e) => s + e.duracionSegundos, 0) / 3600
+
+  const diasEstudiados = new Set(studyEnts.map(e => new Date(e.inicio).toDateString())).size
+  const mediaHoras = diasEstudiados > 0 ? horasTotal / diasEstudiados : 0
+
+  const MIR_DATE = new Date('2027-01-25')
+  const diasRestantes = Math.ceil((MIR_DATE - now) / (1000 * 60 * 60 * 24))
 
   const byEsp = {}
   weekEnts.forEach(e => {
@@ -214,29 +222,43 @@ function StatsStrip({ entries }) {
   })
   const topEsp = Object.entries(byEsp).sort((a, b) => b[1] - a[1])[0]?.[0] || '—'
 
-  const stats = [
-    { icon: '⏱', label: 'Horas hoy',   value: `${Math.round(horasHoy * 10) / 10}h` },
-    { icon: '📅', label: 'Esta semana', value: `${Math.round(horasSem * 10) / 10}h` },
-    { icon: '🏆', label: 'Top semana',  value: topEsp },
+  const row1 = [
+    { icon: '⏱', label: 'Horas hoy',    value: `${Math.round(horasHoy * 10) / 10}h` },
+    { icon: '📅', label: 'Esta semana',  value: `${Math.round(horasSem * 10) / 10}h` },
+    { icon: '🏆', label: 'Top semana',   value: topEsp },
+  ]
+  const row2 = [
+    { icon: '📚', label: 'Horas totales',    value: `${Math.round(horasTotal)}h` },
+    { icon: '📆', label: 'Días estudiados',  value: `${diasEstudiados}d` },
+    { icon: '⚡', label: 'Media diaria',     value: `${Math.round(mediaHoras * 10) / 10}h` },
+    { icon: '🎯', label: 'Días para el MIR', value: `${diasRestantes}d` },
   ]
 
-  return (
-    <div style={{ display: 'flex', borderBottom: '1px solid #f0f0f0', background: '#fff' }}>
-      {stats.map((s, i) => (
-        <div key={s.label} style={{
-          flex: 1, padding: '10px 20px',
-          borderRight: i < stats.length - 1 ? '1px solid #f0f0f0' : 'none',
-          display: 'flex', alignItems: 'center', gap: 10,
-        }}>
-          <span style={{ fontSize: 20 }}>{s.icon}</span>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: ACCENT, letterSpacing: '-0.5px', lineHeight: 1 }}>
-              {s.value}
-            </div>
-            <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 2, fontWeight: 600 }}>{s.label}</div>
-          </div>
+  const StatItem = ({ s, last, light }) => (
+    <div style={{
+      flex: 1, padding: '8px 16px',
+      borderRight: last ? 'none' : '1px solid #f0f0f0',
+      display: 'flex', alignItems: 'center', gap: 8,
+      background: light ? '#fafafa' : '#fff',
+    }}>
+      <span style={{ fontSize: 16 }}>{s.icon}</span>
+      <div>
+        <div style={{ fontSize: 14, fontWeight: 800, color: light ? '#64748b' : ACCENT, letterSpacing: '-0.5px', lineHeight: 1 }}>
+          {s.value}
         </div>
-      ))}
+        <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 2, fontWeight: 600 }}>{s.label}</div>
+      </div>
+    </div>
+  )
+
+  return (
+    <div style={{ borderBottom: '1px solid #f0f0f0', background: '#fff' }}>
+      <div style={{ display: 'flex', borderBottom: '1px solid #f5f5f5' }}>
+        {row1.map((s, i) => <StatItem key={s.label} s={s} last={i === row1.length - 1} light={false} />)}
+      </div>
+      <div style={{ display: 'flex' }}>
+        {row2.map((s, i) => <StatItem key={s.label} s={s} last={i === row2.length - 1} light={true} />)}
+      </div>
     </div>
   )
 }
