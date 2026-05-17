@@ -272,17 +272,19 @@ export default function Repasos() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                 <div style={{ flex: 1, paddingRight: 8 }}>
                   <div style={{ fontSize: 15, fontWeight: 700, color: done ? '#64748b' : '#1a1a1a', lineHeight: 1.2 }}>
-                    {item.titulo || item.tema}
+                    {item.titulo || item.tema || item.especialidad || 'Sin título'}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 5, flexWrap: 'wrap' }}>
                     {/* Especialidad badge con color */}
-                    <span style={{
-                      fontSize: 11, fontWeight: 600,
-                      color: c.text, background: c.bg, border: `1px solid ${c.border}`,
-                      padding: '1px 8px', borderRadius: 10,
-                    }}>
-                      {item.especialidad || 'Sin asignar'}
-                    </span>
+                    {(item.titulo || item.tema) && (
+                      <span style={{
+                        fontSize: 11, fontWeight: 600,
+                        color: c.text, background: c.bg, border: `1px solid ${c.border}`,
+                        padding: '1px 8px', borderRadius: 10,
+                      }}>
+                        {item.especialidad || 'Sin asignar'}
+                      </span>
+                    )}
                     {item.tema && item.titulo && (
                       <span style={{ fontSize: 11, color: '#94a3b8' }}>· {item.tema}</span>
                     )}
