@@ -6,8 +6,8 @@ import SesionCalendario from './SesionCalendario'
 import ProgresoDiario from '../components/ProgresoDiario'
 import Asistente from '../components/Asistente'
 
-const ACCENT = '#BA7517'
-const ACCENT_BG = '#fef3e2'
+const ACCENT = '#F26522'
+const ACCENT_BG = '#fff0e6'
 const BLUE = '#2563eb'
 const BLUE_BG = '#eff6ff'
 

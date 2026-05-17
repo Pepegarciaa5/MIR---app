@@ -2,7 +2,7 @@ import { useTracker } from '../context/TrackerContext'
 import { getEspecialidadColor } from '../data/especialidadesMIR'
 import EntradaEditable from './EntradaEditable'
 
-const ACCENT = '#BA7517'
+const ACCENT = '#F26522'
 const OBJETIVO_DIARIO_H = 7
 
 function todayStr() {

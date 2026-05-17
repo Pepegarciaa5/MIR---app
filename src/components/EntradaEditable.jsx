@@ -4,7 +4,7 @@ import { especialidadesMIR, especialidadNombres, getEspecialidadColor } from '..
 import { repasosData } from '../data/mockData'
 import { upsertRepaso } from '../lib/db'
 
-const ACCENT = '#BA7517'
+const ACCENT = '#F26522'
 
 function toTimeStr(ts) {
   const d = new Date(ts)

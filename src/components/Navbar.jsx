@@ -1,4 +1,4 @@
-const ACCENT = '#BA7517'
+const ACCENT = '#F26522'
 
 const IcoHome = ({ active }) => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill={active ? ACCENT : 'none'}
@@ -60,12 +60,23 @@ const IcoPen = ({ active }) => (
   </svg>
 )
 
+const IcoFlashcards = ({ active }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+    stroke={active ? ACCENT : '#999'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="4" width="18" height="14" rx="2" ry="2" />
+    <line x1="8" y1="2" x2="8" y2="6" />
+    <line x1="16" y1="2" x2="16" y2="6" />
+    <line x1="3" y1="10" x2="21" y2="10" />
+  </svg>
+)
+
 const ALL_TABS = [
   { id: 'inicio',     label: 'Inicio',     Icon: IcoHome,     adminOnly: true  },
   { id: 'calendario', label: 'Calendario', Icon: IcoCalendar, adminOnly: true  },
   { id: 'repasos',    label: 'Repasos',    Icon: IcoRepeat,   adminOnly: true  },
   { id: 'progreso',   label: 'Progreso',   Icon: IcoChart,    adminOnly: false },
   { id: 'diario',     label: 'Diario',     Icon: IcoPen,      adminOnly: false },
+  { id: 'conceptos',   label: 'Conceptos Clave', Icon: IcoFlashcards, adminOnly: false },
 ]
 
 export default function Navbar({ active, setActive, isAdmin }) {
@@ -97,7 +108,7 @@ export default function Navbar({ active, setActive, isAdmin }) {
               textAlign: 'left',
               position: 'relative',
               borderRadius: isActive ? '8px' : '0',
-              backgroundColor: isActive ? '#fef3e2' : 'transparent',
+              backgroundColor: isActive ? '#fff0e6' : 'transparent',
             }}
           >
             <Icon active={isActive} />

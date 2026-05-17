@@ -7,6 +7,7 @@ import Calendario from './screens/Calendario'
 import Repasos from './screens/Repasos'
 import Progreso from './screens/Progreso'
 import Diario from './screens/Diario'
+import ColaEstudio from './screens/ColaEstudio'
 import PublicView from './screens/PublicView'
 import { loadAppData, migrarDesdeLocalStorage } from './data/mockData'
 import { isAdminMode } from './lib/supabase'
@@ -73,6 +74,7 @@ export default function App() {
             {tab === 'repasos'    && <Repasos />}
             {tab === 'progreso'   && <Progreso />}
             {tab === 'diario'     && <Diario />}
+            {tab === 'conceptos'  && <ColaEstudio />}
           </div>
         </main>
       </div>

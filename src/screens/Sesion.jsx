@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { planDia, repasosData, tareasPendientesGlobal, planesAdicionales, todayStr, persistData, bloquesCompletados, bloquesDescartados } from '../data/mockData'
 import { useTracker } from '../context/TrackerContext'
 
-const ACCENT = '#BA7517'
+const ACCENT = '#F26522'
 
 const CONFIANZA_OPTS = [
   { id: 'flojo',   label: 'Flojo',   color: '#ef4444', bg: '#fef2f2' },

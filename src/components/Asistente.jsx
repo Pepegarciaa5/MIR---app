@@ -17,7 +17,7 @@ import {
   rentabilidad, getRentabilidad, getMediaReciente,
 } from '../data/mirStats'
 
-const ACCENT = '#BA7517'
+const ACCENT = '#F26522'
 const AI_ENABLED = import.meta.env.VITE_AI_ENABLED === 'true'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

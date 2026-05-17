@@ -3,7 +3,7 @@ import { isAdminMode } from '../lib/supabase'
 import { getDiarioPosts, upsertDiarioPost, deleteDiarioPost } from '../lib/db'
 import { useTracker } from '../context/TrackerContext'
 
-const ACCENT = '#BA7517'
+const ACCENT = '#F26522'
 
 const EMOJI_OPTIONS = ['📖', '🔥', '😤', '💪', '🧠', '😴', '🎉', '📝', '🏥', '☕']
 
@@ -87,7 +87,7 @@ export default function Diario() {
         {isAdminMode && !showEditor && (
           <button
             onClick={() => setShowEditor(true)}
-            style={{ background: ACCENT, color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 8px rgba(186,117,23,0.3)' }}>
+            style={{ background: ACCENT, color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 8px rgba(242,101,34,0.3)' }}>
             + Nuevo post
           </button>
         )}

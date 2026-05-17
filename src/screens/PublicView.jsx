@@ -18,7 +18,7 @@ import { getEspecialidadColor } from '../data/especialidadesMIR'
 import { planificacionCTO } from '../data/planificacionBridge'
 
 // ─── Constantes visuales (igual que SesionDia) ────────────────────────────────
-const ACCENT      = '#BA7517'
+const ACCENT      = '#F26522'
 const HOUR_HEIGHT = 72
 const START_HOUR  = 7
 const END_HOUR    = 23

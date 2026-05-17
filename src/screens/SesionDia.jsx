@@ -4,10 +4,11 @@ import {
   planesAdicionales, todayStr, bloquesCompletados, bloquesDescartados,
 } from '../data/mockData'
 import { upsertRepaso, addBloqueCompletado, addBloqueDescartado, addPlanAdicional } from '../lib/db'
+import { saveMnemotecnia } from '../lib/mnemotecnias'
 import { useTracker } from '../context/TrackerContext'
 import { especialidadesMIR, especialidadNombres, getEspecialidadColor } from '../data/especialidadesMIR'
 
-const ACCENT = '#BA7517'
+const ACCENT = '#F26522'
 const HOUR_HEIGHT = 72
 const START_HOUR = 0
 const END_HOUR = 24
@@ -122,6 +123,36 @@ export default function SesionDia() {
   const [wantsReview, setWantsReview] = useState(null)
   const [destino, setDestino] = useState('')
   const [nuevaFecha, setNuevaFecha] = useState('')
+  // Add/Edit task state
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false)
+  const [showMnemotecniaForm, setShowMnemotecniaForm] = useState(false)
+  const [mneTexto, setMneTexto] = useState('')
+  const [mneAsig, setMneAsig] = useState('')
+
+  useEffect(() => {
+    if (showMnemotecniaForm && activeEntry) {
+      setMneAsig(activeEntry.especialidad || '')
+    }
+  }, [showMnemotecniaForm, activeEntry])
+
+  const crearMnemotecnia = () => {
+    if (!mneTexto.trim()) return
+    saveMnemotecnia({
+      id: `MNE-${Date.now()}`,
+      texto: mneTexto.trim(),
+      asignatura: mneAsig,
+      bloqueId: activeEntry?.bloqueId || null,
+      importancia: 'mnemotecnia'
+    })
+    setShowMnemotecniaForm(false)
+    setMneTexto('')
+  }
+  const [editingTask, setEditingTask] = useState(null)
+  const [taskTitulo, setTaskTitulo] = useState('')
+  const [taskInicio, setTaskInicio] = useState('')
+  const [taskFin, setTaskFin] = useState('')
+  const [taskEsp, setTaskEsp] = useState('')
+  const [taskTema, setTaskTema] = useState('')
   // Edit tracker entry state
   const [editingTracker, setEditingTracker] = useState(null)
   const [editDesc, setEditDesc] = useState('')
@@ -180,6 +211,7 @@ export default function SesionDia() {
     setRepasoTracker(null)
     setHoveredBlock(null)
     setHoveredTracker(null)
+    setIsTaskModalOpen(false)
   }
 
   function goToday() {
@@ -188,6 +220,7 @@ export default function SesionDia() {
     setSkippingBlock(null)
     setEditingTracker(null)
     setRepasoTracker(null)
+    setIsTaskModalOpen(false)
   }
 
   // ── Derived data ─────────────────────────────────────────────────────────────
@@ -218,6 +251,65 @@ export default function SesionDia() {
   }
 
   // ── Actions ─────────────────────────────────────────────────────────────────
+
+  function openTaskModal(task = null) {
+    if (task) {
+      setEditingTask(task)
+      setTaskTitulo(task.titulo)
+      setTaskInicio(task.inicio)
+      setTaskFin(task.fin)
+      setTaskEsp(task.especialidad || '')
+      setTaskTema(task.tema || '')
+    } else {
+      setEditingTask(null)
+      setTaskTitulo('')
+      setTaskInicio('16:00')
+      setTaskFin('17:00')
+      setTaskEsp('')
+      setTaskTema('')
+    }
+    setIsTaskModalOpen(true)
+    setFinishingBlock(null)
+    setSkippingBlock(null)
+  }
+
+  function saveTask() {
+    if (!taskTitulo.trim() || !taskInicio || !taskFin) {
+      alert('Por favor, rellena al menos el título, inicio y fin.')
+      return
+    }
+    
+    if (editingTask) {
+      const esAdicional = planesAdicionales[selectedDate]?.find(b => b.id === editingTask.id)
+      if (!esAdicional) {
+        bloquesDescartados.push(editingTask.id)
+        addBloqueDescartado(editingTask.id)
+        setRemovedBlocks(prev => [...prev, editingTask.id])
+      }
+    }
+    
+    const newTask = {
+      id: editingTask && planesAdicionales[selectedDate]?.find(b => b.id === editingTask.id) ? editingTask.id : Date.now(),
+      titulo: taskTitulo.trim(),
+      inicio: taskInicio,
+      fin: taskFin,
+      especialidad: taskEsp || null,
+      tema: taskTema || null
+    }
+
+    if (!planesAdicionales[selectedDate]) planesAdicionales[selectedDate] = []
+    
+    if (editingTask && planesAdicionales[selectedDate]?.find(b => b.id === editingTask.id)) {
+      const idx = planesAdicionales[selectedDate].findIndex(b => b.id === editingTask.id)
+      if (idx !== -1) planesAdicionales[selectedDate][idx] = newTask
+    } else {
+      planesAdicionales[selectedDate].push(newTask)
+    }
+    
+    addPlanAdicional(selectedDate, newTask)
+    setIsTaskModalOpen(false)
+    setEditingTask(null)
+  }
 
   function openEditTracker(t) {
     setEditingTracker(t)
@@ -255,6 +347,7 @@ export default function SesionDia() {
       fase: 0,
       fechaProximoRepaso: todayMs,
       confianza: { flojo: 1, regular: 2, bien: 3 }[repasoConfianza] ?? (typeof repasoConfianza === 'number' ? repasoConfianza : 2),
+      bloqueOrigenId: repasoTracker.bloqueId || null,
     }
     repasosData.unshift(newRepaso)
     upsertRepaso(newRepaso)
@@ -291,6 +384,7 @@ export default function SesionDia() {
       fase: 0,
       fechaProximoRepaso: new Date().setHours(0, 0, 0, 0),
       confianza: numConfianza,
+      bloqueOrigenId: b.id,
     }
     repasosData.unshift(newRepaso)
     upsertRepaso(newRepaso)
@@ -379,22 +473,36 @@ export default function SesionDia() {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         flexShrink: 0, minHeight: 32,
       }}>
-        {hasPlan ? (
-          <span style={{ fontSize: 11, fontWeight: 600, color: '#64748b' }}>
-            {dayDone}/{dynamicPlan.length} bloques
-            {dateEntries.length > 0 && (
-              <span style={{ color: ACCENT, marginLeft: 8 }}>
-                ⏱ {fmt(dateEntries.reduce((s, e) => s + e.duracionSegundos, 0))}
-              </span>
-            )}
-          </span>
-        ) : (
-          <span style={{ fontSize: 11, color: '#bbb' }}>
-            {dateEntries.length > 0
-              ? `⏱ ${fmt(dateEntries.reduce((s, e) => s + e.duracionSegundos, 0))} trackeadas`
-              : 'Sin bloques planificados'}
-          </span>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {hasPlan ? (
+            <span style={{ fontSize: 11, fontWeight: 600, color: '#64748b' }}>
+              {dayDone}/{dynamicPlan.length} bloques
+              {dateEntries.length > 0 && (
+                <span style={{ color: ACCENT, marginLeft: 8 }}>
+                  ⏱ {fmt(dateEntries.reduce((s, e) => s + e.duracionSegundos, 0))}
+                </span>
+              )}
+            </span>
+          ) : (
+            <span style={{ fontSize: 11, color: '#bbb' }}>
+              {dateEntries.length > 0
+                ? `⏱ ${fmt(dateEntries.reduce((s, e) => s + e.duracionSegundos, 0))} trackeadas`
+                : 'Sin bloques planificados'}
+            </span>
+          )}
+          <button onClick={() => setShowMnemotecniaForm(true)} style={{
+            padding: '4px 10px', border: 'none', borderRadius: 6, marginRight: 8,
+            background: '#fdf4ff', color: '#c026d3', fontWeight: 700, fontSize: 11, cursor: 'pointer',
+          }}>
+            🧠 Mnemotecnia
+          </button>
+          <button onClick={() => openTaskModal()} style={{
+            padding: '4px 10px', border: 'none', borderRadius: 6,
+            background: '#e0f2fe', color: '#0369a1', fontWeight: 700, fontSize: 11, cursor: 'pointer',
+          }}>
+            ➕ Añadir
+          </button>
+        </div>
 
         {!isToday && (
           <button onClick={goToday} style={{
@@ -519,42 +627,55 @@ export default function SesionDia() {
                     )}
                   </div>
 
-                  {/* Buttons — only on today and if not completed */}
-                  {isToday && !b.completado && (isHovered || isActive) && (
+                  {/* Buttons */}
+                  {!b.completado && (isHovered || isActive) && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0, alignItems: 'flex-end' }}>
-                      <button
-                        onClick={() => isActive
-                          ? stopTracking()
-                          : startTracking({ descripcion: b.titulo, especialidad: b.especialidad, tema: b.tema, bloqueId: b.id })}
-                        style={{
-                          padding: '3px 8px', border: 'none', borderRadius: 5,
-                          fontSize: 10, fontWeight: 700, cursor: 'pointer',
-                          background: isActive ? '#2563eb' : '#e2e8f0',
-                          color: isActive ? '#fff' : '#334155',
-                        }}
-                      >
-                        {isActive ? `⏸ ${fmt(workedSecs)}` : '▶ Empezar'}
-                      </button>
-                      {height > 52 && (
-                        <div style={{ display: 'flex', gap: 3 }}>
-                          <button
-                            onClick={e => {
-                              e.stopPropagation()
-                              setFinishingBlock(b.id); setWantsReview(null); setSkippingBlock(null)
-                              if (activeEntry?.bloqueId === b.id) stopTracking()
-                            }}
-                            style={{ padding: '2px 6px', border: 'none', borderRadius: 4, fontSize: 9, fontWeight: 700, cursor: 'pointer', background: '#10b981', color: '#fff' }}
-                          >✓ Fin</button>
-                          <button
-                            onClick={e => {
-                              e.stopPropagation()
-                              setSkippingBlock(b.id); setFinishingBlock(null)
-                              if (activeEntry?.bloqueId === b.id) stopTracking()
-                            }}
-                            style={{ padding: '2px 6px', border: 'none', borderRadius: 4, fontSize: 9, fontWeight: 700, cursor: 'pointer', background: '#fee2e2', color: '#ef4444' }}
-                          >✗</button>
-                        </div>
+                      {isToday && (
+                        <button
+                          onClick={() => isActive
+                            ? stopTracking()
+                            : startTracking({ descripcion: b.titulo, especialidad: b.especialidad, tema: b.tema, bloqueId: b.id })}
+                          style={{
+                            padding: '3px 8px', border: 'none', borderRadius: 5,
+                            fontSize: 10, fontWeight: 700, cursor: 'pointer',
+                            background: isActive ? '#2563eb' : '#e2e8f0',
+                            color: isActive ? '#fff' : '#334155',
+                          }}
+                        >
+                          {isActive ? `⏸ ${fmt(workedSecs)}` : '▶ Empezar'}
+                        </button>
                       )}
+                      
+                      <div style={{ display: 'flex', gap: 3 }}>
+                        <button
+                          onClick={e => {
+                            e.stopPropagation()
+                            openTaskModal(b)
+                          }}
+                          style={{ padding: '2px 6px', border: 'none', borderRadius: 4, fontSize: 9, fontWeight: 700, cursor: 'pointer', background: '#e0f2fe', color: '#0369a1' }}
+                        >✏️ Editar</button>
+
+                        {isToday && height > 52 && (
+                          <>
+                            <button
+                              onClick={e => {
+                                e.stopPropagation()
+                                setFinishingBlock(b.id); setWantsReview(null); setSkippingBlock(null)
+                                if (activeEntry?.bloqueId === b.id) stopTracking()
+                              }}
+                              style={{ padding: '2px 6px', border: 'none', borderRadius: 4, fontSize: 9, fontWeight: 700, cursor: 'pointer', background: '#10b981', color: '#fff' }}
+                            >✓ Fin</button>
+                            <button
+                              onClick={e => {
+                                e.stopPropagation()
+                                setSkippingBlock(b.id); setFinishingBlock(null)
+                                if (activeEntry?.bloqueId === b.id) stopTracking()
+                              }}
+                              style={{ padding: '2px 6px', border: 'none', borderRadius: 4, fontSize: 9, fontWeight: 700, cursor: 'pointer', background: '#fee2e2', color: '#ef4444' }}
+                            >✗</button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -618,12 +739,7 @@ export default function SesionDia() {
                           </div>
                         )}
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3, flexShrink: 0 }}>
-                        {dur > 0 && (
-                          <div style={{ fontFamily: 'monospace', fontSize: 11, fontWeight: 700, color: t.isActivo ? ACCENT : tColor.text }}>
-                            ⏱ {fmt(dur)}
-                          </div>
-                        )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                         {/* Edit/repaso buttons — only for non-active entries */}
                         {!t.isActivo && (isHovered || isBeingEdited || repasoTracker?.id === t.id) && (
                           <div style={{ display: 'flex', gap: 2 }}>
@@ -653,6 +769,11 @@ export default function SesionDia() {
                             </button>
                           </div>
                         )}
+                        {dur > 0 && (
+                          <div style={{ fontFamily: 'monospace', fontSize: 11, fontWeight: 700, color: t.isActivo ? ACCENT : tColor.text }}>
+                            ⏱ {fmt(dur)}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -663,6 +784,69 @@ export default function SesionDia() {
           </div>
         </div>
       </div>
+
+      {/* ── Task modal/panel ── */}
+      {isTaskModalOpen && (() => {
+        const editTemas = taskEsp ? (especialidadesMIR[taskEsp]?.temas || []) : []
+        return (
+          <div style={{ borderTop: '1px solid #bfdbfe', padding: '14px 16px', background: '#f0f9ff', flexShrink: 0 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#0369a1', marginBottom: 12 }}>
+              {editingTask ? 'Editar tarea' : 'Nueva tarea'}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 700, color: '#0284c7', display: 'block', marginBottom: 4 }}>Título *</label>
+                <input value={taskTitulo} onChange={ev => setTaskTitulo(ev.target.value)}
+                  placeholder="Ej: 📖 Estudio Cardiología"
+                  style={{ width: '100%', padding: '6px 10px', borderRadius: 8, border: '1px solid #bae6fd', fontSize: 13, fontWeight: 600, boxSizing: 'border-box' }} />
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: '#0284c7', display: 'block', marginBottom: 4 }}>Asignatura</label>
+                  <select value={taskEsp} onChange={ev => { setTaskEsp(ev.target.value); setTaskTema('') }}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: 8, border: '1px solid #bae6fd', fontSize: 12, background: '#fff', color: taskEsp ? '#374151' : '#9ca3af' }}>
+                    <option value="">— Ninguna —</option>
+                    {especialidadNombres.map(n => <option key={n} value={n}>{n}</option>)}
+                    <option value="_libre">Actividad libre</option>
+                  </select>
+                </div>
+                {taskEsp && editTemas.length > 0 && (
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: 11, fontWeight: 700, color: '#0284c7', display: 'block', marginBottom: 4 }}>Tema</label>
+                    <select value={taskTema} onChange={ev => setTaskTema(ev.target.value)}
+                      style={{ width: '100%', padding: '6px 8px', borderRadius: 8, border: '1px solid #bae6fd', fontSize: 12, background: '#fff', color: taskTema ? '#374151' : '#9ca3af' }}>
+                      <option value="">— Ninguno —</option>
+                      {editTemas.map((t, i) => <option key={i} value={t}>{t}</option>)}
+                    </select>
+                  </div>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: '#0284c7', display: 'block', marginBottom: 4 }}>Inicio *</label>
+                  <input type="time" value={taskInicio} onChange={ev => setTaskInicio(ev.target.value)}
+                    style={{ padding: '6px 8px', borderRadius: 8, border: '1px solid #bae6fd', fontSize: 13, fontWeight: 600 }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: '#0284c7', display: 'block', marginBottom: 4 }}>Fin *</label>
+                  <input type="time" value={taskFin} onChange={ev => setTaskFin(ev.target.value)}
+                    style={{ padding: '6px 8px', borderRadius: 8, border: '1px solid #bae6fd', fontSize: 13, fontWeight: 600 }} />
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 4 }}>
+                <button onClick={() => setIsTaskModalOpen(false)}
+                  style={{ padding: '6px 14px', background: 'none', border: 'none', color: '#94a3b8', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>
+                  Cancelar
+                </button>
+                <button onClick={saveTask}
+                  style={{ padding: '6px 16px', background: '#0284c7', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
+                  Guardar Tarea
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* ── Finalizar panel ── */}
       {finishingBlock && (() => {
@@ -889,6 +1073,48 @@ export default function SesionDia() {
           </div>
         )
       })()}
+
+      {/* Modal Mnemotecnia */}
+      {showMnemotecniaForm && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.4)', zIndex: 9999,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20
+        }}>
+          <div style={{
+            background: '#fff', borderRadius: 20, width: '100%', maxWidth: 400,
+            padding: 24, boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)'
+          }}>
+            <h3 style={{ margin: '0 0 16px', fontSize: 18, color: '#0f172a' }}>🧠 Crear Mnemotecnia</h3>
+            
+            <select
+              value={mneAsig} onChange={e => setMneAsig(e.target.value)}
+              style={{ width: '100%', padding: '10px 14px', borderRadius: 10, border: '1px solid #cbd5e1', marginBottom: 12, fontSize: 14 }}
+            >
+              <option value="">— Asignatura —</option>
+              {especialidadNombres.map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+            
+            <textarea
+              value={mneTexto} onChange={e => setMneTexto(e.target.value)}
+              placeholder="Escribe tu truco o regla mnemotécnica aquí..."
+              rows={4}
+              style={{ width: '100%', padding: '12px 14px', borderRadius: 10, border: '1px solid #cbd5e1', marginBottom: 16, fontSize: 14, resize: 'none', fontFamily: 'inherit' }}
+            />
+            
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => setShowMnemotecniaForm(false)}
+                style={{ flex: 1, padding: '10px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: 10, fontWeight: 600, cursor: 'pointer' }}>
+                Cancelar
+              </button>
+              <button onClick={crearMnemotecnia} disabled={!mneTexto.trim()}
+                style={{ flex: 1, padding: '10px', background: '#c026d3', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, cursor: mneTexto.trim() ? 'pointer' : 'default', opacity: mneTexto.trim() ? 1 : 0.5 }}>
+                Guardar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

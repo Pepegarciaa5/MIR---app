@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useTracker } from '../context/TrackerContext'
 import { especialidadesMIR, especialidadNombres, getEspecialidadColor } from '../data/especialidadesMIR'
 
-const ACCENT = '#BA7517'
+const ACCENT = '#F26522'
 
 function fmt(s) {
   const h = Math.floor(s / 3600)

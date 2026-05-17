@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { planesCalendarioGlobal, bloquesCompletados, persistData, repasosData } from '../data/mockData'
 import { useTracker } from '../context/TrackerContext'
 
-const ACCENT = '#BA7517'
+const ACCENT = '#F26522'
 const HOUR_HEIGHT = 80
 const START_HOUR = 0
 const END_HOUR = 24

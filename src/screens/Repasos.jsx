@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { repasosData } from '../data/mockData'
 import { upsertRepaso, deleteRepaso } from '../lib/db'
 import { useTracker } from '../context/TrackerContext'
-import { especialidadNombres } from '../data/especialidadesMIR'
+import { especialidadNombres, getEspecialidadColor } from '../data/especialidadesMIR'
+import { getMnemotecnias } from '../lib/mnemotecnias'
 
-const ACCENT = '#BA7517'
+const ACCENT = '#F26522'
 
 const CONF = {
   1: { label: 'Flojo',   color: '#ef4444', bg: '#fef2f2' },
@@ -245,45 +246,62 @@ export default function Repasos() {
       {/* Cards */}
       <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         {items.map(item => {
-          if (item.estado === 'eliminado') return null;
+          if (item.estado === 'eliminado') return null
           const conf = CONF[item.confianza] || CONF[2]
-          const done = !!item.estado
+          const c    = getEspecialidadColor(item.especialidad)
+          const done     = !!item.estado
           const tracking = isReviewActive(item.id)
+
+          // Color de borde izquierdo: tracking → ACCENT, done → gris, normal → color esp
+          const borderColor = tracking ? ACCENT : done ? '#cbd5e1' : c.text
+          const bgColor     = tracking ? '#fffbf0' : done ? '#fafafa' : c.bg
+
           return (
             <div key={item.id} style={{
-              background: tracking ? '#fffbfa' : done ? '#fafafa' : '#fff',
-              border: `1px solid ${tracking ? ACCENT : done ? '#f0f0f0' : '#ebebeb'}`,
-              borderLeft: tracking ? `4px solid ${ACCENT}` : undefined,
+              background: bgColor,
+              border: `1px solid ${tracking ? ACCENT : done ? '#e2e8f0' : c.border}`,
+              borderLeft: `4px solid ${borderColor}`,
               borderRadius: 16,
               padding: '14px 14px',
-              opacity: done ? 0.55 : 1,
+              opacity: done ? 0.6 : 1,
               transition: 'opacity 0.3s, background 0.3s, border 0.3s',
               boxShadow: tracking ? `0 3px 16px ${ACCENT}20` : done ? 'none' : '0 1px 6px rgba(0,0,0,0.04)',
             }}>
+
               {/* Top row */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                 <div style={{ flex: 1, paddingRight: 8 }}>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: '#1a1a1a', lineHeight: 1.2 }}>{item.titulo || item.tema}</div>
-                  <div style={{ fontSize: 12, color: '#999', marginTop: 3 }}>
-                    {item.especialidad}{item.tema && item.titulo ? ` · ${item.tema}` : ''}
+                  <div style={{ fontSize: 15, fontWeight: 700, color: done ? '#64748b' : '#1a1a1a', lineHeight: 1.2 }}>
+                    {item.titulo || item.tema}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 5, flexWrap: 'wrap' }}>
+                    {/* Especialidad badge con color */}
+                    <span style={{
+                      fontSize: 11, fontWeight: 600,
+                      color: c.text, background: c.bg, border: `1px solid ${c.border}`,
+                      padding: '1px 8px', borderRadius: 10,
+                    }}>
+                      {item.especialidad || 'Sin asignar'}
+                    </span>
+                    {item.tema && item.titulo && (
+                      <span style={{ fontSize: 11, color: '#94a3b8' }}>· {item.tema}</span>
+                    )}
                   </div>
                 </div>
+                {/* Confianza badge */}
                 <div style={{
-                  background: conf.bg,
-                  color: conf.color,
-                  borderRadius: 7,
-                  padding: '4px 9px',
-                  fontSize: 11,
-                  fontWeight: 700,
-                  flexShrink: 0,
+                  background: conf.bg, color: conf.color,
+                  borderRadius: 7, padding: '4px 9px',
+                  fontSize: 11, fontWeight: 700, flexShrink: 0,
+                  border: `1px solid ${conf.color}30`,
                 }}>
                   {conf.label}
                 </div>
               </div>
 
               {/* Meta row */}
-              <div style={{ display: 'flex', gap: 14, marginBottom: done && !tracking ? 0 : 12, fontSize: 12, color: '#aaa' }}>
-                <span>⏱ Fase {item.fase}</span>
+              <div style={{ display: 'flex', gap: 14, marginBottom: done && !tracking ? 0 : 12, fontSize: 12, color: '#94a3b8' }}>
+                <span style={{ fontWeight: 600 }}>Fase {item.fase}</span>
                 <span>⏳ {item.minutosRepaso} min.</span>
                 {tracking && (
                   <span style={{ fontFamily: 'monospace', fontWeight: 700, color: ACCENT }}>
@@ -292,80 +310,67 @@ export default function Repasos() {
                 )}
               </div>
 
-              {/* Active tracking controls */}
-              {tracking && (
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button
-                    onClick={() => finalizarRepaso(item)}
-                    style={{
-                      flex: 1,
-                      background: '#10b981',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: 9,
-                      padding: '10px 0',
-                      fontSize: 13,
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                    }}>
-                    ✓ Finalizar repaso ({fmt(elapsed)})
-                  </button>
-                </div>
-              )}
+              {/* Tracking activo */}
+              {tracking && (() => {
+                const asigMnemos = getMnemotecnias().filter(m => {
+                  // Mostrar si pertenece al bloque exacto, o al menos a la especialidad si no hay bloque
+                  if (item.bloqueOrigenId && m.bloqueId === item.bloqueOrigenId) return true
+                  if (!m.bloqueId && m.asignatura === item.especialidad) return true
+                  return false
+                })
 
-              {/* Action buttons (when NOT tracking and NOT done) */}
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {asigMnemos.length > 0 && (
+                      <div style={{ background: '#fdf4ff', border: '1px solid #f5d0fe', borderRadius: 12, padding: 12 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: '#a21caf', marginBottom: 8 }}>
+                          🧠 Tus Mnemotecnias ({asigMnemos.length}):
+                        </div>
+                        <ul style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: '#701a75', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {asigMnemos.map(m => (
+                            <li key={m.id}><strong>{m.texto}</strong></li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    <button onClick={() => finalizarRepaso(item)} style={{
+                      width: '100%', background: '#10b981', color: '#fff',
+                      border: 'none', borderRadius: 9, padding: '10px 0',
+                      fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                    }}>
+                      ✓ Finalizar repaso ({fmt(elapsed)})
+                    </button>
+                  </div>
+                )
+              })()}
+
+              {/* Botones acción */}
               {!done && !tracking && (
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <button
-                    onClick={() => empezarRepaso(item)}
-                    disabled={!!activeEntry}
-                    style={{
-                      flex: 1,
-                      background: activeEntry ? '#e2e8f0' : ACCENT,
-                      color: activeEntry ? '#94a3b8' : '#fff',
-                      border: 'none',
-                      borderRadius: 9,
-                      padding: '9px 0',
-                      fontSize: 13,
-                      fontWeight: 700,
-                      cursor: activeEntry ? 'default' : 'pointer',
-                    }}>
+                  <button onClick={() => empezarRepaso(item)} disabled={!!activeEntry} style={{
+                    flex: 1,
+                    background: activeEntry ? '#e2e8f0' : c.text,
+                    color: activeEntry ? '#94a3b8' : '#fff',
+                    border: 'none', borderRadius: 9, padding: '9px 0',
+                    fontSize: 13, fontWeight: 700,
+                    cursor: activeEntry ? 'default' : 'pointer',
+                  }}>
                     {activeEntry ? 'Otra tarea activa...' : '▶ Empezar repaso'}
                   </button>
-                  <button
-                    onClick={() => setEstado(item.id, 'pospuesto')}
-                    style={{
-                      flex: 1,
-                      background: '#f5f5f5',
-                      color: '#666',
-                      border: 'none',
-                      borderRadius: 9,
-                      padding: '9px 0',
-                      fontSize: 13,
-                      fontWeight: 500,
-                      cursor: 'pointer',
-                    }}>
+                  <button onClick={() => setEstado(item.id, 'pospuesto')} style={{
+                    flex: 1, background: '#f5f5f5', color: '#666',
+                    border: 'none', borderRadius: 9, padding: '9px 0',
+                    fontSize: 13, fontWeight: 500, cursor: 'pointer',
+                  }}>
                     Posponer
                   </button>
                   <button
-                    onClick={() => {
-                      if (window.confirm("¿Seguro que quieres eliminar este repaso permanentemente?")) {
-                        setEstado(item.id, 'eliminado')
-                      }
-                    }}
+                    onClick={() => window.confirm('¿Eliminar este repaso permanentemente?') && setEstado(item.id, 'eliminado')}
                     style={{
-                      flex: 0.3,
-                      background: '#fef2f2',
-                      color: '#ef4444',
-                      border: 'none',
-                      borderRadius: 9,
-                      padding: '9px 0',
-                      fontSize: 14,
-                      fontWeight: 500,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
+                      flex: 0.3, background: '#fef2f2', color: '#ef4444',
+                      border: 'none', borderRadius: 9, padding: '9px 0',
+                      fontSize: 14, cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
                     🗑️
                   </button>
@@ -374,11 +379,10 @@ export default function Repasos() {
 
               {done && (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: 12, color: item.estado === 'repasado' ? '#22c55e' : '#f59e0b', fontWeight: 600 }}>
+                  <span style={{ fontSize: 12, color: item.estado === 'repasado' ? '#16a34a' : '#d97706', fontWeight: 600 }}>
                     {item.estado === 'repasado' ? '✓ Repasado hoy' : '→ Pospuesto para mañana'}
                   </span>
-                  <button
-                    onClick={() => setEstado(item.id, null)}
+                  <button onClick={() => setEstado(item.id, null)}
                     style={{ background: 'none', border: 'none', fontSize: 11, color: '#bbb', cursor: 'pointer' }}>
                     Deshacer
                   </button>
@@ -407,18 +411,33 @@ export default function Repasos() {
             ) : (
               colaItems.map(r => {
                 const conf = CONF[r.confianza] || CONF[2]
+                const c    = getEspecialidadColor(r.especialidad)
                 return (
-                  <div key={r.id} style={{ background: '#fff', border: '1px solid #f0f0f0', borderRadius: 12, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div key={r.id} style={{
+                    background: c.bg,
+                    border: `1px solid ${c.border}`,
+                    borderLeft: `4px solid ${c.text}`,
+                    borderRadius: 12,
+                    padding: '10px 14px',
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
+                  }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 600, color: '#1a1a1a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {r.titulo || r.tema}
                       </div>
-                      <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
-                        {r.especialidad}{r.tema && r.titulo ? ` · ${r.tema}` : ''} · Fase {r.fase}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 3, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: c.text, background: c.bg, border: `1px solid ${c.border}`, padding: '1px 7px', borderRadius: 8 }}>
+                          {r.especialidad || 'Sin asignar'}
+                        </span>
+                        {r.tema && r.titulo && (
+                          <span style={{ fontSize: 11, color: '#94a3b8' }}>· {r.tema}</span>
+                        )}
+                        <span style={{ fontSize: 11, color: '#94a3b8' }}>· Fase {r.fase}</span>
                       </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: conf.color, background: conf.bg, padding: '2px 8px', borderRadius: 8 }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: conf.color, background: conf.bg, padding: '2px 8px', borderRadius: 8, border: `1px solid ${conf.color}30` }}>
                         {conf.label}
                       </span>
                       <span style={{ fontSize: 11, fontWeight: 600, color: '#64748b', background: '#f1f5f9', padding: '2px 8px', borderRadius: 8, whiteSpace: 'nowrap' }}>

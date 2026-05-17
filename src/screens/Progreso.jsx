@@ -4,7 +4,7 @@ import { getEspecialidadColor } from '../data/especialidadesMIR'
 import EntradaEditable from '../components/EntradaEditable'
 import ProgresoDiario from '../components/ProgresoDiario'
 
-const ACCENT = '#BA7517'
+const ACCENT = '#F26522'
 const BLUE = '#2563eb'
 const GREEN = '#22c55e'
 const PURPLE = '#a855f7'
