@@ -596,7 +596,7 @@ export default function SesionDia() {
                     boxShadow: isActive ? `0 3px 12px ${ACCENT}35` : isHovered ? '0 2px 8px rgba(0,0,0,0.1)' : 'none',
                     opacity: b.completado ? 0.4 : 0.85,
                     transition: 'box-shadow 0.15s',
-                    display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8,
+                    display: 'flex', alignItems: 'stretch', justifyContent: 'space-between', gap: 8,
                   }}
                 >
                   <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
@@ -629,23 +629,7 @@ export default function SesionDia() {
 
                   {/* Buttons */}
                   {!b.completado && (isHovered || isActive) && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0, alignItems: 'flex-end' }}>
-                      {isToday && (
-                        <button
-                          onClick={() => isActive
-                            ? stopTracking()
-                            : startTracking({ descripcion: b.titulo, especialidad: b.especialidad, tema: b.tema, bloqueId: b.id })}
-                          style={{
-                            padding: '3px 8px', border: 'none', borderRadius: 5,
-                            fontSize: 10, fontWeight: 700, cursor: 'pointer',
-                            background: isActive ? '#2563eb' : '#e2e8f0',
-                            color: isActive ? '#fff' : '#334155',
-                          }}
-                        >
-                          {isActive ? `⏸ ${fmt(workedSecs)}` : '▶ Empezar'}
-                        </button>
-                      )}
-                      
+                    <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flexShrink: 0, alignItems: 'flex-end' }}>
                       <div style={{ display: 'flex', gap: 3 }}>
                         <button
                           onClick={e => {
@@ -676,6 +660,21 @@ export default function SesionDia() {
                           </>
                         )}
                       </div>
+                      {isToday && (
+                        <button
+                          onClick={() => isActive
+                            ? stopTracking()
+                            : startTracking({ descripcion: b.titulo, especialidad: b.especialidad, tema: b.tema, bloqueId: b.id })}
+                          style={{
+                            padding: '3px 8px', border: 'none', borderRadius: 5,
+                            fontSize: 10, fontWeight: 700, cursor: 'pointer',
+                            background: isActive ? '#2563eb' : '#e2e8f0',
+                            color: isActive ? '#fff' : '#334155',
+                          }}
+                        >
+                          {isActive ? `⏸ ${fmt(workedSecs)}` : '▶ Empezar'}
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
