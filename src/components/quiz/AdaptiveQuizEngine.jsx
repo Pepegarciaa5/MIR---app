@@ -8,7 +8,7 @@ import { useTracker } from '../../context/TrackerContext';
 import NotaPersonal from './NotaPersonal';
 import { getOrCreateAnonUserId, createQuizResult } from '../../utils/quizSync';
 
-const AdaptiveQuizEngine = ({ subject = 'Oftalmología', modoExamen = false, setTab, questionCount = 20 }) => {
+const AdaptiveQuizEngine = ({ subject = 'Oftalmología', modoExamen = false, setTab, questionCount = null }) => {
   const [preguntasCola, setPreguntasCola] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState([]);

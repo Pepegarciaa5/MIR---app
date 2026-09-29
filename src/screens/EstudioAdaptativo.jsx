@@ -9,6 +9,7 @@ function todayKey() {
 
 export default function EstudioAdaptativo({ setTab }) {
   const [activeQuiz, setActiveQuiz] = useState(null);
+  const [numPreguntas, setNumPreguntas] = useState(null); // null = todas
   const [modoExamen, setModoExamen] = useState(() => {
     try { return JSON.parse(localStorage.getItem('mir_modo_examen') || 'false'); } catch { return false; }
   });
@@ -28,7 +29,7 @@ export default function EstudioAdaptativo({ setTab }) {
 
   const handleStartModoExamen = () => {
     if (asignaturasDia.length === 0) return;
-    setActiveQuiz({ subjects: asignaturasDia, modoExamen: true });
+    setActiveQuiz({ subjects: asignaturasDia, modoExamen: true, questionCount: numPreguntas });
   };
 
   if (activeQuiz) {
@@ -43,6 +44,7 @@ export default function EstudioAdaptativo({ setTab }) {
         <AdaptiveQuizEngine
           subject={activeQuiz.subjects || activeQuiz.subject}
           modoExamen={activeQuiz.modoExamen || false}
+          questionCount={activeQuiz.questionCount}
           setTab={setTab}
         />
       </div>
@@ -85,6 +87,33 @@ export default function EstudioAdaptativo({ setTab }) {
         </div>
       </div>
 
+      {/* Selector de límite de preguntas para Modo Examen */}
+      <div className="mb-6 bg-white p-4 rounded-xl border border-slate-200 flex items-center justify-between flex-wrap gap-4">
+        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+          Longitud de sesión:
+        </span>
+        <div className="flex gap-2">
+          {[
+            { label: 'Todas las preguntas', val: null },
+            { label: '20 pregs', val: 20 },
+            { label: '30 pregs', val: 30 },
+            { label: '50 pregs', val: 50 },
+          ].map(opt => (
+            <button
+              key={String(opt.val)}
+              onClick={() => setNumPreguntas(opt.val)}
+              className={`text-xs font-bold px-3 py-1.5 rounded-lg border transition-all ${
+                numPreguntas === opt.val
+                  ? 'bg-orange-500 text-white border-orange-500 shadow-sm'
+                  : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-orange-300'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Banner + botón Modo Examen */}
       {modoExamen ? (
         <div className="mb-8 bg-orange-50 border-2 border-orange-300 rounded-2xl p-8 flex flex-col sm:flex-row items-center gap-6">
@@ -96,8 +125,8 @@ export default function EstudioAdaptativo({ setTab }) {
             </p>
             <p className="text-xs text-orange-700">
               No verás la asignatura de cada pregunta. Exactamente como en el MIR real.
+              {numPreguntas ? ` (Limitado a ${numPreguntas} preguntas)` : ' (Todas las preguntas de los 3 bloques)'}
             </p>
-
           </div>
           <button
             onClick={handleStartModoExamen}
@@ -108,8 +137,9 @@ export default function EstudioAdaptativo({ setTab }) {
           </button>
         </div>
       ) : (
-        <DailyRecommendations onStartQuiz={(rec) => setActiveQuiz({ subject: rec.subject, modoExamen: false })} />
+        <DailyRecommendations onStartQuiz={(rec) => setActiveQuiz({ subject: rec.subject, modoExamen: false, questionCount: numPreguntas })} />
       )}
+
 
       {/* Si modo examen OFF, mostrar también las tarjetas normales debajo */}
       {!modoExamen && (
