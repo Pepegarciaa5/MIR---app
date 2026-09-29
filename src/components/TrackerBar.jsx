@@ -1,4 +1,11 @@
-import { useState } from 'react'
+/**
+ * Archivo: TrackerBar.jsx
+ * Descripción: Barra superior que muestra estadísticas globales rápidas o controles de administrador.
+ * Creado: 2026-05-07
+ * Última actualización: 2026-05-17
+ */
+
+import { useState, useEffect } from 'react'
 import { useTracker } from '../context/TrackerContext'
 import { especialidadesMIR, especialidadNombres, getEspecialidadColor } from '../data/especialidadesMIR'
 
@@ -16,6 +23,22 @@ export default function TrackerBar() {
   const [desc, setDesc] = useState('')
   const [esp, setEsp] = useState('')
   const [tema, setTema] = useState('')
+
+  const [activeOffering, setActiveOffering] = useState(() => {
+    const lit = localStorage.getItem('ofrecido_vela_encendida') === 'true'
+    const name = localStorage.getItem('ofrecido_persona_activa') || ''
+    return lit && name ? name : ''
+  })
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      const lit = localStorage.getItem('ofrecido_vela_encendida') === 'true'
+      const name = localStorage.getItem('ofrecido_persona_activa') || ''
+      setActiveOffering(lit && name ? name : '')
+    }
+    window.addEventListener('active_offering_changed', handleUpdate)
+    return () => window.removeEventListener('active_offering_changed', handleUpdate)
+  }, [])
 
   const isActive = !!activeEntry
   const temas = esp ? (especialidadesMIR[esp]?.temas || []) : []
@@ -46,6 +69,25 @@ export default function TrackerBar() {
         <div style={{ flex: 1, fontSize: 14, fontWeight: 600, color: '#166534', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {activeEntry.descripcion}
         </div>
+        {activeOffering && (
+          <span style={{
+            fontSize: 11,
+            fontWeight: 700,
+            color: '#d97706',
+            background: '#fffbeb',
+            border: '1px solid #fde68a',
+            padding: '3px 8px',
+            borderRadius: 12,
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+          }}>
+            <span>🕯️</span>
+            <span>Por: {activeOffering}</span>
+          </span>
+        )}
         {activeEntry.especialidad && (() => {
           const c = getEspecialidadColor(activeEntry.especialidad)
           return (

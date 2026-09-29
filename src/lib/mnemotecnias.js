@@ -1,3 +1,10 @@
+/**
+ * Archivo: mnemotecnias.js
+ * Descripción: Utilidades auxiliares para guardar, listar y eliminar reglas nemotécnicas asociadas al estudio.
+ * Creado: 2026-05-17
+ * Última actualización: 2026-05-17
+ */
+
 const STORAGE_KEY = 'mir_mnemotecnias'
 
 export function getMnemotecnias() {

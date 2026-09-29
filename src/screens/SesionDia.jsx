@@ -1,3 +1,10 @@
+/**
+ * Archivo: SesionDia.jsx
+ * Descripción: Vista hiper-detallada de la sesión de estudio actual. Centraliza tareas, objetivos y registro de tiempos (la pantalla más compleja).
+ * Creado: 2026-05-07
+ * Última actualización: 2026-05-18
+ */
+
 import { useState, useEffect, useRef } from 'react'
 import {
   planesCalendarioGlobal, repasosData, tareasPendientesGlobal,

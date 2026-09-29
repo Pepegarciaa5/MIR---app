@@ -1,3 +1,10 @@
+/**
+ * Archivo: EntradaEditable.jsx
+ * Descripción: Componente de UI reutilizable para editar métricas diarias (horas, preguntas, etc.) in situ.
+ * Creado: 2026-05-07
+ * Última actualización: 2026-05-17
+ */
+
 import { useState } from 'react'
 import { useTracker } from '../context/TrackerContext'
 import { especialidadesMIR, especialidadNombres, getEspecialidadColor } from '../data/especialidadesMIR'

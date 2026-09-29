@@ -1,3 +1,10 @@
+/**
+ * Archivo: SesionCalendario.jsx
+ * Descripción: Subvista específica para mostrar el plan del día seleccionado dentro del contexto del Dashboard principal.
+ * Creado: 2026-05-07
+ * Última actualización: 2026-05-17
+ */
+
 import { useState, useEffect } from 'react'
 import { planesCalendarioGlobal, bloquesCompletados, persistData, repasosData } from '../data/mockData'
 import { useTracker } from '../context/TrackerContext'

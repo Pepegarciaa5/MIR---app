@@ -1,4 +1,11 @@
 /**
+ * Archivo: PublicView.jsx
+ * Descripción: Vista de sólo lectura (read-only) orientada a ser compartida públicamente. Lee datos directamente de Supabase sin permisos de edición.
+ * Creado: 2026-05-08
+ * Última actualización: 2026-05-17
+ */
+
+/**
  * PublicView.jsx — Vista pública
  *
  * Layout:
@@ -11,11 +18,17 @@
  *  Col derecha (37%):
  *    · Foro libre + comentarios
  */
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { getComentarios, addComentario } from '../lib/db'
 import { getEspecialidadColor } from '../data/especialidadesMIR'
 import { planificacionCTO } from '../data/planificacionBridge'
+import BANCO_RAW from '../data/bancoPreguntas.json'
+import TEXTOS_SIMULACROS from '../data/simulacros_textos.json'
+import TEXTOS_DESGLOSES from '../data/desgloses.json'
+import { getPreguntas, ASIGNATURA_NOMBRE } from '../lib/simulacros'
+import { desgloseAnual } from '../data/mirStats'
+import QuestionCard from '../components/quiz/QuestionCard'
 
 // ─── Constantes visuales (igual que SesionDia) ────────────────────────────────
 const ACCENT      = '#F26522'
@@ -748,6 +761,329 @@ function ForoPanel({ comentarios, onAdd, onDelete }) {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
+// ─── Quiz público (banco de preguntas sin login) ──────────────────────────────
+
+const STATS_MAP_PUB = new Map(getPreguntas().map(p => [p.pregunta_id, p]))
+
+const ALL_QUESTIONS = [
+  ...BANCO_RAW,
+  ...TEXTOS_SIMULACROS.map(t => {
+    const stats_cto = STATS_MAP_PUB.get(t.id) || {}
+    return {
+      id: t.id,
+      text: t.enunciado,
+      options: [...(t.respuestas || [])].sort((a, b) => a.numero - b.numero).map(r => r.enunciado),
+      answer: t.respuestas?.find(r => r.correcta)?.numero || 1,
+      asignatura: ASIGNATURA_NOMBRE[stats_cto.asignatura] || stats_cto.asignatura || 'Simulacros',
+      origen: `Simulacro ${t.simulacro}`,
+      comentario: t.comentario,
+      cto_fallada: stats_cto.fallada === 1,
+      cto_dudosa: stats_cto.dudas === 1
+    }
+  }).filter(q => q.text && q.text.trim().length > 0),
+  ...TEXTOS_DESGLOSES.map(d => ({
+    id: d.id,
+    text: d.enunciado,
+    options: [...(d.respuestas || [])].sort((a, b) => a.numero - b.numero).map(r => r.enunciado),
+    answer: d.respuestas?.find(r => r.correcta)?.numero || 1,
+    asignatura: d.asignatura || 'Desgloses',
+    origen: d.convocatoria || 'Desglose MIR',
+    comentario: d.comentario,
+    cto_fallada: false,
+    cto_dudosa: false
+  }))
+]
+
+const numToLetter = n => ['A', 'B', 'C', 'D', 'E'][n - 1] || n
+
+function QuizPublico() {
+  const asignaturasDisponibles = useMemo(() =>
+    [...new Set(ALL_QUESTIONS.map(q => q.asignatura))].filter(Boolean).sort()
+  , [])
+
+  const [asignaturas, setAsignaturas] = useState([])
+  const [cola, setCola]               = useState([])
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [respuestas, setRespuestas]   = useState({})
+  const [quizFinished, setQuizFinished] = useState(false)
+
+  const toggleAsig = a => setAsignaturas(prev =>
+    prev.includes(a) ? prev.filter(x => x !== a) : [...prev, a]
+  )
+
+  const generar = () => {
+    let filtradas = ALL_QUESTIONS
+    if (asignaturas.length > 0)
+      filtradas = filtradas.filter(q => asignaturas.includes(q.asignatura))
+
+    const MAX = 50
+    const availSubs = [...new Set(filtradas.map(q => q.asignatura))]
+    let selected = []
+
+    if (availSubs.length > 1) {
+      const weights = desgloseAnual[2025] || {}
+      const totalW = availSubs.reduce((s, sub) => s + (weights[sub] || 1), 0)
+      let remaining = MAX
+      let pool = [...filtradas]
+      for (const sub of availSubs) {
+        const quota = Math.floor(MAX * ((weights[sub] || 1) / totalW))
+        const subQs = pool.filter(q => q.asignatura === sub).sort(() => 0.5 - Math.random())
+        const taken = subQs.slice(0, quota)
+        selected.push(...taken)
+        pool = pool.filter(q => !taken.includes(q))
+        remaining -= taken.length
+      }
+      if (remaining > 0 && pool.length > 0)
+        selected.push(...pool.sort(() => 0.5 - Math.random()).slice(0, remaining))
+      selected.sort(() => 0.5 - Math.random())
+    } else {
+      selected = [...filtradas].sort(() => 0.5 - Math.random()).slice(0, MAX)
+    }
+
+    setCola(selected)
+    setCurrentIndex(0)
+    setRespuestas({})
+    setQuizFinished(false)
+  }
+
+  const currentQ = cola[currentIndex]
+  const questionForCard = currentQ ? {
+    id: currentQ.id,
+    text: currentQ.text,
+    options: currentQ.options.map((opt, idx) => ({ id: numToLetter(idx + 1), text: opt })),
+    correctOption: numToLetter(currentQ.answer)
+  } : null
+
+  const currentAnswer = questionForCard ? respuestas[questionForCard.id] : null
+
+  const handleAnswer = answerData => {
+    if (answerData.skipped) {
+      setRespuestas(prev => ({ ...prev, [questionForCard.id]: { skipped: true } }))
+      handleNext()
+      return
+    }
+    setRespuestas(prev => ({
+      ...prev,
+      [questionForCard.id]: {
+        isCorrect: answerData.isCorrect,
+        selectedLetter: answerData.selectedOption,
+        correctLetter: questionForCard.correctOption,
+      }
+    }))
+  }
+
+  const handleNext = () => {
+    if (currentIndex < cola.length - 1) setCurrentIndex(i => i + 1)
+    else setQuizFinished(true)
+  }
+
+  const resetQuiz = () => {
+    setCola([])
+    setCurrentIndex(0)
+    setRespuestas({})
+    setQuizFinished(false)
+  }
+
+  // ── Pantalla: configurar test ──────────────────────────────────────────────
+  if (cola.length === 0) {
+    return (
+      <div style={{ padding: '16px 0', maxWidth: 700, margin: '0 auto' }}>
+        <div style={{
+          background: '#fff', borderRadius: 16, border: '1px solid #f0f0f0',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.06)', padding: '20px 20px 24px',
+        }}>
+          <div style={{ fontSize: 16, fontWeight: 800, color: '#1a1a1a', marginBottom: 4 }}>🧠 Test de Preguntas MIR</div>
+          <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 16 }}>
+            {ALL_QUESTIONS.length.toLocaleString('es')} preguntas disponibles · Máximo 50 por sesión
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>
+              Asignaturas (vacío = todas)
+            </div>
+            <div style={{
+              display: 'flex', flexWrap: 'wrap', gap: 6,
+              maxHeight: 160, overflowY: 'auto',
+              padding: '8px', border: '1px solid #e2e8f0', borderRadius: 10,
+            }}>
+              {asignaturasDisponibles.map(asig => (
+                <button key={asig} onClick={() => toggleAsig(asig)} style={{
+                  fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 20,
+                  border: `1.5px solid ${asignaturas.includes(asig) ? ACCENT : '#e2e8f0'}`,
+                  background: asignaturas.includes(asig) ? ACCENT : '#fff',
+                  color: asignaturas.includes(asig) ? '#fff' : '#475569',
+                  cursor: 'pointer', transition: 'all 0.15s',
+                }}>
+                  {asig}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <button onClick={generar} style={{
+            width: '100%', padding: '13px', borderRadius: 12, border: 'none',
+            background: ACCENT, color: '#fff', fontWeight: 800, fontSize: 15,
+            cursor: 'pointer', boxShadow: `0 4px 14px ${ACCENT}40`,
+            transition: 'transform 0.1s, box-shadow 0.1s',
+          }}
+            onMouseDown={e => e.currentTarget.style.transform = 'scale(0.98)'}
+            onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
+          >
+            Generar Test Aleatorio 🎲
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Pantalla: quiz terminado ───────────────────────────────────────────────
+  if (quizFinished) {
+    const correctCount = Object.values(respuestas).filter(a => a.isCorrect).length
+    const total = cola.length
+    const pct = Math.round((correctCount / total) * 100)
+    return (
+      <div style={{ padding: '16px 0', maxWidth: 700, margin: '0 auto' }}>
+        <div style={{
+          background: '#fff', borderRadius: 16, border: '1px solid #f0f0f0',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.06)', padding: '40px 24px',
+          textAlign: 'center',
+        }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>🎯</div>
+          <div style={{ fontSize: 22, fontWeight: 900, color: '#1a1a1a', marginBottom: 6 }}>Sesión completada</div>
+          <div style={{ fontSize: 13, color: '#64748b', marginBottom: 28 }}>¡Buen trabajo!</div>
+          <div style={{
+            display: 'inline-block', background: '#f8fafc', borderRadius: 16,
+            padding: '20px 40px', marginBottom: 28,
+            border: '1px solid #e2e8f0',
+          }}>
+            <div style={{ fontSize: 52, fontWeight: 900, color: ACCENT, letterSpacing: -2, lineHeight: 1 }}>
+              {correctCount}<span style={{ fontSize: 28, color: '#cbd5e1', fontWeight: 600 }}>/{total}</span>
+            </div>
+            <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 700, marginTop: 4 }}>
+              {pct}% de acierto
+            </div>
+          </div>
+          <button onClick={resetQuiz} style={{
+            display: 'block', width: '100%', maxWidth: 280, margin: '0 auto',
+            padding: '13px', borderRadius: 12, border: 'none',
+            background: '#1a1a1a', color: '#fff', fontWeight: 800, fontSize: 14,
+            cursor: 'pointer',
+          }}>
+            Nuevo Test
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Pantalla: pregunta en curso ────────────────────────────────────────────
+  return (
+    <div style={{ padding: '16px 0 40px', maxWidth: 700, margin: '0 auto' }}>
+      {/* Barra de progreso */}
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
+            Pregunta {currentIndex + 1} / {cola.length}
+          </span>
+          <button onClick={resetQuiz} style={{
+            fontSize: 11, fontWeight: 700, color: '#ef4444',
+            background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px',
+          }}>
+            Terminar
+          </button>
+        </div>
+        <div style={{ height: 4, background: '#f1f5f9', borderRadius: 4, overflow: 'hidden' }}>
+          <div style={{
+            height: '100%', width: `${((currentIndex + 1) / cola.length) * 100}%`,
+            background: ACCENT, borderRadius: 4, transition: 'width 0.3s',
+          }} />
+        </div>
+        <div style={{ display: 'flex', gap: 3, marginTop: 8, flexWrap: 'wrap' }}>
+          {cola.map((_, idx) => {
+            const qId = cola[idx].id
+            const ans = respuestas[qId]
+            let bg = '#e2e8f0'
+            if (ans) bg = ans.skipped ? '#94a3b8' : ans.isCorrect ? '#22c55e' : '#ef4444'
+            else if (idx === currentIndex) bg = ACCENT
+            return <div key={idx} style={{ width: 10, height: 10, borderRadius: 2, background: bg, transition: 'background 0.2s' }} />
+          })}
+        </div>
+      </div>
+
+      {/* Metadatos */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+        <span style={{
+          fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20,
+          background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe',
+        }}>{currentQ.asignatura}</span>
+        <span style={{
+          fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20,
+          background: '#fff7ed', color: '#c2410c', border: '1px solid #fed7aa',
+        }}>{currentQ.origen}</span>
+      </div>
+
+      {/* Tarjeta de pregunta */}
+      <div style={{ opacity: currentAnswer ? 0.55 : 1, pointerEvents: currentAnswer ? 'none' : 'auto', transition: 'opacity 0.2s' }}>
+        <QuestionCard key={currentQ.id} question={questionForCard} onAnswer={handleAnswer} />
+      </div>
+
+      {/* Resultado y botón siguiente */}
+      {currentAnswer && !currentAnswer.skipped && (
+        <div style={{
+          marginTop: 12, background: '#fff', borderRadius: 14,
+          border: `2px solid ${currentAnswer.isCorrect ? '#22c55e' : '#ef4444'}`,
+          padding: '16px 20px',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+            <span style={{ fontSize: 22 }}>{currentAnswer.isCorrect ? '✅' : '❌'}</span>
+            <span style={{ fontWeight: 800, fontSize: 15, color: currentAnswer.isCorrect ? '#16a34a' : '#dc2626' }}>
+              {currentAnswer.isCorrect ? '¡Correcto!' : 'Incorrecto'}
+            </span>
+          </div>
+          {!currentAnswer.isCorrect && (
+            <div style={{
+              background: '#f0fdf4', borderRadius: 10, padding: '10px 14px', marginBottom: 10,
+              fontSize: 13, color: '#166534',
+            }}>
+              <strong>Respuesta correcta: {currentAnswer.correctLetter}</strong><br />
+              {currentQ.options[currentQ.answer - 1]}
+            </div>
+          )}
+          {currentQ.comentario && (
+            <div
+              style={{ fontSize: 13, color: '#374151', lineHeight: 1.6, marginBottom: 12 }}
+              dangerouslySetInnerHTML={{ __html: currentQ.comentario }}
+            />
+          )}
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <button onClick={handleNext} style={{
+              padding: '10px 20px', borderRadius: 10, border: 'none',
+              background: '#1a1a1a', color: '#fff', fontWeight: 800, fontSize: 13,
+              cursor: 'pointer',
+            }}>
+              {currentIndex >= cola.length - 1 ? 'Finalizar 🎉' : 'Siguiente →'}
+            </button>
+          </div>
+        </div>
+      )}
+      {currentAnswer?.skipped && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
+          <button onClick={handleNext} style={{
+            padding: '10px 20px', borderRadius: 10, border: 'none',
+            background: '#1a1a1a', color: '#fff', fontWeight: 800, fontSize: 13,
+            cursor: 'pointer',
+          }}>
+            {currentIndex >= cola.length - 1 ? 'Finalizar 🎉' : 'Siguiente →'}
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Main ─────────────────────────────────────────────────────────────────────
+
 export default function PublicView() {
   const [entries, setEntries]         = useState([])
   const [posts, setPosts]             = useState([])
@@ -756,6 +1092,7 @@ export default function PublicView() {
   const [descartados, setDescartados] = useState([])
   const [adicionales, setAdicionales] = useState({})
   const [loading, setLoading]         = useState(true)
+  const [activeTab, setActiveTab]     = useState('seguimiento')
   const [isMobile, setIsMobile]       = useState(window.innerWidth < 768)
 
   useEffect(() => {
@@ -821,30 +1158,66 @@ export default function PublicView() {
     </div>
   )
 
+  const TABS = [
+    { id: 'seguimiento', label: '📊 Seguimiento' },
+    { id: 'practica',    label: '🧠 Practica' },
+  ]
+
+  const tabBar = (
+    <div style={{
+      display: 'flex', background: '#fff',
+      borderBottom: '1px solid #f0f0f0',
+    }}>
+      {TABS.map(t => (
+        <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
+          flex: 1, padding: '11px 0', fontWeight: 700, fontSize: 13,
+          border: 'none', background: 'none', cursor: 'pointer',
+          color: activeTab === t.id ? ACCENT : '#94a3b8',
+          borderBottom: `2.5px solid ${activeTab === t.id ? ACCENT : 'transparent'}`,
+          transition: 'color 0.2s, border-color 0.2s',
+        }}>
+          {t.label}
+        </button>
+      ))}
+    </div>
+  )
+
   // ── MOBILE ───────────────────────────────────────────────────────────────
   if (isMobile) {
     return (
       <div style={{ minHeight: '100vh', background: '#fafafa' }}>
         {header}
         <div style={{ position: 'sticky', top: 57, zIndex: 15, background: '#fff' }}>
-          <StatsStrip entries={entries} />
+          {activeTab === 'seguimiento' && <StatsStrip entries={entries} />}
+          {tabBar}
         </div>
-        <div style={{ padding: '12px 12px 0' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>Sesión</div>
-          <TimelinePublico entries={entries} completados={completados} descartados={descartados} adicionales={adicionales} />
-        </div>
-        <div style={{ padding: '16px 12px 0' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>Diario</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {diarioItems.map(item => (
-              <DiarioItem key={`${item._type}-${item.id}`} item={item}
-                comentarios={comentarios} onAdd={handleAddComment} onDelete={handleDeleteComment} />
-            ))}
+
+        {activeTab === 'seguimiento' && (
+          <>
+            <div style={{ padding: '12px 12px 0' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>Sesión</div>
+              <TimelinePublico entries={entries} completados={completados} descartados={descartados} adicionales={adicionales} />
+            </div>
+            <div style={{ padding: '16px 12px 0' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>Diario</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {diarioItems.map(item => (
+                  <DiarioItem key={`${item._type}-${item.id}`} item={item}
+                    comentarios={comentarios} onAdd={handleAddComment} onDelete={handleDeleteComment} />
+                ))}
+              </div>
+            </div>
+            <div style={{ padding: '16px 12px 40px' }}>
+              <ForoPanel comentarios={comentarios} onAdd={handleAddComment} onDelete={handleDeleteComment} />
+            </div>
+          </>
+        )}
+
+        {activeTab === 'practica' && (
+          <div style={{ padding: '12px 12px 40px' }}>
+            <QuizPublico />
           </div>
-        </div>
-        <div style={{ padding: '16px 12px 40px' }}>
-          <ForoPanel comentarios={comentarios} onAdd={handleAddComment} onDelete={handleDeleteComment} />
-        </div>
+        )}
       </div>
     )
   }
@@ -854,40 +1227,47 @@ export default function PublicView() {
     <div style={{ minHeight: '100vh', background: '#fafafa', display: 'flex', flexDirection: 'column' }}>
       {header}
       <div style={{ position: 'sticky', top: 57, zIndex: 15, background: '#fff' }}>
-        <StatsStrip entries={entries} />
+        {activeTab === 'seguimiento' && <StatsStrip entries={entries} />}
+        {tabBar}
       </div>
 
-      <div style={{
-        flex: 1, display: 'flex', maxWidth: 1200,
-        margin: '0 auto', width: '100%', padding: '24px 24px 60px', gap: 24,
-        alignItems: 'flex-start',
-      }}>
-        {/* Left: sesión + diario */}
-        <div style={{ flex: '0 0 63%', maxWidth: '63%', display: 'flex', flexDirection: 'column', gap: 24 }}>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 10 }}>Sesión de hoy</div>
-            <TimelinePublico entries={entries} completados={completados} descartados={descartados} adicionales={adicionales} />
-          </div>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 10 }}>Diario</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {diarioItems.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '40px', color: '#bbb', fontSize: 14 }}>
-                  Aún no hay actividad registrada.
-                </div>
-              ) : diarioItems.map(item => (
-                <DiarioItem key={`${item._type}-${item.id}`} item={item}
-                  comentarios={comentarios} onAdd={handleAddComment} onDelete={handleDeleteComment} />
-              ))}
+      {activeTab === 'practica' ? (
+        <div style={{ maxWidth: 1200, margin: '0 auto', width: '100%', padding: '24px 24px 60px' }}>
+          <QuizPublico />
+        </div>
+      ) : (
+        <div style={{
+          flex: 1, display: 'flex', maxWidth: 1200,
+          margin: '0 auto', width: '100%', padding: '24px 24px 60px', gap: 24,
+          alignItems: 'flex-start',
+        }}>
+          {/* Left: sesión + diario */}
+          <div style={{ flex: '0 0 63%', maxWidth: '63%', display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 10 }}>Sesión de hoy</div>
+              <TimelinePublico entries={entries} completados={completados} descartados={descartados} adicionales={adicionales} />
+            </div>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 10 }}>Diario</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {diarioItems.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '40px', color: '#bbb', fontSize: 14 }}>
+                    Aún no hay actividad registrada.
+                  </div>
+                ) : diarioItems.map(item => (
+                  <DiarioItem key={`${item._type}-${item.id}`} item={item}
+                    comentarios={comentarios} onAdd={handleAddComment} onDelete={handleDeleteComment} />
+                ))}
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Right: foro sticky */}
-        <div style={{ flex: '0 0 37%', maxWidth: '37%', position: 'sticky', top: 120 }}>
-          <ForoPanel comentarios={comentarios} onAdd={handleAddComment} onDelete={handleDeleteComment} />
+          {/* Right: foro sticky */}
+          <div style={{ flex: '0 0 37%', maxWidth: '37%', position: 'sticky', top: 120 }}>
+            <ForoPanel comentarios={comentarios} onAdd={handleAddComment} onDelete={handleDeleteComment} />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

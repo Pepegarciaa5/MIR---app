@@ -1,3 +1,10 @@
+/**
+ * Archivo: especialidadesMIR.js
+ * Descripción: Constantes, colores y mapeos de códigos CTO a nombres reales de las especialidades médicas.
+ * Creado: 2026-05-07
+ * Última actualización: 2026-05-07
+ */
+
 // Base de datos completa extraída del Manual CTO — campus-app.grupocto.com
 export const especialidadesMIR = {
   "Alergología": {

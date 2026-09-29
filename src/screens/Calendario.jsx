@@ -1,3 +1,10 @@
+/**
+ * Archivo: Calendario.jsx
+ * Descripción: Vista general del mes. Muestra el plan de estudio diario y permite navegar por el historial.
+ * Creado: 2026-05-07
+ * Última actualización: 2026-05-07
+ */
+
 import React, { useState } from 'react';
 import './Calendario.css';
 import { tareasPendientesGlobal, planesCalendarioGlobal, planesAdicionales, persistData, todayStr } from '../data/mockData';
@@ -271,7 +278,8 @@ export default function Calendario() {
             const isToday = dateStr === todayStr;
             const plan = planesCalendarioGlobal[dateStr] || [];
             const adic = planesAdicionales[dateStr] || [];
-            const totalPlan = [...plan, ...adic];
+            const toMins = t => { const [h, m] = (t || '00:00').split(':').map(Number); return h * 60 + m; };
+            const totalPlan = [...plan, ...adic].sort((a, b) => toMins(a.inicio) - toMins(b.inicio));
 
             return (
               <div 
@@ -347,7 +355,8 @@ export default function Calendario() {
             const isToday = w.dateStr === todayStr;
             const plan = planesCalendarioGlobal[w.dateStr] || [];
             const adic = planesAdicionales[w.dateStr] || [];
-            const totalPlan = [...plan, ...adic];
+            const toMins = t => { const [h, m] = (t || '00:00').split(':').map(Number); return h * 60 + m; };
+            const totalPlan = [...plan, ...adic].sort((a, b) => toMins(a.inicio) - toMins(b.inicio));
 
             return (
               <div 

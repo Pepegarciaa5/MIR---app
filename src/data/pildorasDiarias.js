@@ -1,3 +1,10 @@
+/**
+ * Archivo: pildorasDiarias.js
+ * Descripción: Base de datos local con curiosidades médicas y datos humanísticos para enriquecer la experiencia de usuario diaria.
+ * Creado: 2026-05-07
+ * Última actualización: 2026-05-07
+ */
+
 export const curiosidadesHumanisticas = [
   { contenido: 'Hipócrates separó la medicina de la superstición hace 2.400 años, estableciendo la observación clínica como base del diagnóstico.' },
   { contenido: 'Ignaz Semmelweis descubrió que lavarse las manos salvaba vidas en 1847, pero fue ignorado y ridiculizado por la comunidad médica de su época.' },

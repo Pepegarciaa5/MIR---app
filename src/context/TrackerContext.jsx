@@ -1,3 +1,10 @@
+/**
+ * Archivo: TrackerContext.jsx
+ * Descripción: Proveedor de estado global (Context API) para centralizar la información de seguimiento del estudio y la fecha activa.
+ * Creado: 2026-05-07
+ * Última actualización: 2026-05-07
+ */
+
 import { createContext, useContext, useState, useEffect, useRef } from 'react'
 import {
   getTrackerEntries,
@@ -34,18 +41,31 @@ export function TrackerProvider({ children }) {
     })
   }, [])
 
+  const notifiedRef = useRef(false)
+
   useEffect(() => {
     clearInterval(timerRef.current)
     if (activeEntry) {
+      notifiedRef.current = false
       setElapsed(Math.floor((Date.now() - activeEntry.inicio) / 1000))
       timerRef.current = setInterval(() => {
-        setElapsed(Math.floor((Date.now() - activeEntry.inicio) / 1000))
+        const currentElapsed = Math.floor((Date.now() - activeEntry.inicio) / 1000)
+        setElapsed(currentElapsed)
+        
+        // Comprobar si hemos llegado al tiempo objetivo
+        if (activeEntry.targetTimeSeconds && currentElapsed >= activeEntry.targetTimeSeconds && !notifiedRef.current) {
+          notifiedRef.current = true
+          // Usamos setTimeout para no bloquear el renderizado del timer
+          setTimeout(() => {
+            alert(`¡Tiempo cumplido! Has superado el objetivo de tiempo para: ${activeEntry.descripcion}`)
+          }, 100)
+        }
       }, 1000)
     } else {
       setElapsed(0)
     }
     return () => clearInterval(timerRef.current)
-  }, [activeEntry?.id])
+  }, [activeEntry?.id, activeEntry?.targetTimeSeconds, activeEntry?.inicio, activeEntry?.descripcion])
 
   const _commit = async (entry) => {
     const fin = Date.now()
@@ -58,7 +78,7 @@ export function TrackerProvider({ children }) {
     return completed
   }
 
-  const startTracking = ({ descripcion, especialidad = null, tema = null, bloqueId = null, repasoId = null }) => {
+  const startTracking = ({ descripcion, especialidad = null, tema = null, bloqueId = null, repasoId = null, targetTimeSeconds = null }) => {
     if (activeEntry) _commit(activeEntry)
     const entry = {
       id: String(Date.now()),
@@ -67,6 +87,7 @@ export function TrackerProvider({ children }) {
       tema,
       bloqueId,
       repasoId,
+      targetTimeSeconds,
       inicio: Date.now(),
       fecha: todayKey(),
     }

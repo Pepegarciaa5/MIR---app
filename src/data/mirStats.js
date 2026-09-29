@@ -1,4 +1,11 @@
 /**
+ * Archivo: mirStats.js
+ * Descripción: Reglas de negocio y estadísticas históricas del MIR (rentabilidad por asignatura, pesos, dificultad).
+ * Creado: 2026-05-08
+ * Última actualización: 2026-05-08
+ */
+
+/**
  * mirStats.js — Estadísticas históricas del examen MIR
  *
  * Fuentes:

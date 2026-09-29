@@ -1,3 +1,10 @@
+/**
+ * Archivo: mockData.js
+ * Descripción: Centro neurálgico legacy para cargar datos base, fechas clave del MIR y migraciones iniciales a Supabase.
+ * Creado: 2026-05-07
+ * Última actualización: 2026-05-07
+ */
+
 import { ESPECIALIDADES } from './especialidadesMIR'
 import { planificacionCTO } from './planificacionBridge'
 import {

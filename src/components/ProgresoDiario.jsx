@@ -1,3 +1,10 @@
+/**
+ * Archivo: ProgresoDiario.jsx
+ * Descripción: Tarjeta visual para mostrar el resumen de estudio de un día concreto en la pantalla de Inicio.
+ * Creado: 2026-05-07
+ * Última actualización: 2026-05-17
+ */
+
 import { useTracker } from '../context/TrackerContext'
 import { getEspecialidadColor } from '../data/especialidadesMIR'
 import EntradaEditable from './EntradaEditable'

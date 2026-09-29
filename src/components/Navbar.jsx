@@ -1,4 +1,15 @@
+/**
+ * Archivo: Navbar.jsx
+ * Descripción: Barra de navegación principal (lateral o inferior) para cambiar entre las diferentes pantallas de la app.
+ * Creado: 2026-05-07
+ * Última actualización: 2026-05-17
+ */
+
+import { useState } from 'react'
+
 const ACCENT = '#F26522'
+const COLLAPSED_W = 60
+const EXPANDED_W = 200
 
 const IcoHome = ({ active }) => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill={active ? ACCENT : 'none'}
@@ -70,32 +81,78 @@ const IcoFlashcards = ({ active }) => (
   </svg>
 )
 
+const IcoSimulacros = ({ active }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+    stroke={active ? ACCENT : '#999'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 11l3 3L22 4" />
+    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+  </svg>
+)
+
+const IcoCandle = ({ active }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+    stroke={active ? ACCENT : '#999'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M8 21h8" />
+    <rect x="9" y="11" width="6" height="10" rx="1.5" />
+    <path d="M12 11V8" />
+    {active ? (
+      <path d="M12 8c.6-1 1.2-2 1.2-3s-1.2-2-1.2-2-1.2 1-1.2 2 .6 2 1.2 3z" fill={ACCENT} stroke={ACCENT} />
+    ) : (
+      <path d="M12 8c.3-.5.6-1 .6-1.5s-.6-1-.6-1-.6.5-.6 1 .3 1 .6 1.5z" fill="none" stroke="#999" />
+    )}
+  </svg>
+)
+
+const IcoQuiz = ({ active }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+    stroke={active ? ACCENT : '#999'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
+    <path d="M9 12l2 2 4-4" />
+  </svg>
+)
+
 const ALL_TABS = [
-  { id: 'inicio',     label: 'Inicio',     Icon: IcoHome,     adminOnly: true  },
-  { id: 'calendario', label: 'Calendario', Icon: IcoCalendar, adminOnly: true  },
-  { id: 'repasos',    label: 'Repasos',    Icon: IcoRepeat,   adminOnly: true  },
-  { id: 'progreso',   label: 'Progreso',   Icon: IcoChart,    adminOnly: false },
-  { id: 'diario',     label: 'Diario',     Icon: IcoPen,      adminOnly: false },
-  { id: 'conceptos',   label: 'Conceptos Clave', Icon: IcoFlashcards, adminOnly: false },
+  { id: 'inicio',     label: 'Inicio',            Icon: IcoHome,        adminOnly: true  },
+  { id: 'calendario', label: 'Calendario',         Icon: IcoCalendar,    adminOnly: true  },
+  { id: 'repasos',    label: 'Repasos',            Icon: IcoRepeat,      adminOnly: true  },
+  { id: 'progreso',   label: 'Progreso',           Icon: IcoChart,       adminOnly: false },
+  { id: 'diario',     label: 'Diario',             Icon: IcoPen,         adminOnly: false },
+  { id: 'adaptativo', label: 'Estudio Adaptativo', Icon: IcoRepeat,      adminOnly: false },
+  { id: 'desgloses',  label: 'Desgloses',          Icon: IcoSimulacros,  adminOnly: false },
+  { id: 'conceptos',  label: 'Conceptos Clave',    Icon: IcoFlashcards,  adminOnly: false },
+  { id: 'quiz',       label: 'Banco Preguntas',    Icon: IcoQuiz,        adminOnly: false },
+  { id: 'simulacros', label: 'Simulacros',         Icon: IcoSimulacros,  adminOnly: true  },
+  { id: 'ofrece',     label: 'Ofrece tu estudio',  Icon: IcoCandle,      adminOnly: true  },
 ]
 
 export default function Navbar({ active, setActive, isAdmin }) {
+  const [hovered, setHovered] = useState(false)
   const tabs = isAdmin ? ALL_TABS : ALL_TABS.filter(t => !t.adminOnly)
+
   return (
-    <nav style={{
-      display: 'flex',
-      flexDirection: 'column',
-      width: 200,
-      background: '#fff',
-      borderRight: '1px solid #f0f0f0',
-      padding: '20px 0',
-    }}>
+    <nav
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        width: hovered ? EXPANDED_W : COLLAPSED_W,
+        minWidth: hovered ? EXPANDED_W : COLLAPSED_W,
+        background: '#fff',
+        borderRight: '1px solid #f0f0f0',
+        padding: '20px 0',
+        transition: 'width 0.2s ease, min-width 0.2s ease',
+        overflow: 'hidden',
+        zIndex: 10,
+      }}
+    >
       {tabs.map(({ id, label, Icon }) => {
         const isActive = active === id
         return (
           <button
             key={id}
             onClick={() => setActive(id)}
+            title={hovered ? undefined : label}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -106,16 +163,20 @@ export default function Navbar({ active, setActive, isAdmin }) {
               padding: '12px 20px',
               width: '100%',
               textAlign: 'left',
-              position: 'relative',
               borderRadius: isActive ? '8px' : '0',
               backgroundColor: isActive ? '#fff0e6' : 'transparent',
+              whiteSpace: 'nowrap',
             }}
           >
-            <Icon active={isActive} />
+            <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+              <Icon active={isActive} />
+            </span>
             <span style={{
               fontSize: 14,
               fontWeight: isActive ? 600 : 400,
               color: isActive ? ACCENT : '#666',
+              opacity: hovered ? 1 : 0,
+              transition: 'opacity 0.15s ease',
             }}>
               {label}
             </span>

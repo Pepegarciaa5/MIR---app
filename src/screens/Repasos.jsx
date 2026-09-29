@@ -1,3 +1,10 @@
+/**
+ * Archivo: Repasos.jsx
+ * Descripción: Gestor de tareas de repaso. Planifica y marca como completados los bloques de estudio pendientes.
+ * Creado: 2026-05-07
+ * Última actualización: 2026-05-17
+ */
+
 import { useState } from 'react'
 import { repasosData } from '../data/mockData'
 import { upsertRepaso, deleteRepaso } from '../lib/db'

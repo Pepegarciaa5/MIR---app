@@ -1,3 +1,10 @@
+/* 
+ * Archivo: Calendario.css
+ * Descripción: Estilos específicos para la renderización de la cuadrícula y eventos de la pantalla del Calendario.
+ * Creado: 2026-05-07
+ * Última actualización: 2026-05-07
+ */
+
 .calendario-container {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
   background: #f0f2f5;

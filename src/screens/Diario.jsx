@@ -1,3 +1,10 @@
+/**
+ * Archivo: Diario.jsx
+ * Descripción: Registro diario (Journal) donde el usuario introduce sensaciones, horas de estudio y métricas subjetivas (guardado en Supabase).
+ * Creado: 2026-05-07
+ * Última actualización: 2026-05-17
+ */
+
 import { useState, useEffect } from 'react'
 import { isAdminMode } from '../lib/supabase'
 import { getDiarioPosts, upsertDiarioPost, deleteDiarioPost } from '../lib/db'

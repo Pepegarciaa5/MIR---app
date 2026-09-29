@@ -1,4 +1,11 @@
 /**
+ * Archivo: db.js
+ * Descripción: Capa de abstracción (wrapper) sobre Supabase para realizar operaciones de base de datos (CRUD) en el diario y repasos.
+ * Creado: 2026-05-07
+ * Última actualización: 2026-05-08
+ */
+
+/**
  * db.js — Capa de persistencia Supabase
  * Reemplaza localStorage para todos los datos personales del usuario.
  * Los datos del calendario CTO siguen siendo estáticos (planificacionCTO.json).

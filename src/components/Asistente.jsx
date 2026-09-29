@@ -1,4 +1,11 @@
 /**
+ * Archivo: Asistente.jsx
+ * Descripción: Interfaz flotante o panel lateral para interacción rápida y recordatorios usando IA o lógica de asistente.
+ * Creado: 2026-05-08
+ * Última actualización: 2026-05-17
+ */
+
+/**
  * Asistente.jsx — Asistente de organización del estudio MIR
  *
  * Dos capas:

@@ -1,3 +1,10 @@
+/**
+ * Archivo: supabase.js
+ * Descripción: Inicialización del cliente de Supabase y validación del modo administrador.
+ * Creado: 2026-05-07
+ * Última actualización: 2026-05-17
+ */
+
 import { createClient } from '@supabase/supabase-js'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL

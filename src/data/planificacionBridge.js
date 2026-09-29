@@ -1,3 +1,10 @@
+/**
+ * Archivo: planificacionBridge.js
+ * Descripción: Lógica puente para mapear el calendario oficial en JSON de CTO al modelo de datos interno de la app.
+ * Creado: 2026-05-07
+ * Última actualización: 2026-05-07
+ */
+
 // Mapa de códigos CTO → nombres completos del diccionario ESPECIALIDADES
 import { ESPECIALIDADES } from './especialidadesMIR'
 import planificacionRaw from './planificacionCTO.json'

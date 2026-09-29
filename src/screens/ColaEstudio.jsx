@@ -1,3 +1,10 @@
+/**
+ * Archivo: ColaEstudio.jsx
+ * Descripción: Pantalla dedicada a la repetición espaciada y estudio activo mediante flashcards y reglas nemotécnicas.
+ * Creado: 2026-05-17
+ * Última actualización: 2026-05-17
+ */
+
 import { useState, useEffect, useMemo } from 'react'
 import flashcardsData from '../data/flashcardsData.json'
 import { getMnemotecnias, saveMnemotecnia } from '../lib/mnemotecnias'
