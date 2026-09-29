@@ -71,11 +71,6 @@ export default function App() {
     )
   }
 
-  // Public visitors see the new single-page view
-  if (!isAdminMode) {
-    return <PublicView />
-  }
-
   return (
     <TrackerProvider>
       <div style={{
@@ -97,13 +92,16 @@ export default function App() {
             {tab === 'correccion' && <CorreccionSimulacro />}
             {tab === 'desgloses'  && <Desgloses />}
             {tab === 'conceptos'  && <ColaEstudio />}
-            {/* BancoPreguntas se mantiene montado para no perder la cola ni el historial */}
-            <div style={{ display: tab === 'quiz' ? 'block' : 'none' }}><BancoPreguntas initialFiltros={bancoFiltros} onFiltrosConsumed={() => setBancoFiltros(null)} /></div>
+            <div style={{ display: tab === 'quiz' ? 'block' : 'none' }}>
+              <BancoPreguntas initialFiltros={bancoFiltros} onFiltrosConsumed={() => setBancoFiltros(null)} />
+            </div>
             {tab === 'simulacros' && <Simulacros setTab={setTab} setBancoFiltros={setBancoFiltros} />}
+            {tab === 'publico'    && <PublicView />}
             {tab === 'ofrece'     && <OfreceEstudio />}
           </div>
         </main>
       </div>
     </TrackerProvider>
   )
+
 }

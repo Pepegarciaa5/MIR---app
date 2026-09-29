@@ -112,47 +112,62 @@ const IcoQuiz = ({ active }) => (
 )
 
 const ALL_TABS = [
-  { id: 'inicio',     label: 'Inicio',            Icon: IcoHome,        adminOnly: true  },
-  { id: 'calendario', label: 'Calendario',         Icon: IcoCalendar,    adminOnly: true  },
-  { id: 'repasos',    label: 'Repasos',            Icon: IcoRepeat,      adminOnly: true  },
-  { id: 'progreso',   label: 'Progreso',           Icon: IcoChart,       adminOnly: false },
-  { id: 'diario',     label: 'Diario',             Icon: IcoPen,         adminOnly: false },
-  { id: 'adaptativo', label: 'Estudio Adaptativo', Icon: IcoRepeat,      adminOnly: false },
-  { id: 'desgloses',  label: 'Desgloses',          Icon: IcoSimulacros,  adminOnly: false },
-  { id: 'conceptos',  label: 'Conceptos Clave',    Icon: IcoFlashcards,  adminOnly: false },
-  { id: 'quiz',       label: 'Banco Preguntas',    Icon: IcoQuiz,        adminOnly: false },
-  { id: 'simulacros', label: 'Simulacros',         Icon: IcoSimulacros,  adminOnly: true  },
-  { id: 'ofrece',     label: 'Ofrece tu estudio',  Icon: IcoCandle,      adminOnly: true  },
+  { id: 'inicio',     label: 'Inicio',            Icon: IcoHome },
+  { id: 'desgloses',  label: 'Desgloses MIR',      Icon: IcoSimulacros },
+  { id: 'quiz',       label: 'Banco Preguntas',    Icon: IcoQuiz },
+  { id: 'adaptativo', label: 'Estudio Adaptativo', Icon: IcoRepeat },
+  { id: 'simulacros', label: 'Simulacros',         Icon: IcoSimulacros },
+  { id: 'calendario', label: 'Calendario',         Icon: IcoCalendar },
+  { id: 'repasos',    label: 'Repasos',            Icon: IcoRepeat },
+  { id: 'progreso',   label: 'Progreso',           Icon: IcoChart },
+  { id: 'diario',     label: 'Diario',             Icon: IcoPen },
+  { id: 'publico',    label: 'Vista Pública',      Icon: IcoHome },
 ]
 
-export default function Navbar({ active, setActive, isAdmin }) {
-  const [hovered, setHovered] = useState(false)
-  const tabs = isAdmin ? ALL_TABS : ALL_TABS.filter(t => !t.adminOnly)
+export default function Navbar({ active, setActive }) {
+  const [expanded, setExpanded] = useState(false)
+  const [isTouchDevice, setIsTouchDevice] = useState(false)
+
+  const isExpanded = expanded
 
   return (
     <nav
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseEnter={() => !isTouchDevice && setExpanded(true)}
+      onMouseLeave={() => !isTouchDevice && setExpanded(false)}
+      onTouchStart={() => setIsTouchDevice(true)}
       style={{
         display: 'flex',
         flexDirection: 'column',
-        width: hovered ? EXPANDED_W : COLLAPSED_W,
-        minWidth: hovered ? EXPANDED_W : COLLAPSED_W,
+        width: isExpanded ? EXPANDED_W : COLLAPSED_W,
+        minWidth: isExpanded ? EXPANDED_W : COLLAPSED_W,
         background: '#fff',
         borderRight: '1px solid #f0f0f0',
-        padding: '20px 0',
+        padding: '16px 0',
         transition: 'width 0.2s ease, min-width 0.2s ease',
         overflow: 'hidden',
-        zIndex: 10,
+        zIndex: 20,
       }}
     >
-      {tabs.map(({ id, label, Icon }) => {
+      {/* Botón expandir/colapsar táctil */}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        style={{
+          background: 'none', border: 'none', cursor: 'pointer',
+          padding: '8px 20px', textAlign: 'left', color: '#94a3b8',
+          fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 10
+        }}
+      >
+        <span>{isExpanded ? '◄' : '►'}</span>
+        {isExpanded && <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 1 }}>Menú</span>}
+      </button>
+
+      {ALL_TABS.map(({ id, label, Icon }) => {
         const isActive = active === id
         return (
           <button
             key={id}
             onClick={() => setActive(id)}
-            title={hovered ? undefined : label}
+            title={label}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -175,7 +190,7 @@ export default function Navbar({ active, setActive, isAdmin }) {
               fontSize: 14,
               fontWeight: isActive ? 600 : 400,
               color: isActive ? ACCENT : '#666',
-              opacity: hovered ? 1 : 0,
+              opacity: isExpanded ? 1 : 0,
               transition: 'opacity 0.15s ease',
             }}>
               {label}
@@ -186,3 +201,4 @@ export default function Navbar({ active, setActive, isAdmin }) {
     </nav>
   )
 }
+
