@@ -1024,6 +1024,15 @@ function QuizPublico() {
     const correctCount = Object.values(respuestas).filter(a => a.isCorrect).length
     const total = cola.length
     const pct = Math.round((correctCount / total) * 100)
+    const falladasSesion = cola.filter(q => respuestas[q.id] && !respuestas[q.id].isCorrect && !respuestas[q.id].skipped)
+
+    const handleRepasarErrores = () => {
+      setCola(falladasSesion)
+      setCurrentIndex(0)
+      setRespuestas({})
+      setQuizFinished(false)
+    }
+
     return (
       <div style={{ padding: '16px 0', maxWidth: 700, margin: '0 auto' }}>
         <div style={{
@@ -1046,18 +1055,31 @@ function QuizPublico() {
               {pct}% de acierto
             </div>
           </div>
-          <button onClick={resetQuiz} style={{
-            display: 'block', width: '100%', maxWidth: 280, margin: '0 auto',
-            padding: '13px', borderRadius: 12, border: 'none',
-            background: '#1a1a1a', color: '#fff', fontWeight: 800, fontSize: 14,
-            cursor: 'pointer',
-          }}>
-            Nuevo Test
-          </button>
+
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+            {falladasSesion.length > 0 && (
+              <button onClick={handleRepasarErrores} style={{
+                padding: '13px 20px', borderRadius: 12, border: 'none',
+                background: '#ef4444', color: '#fff', fontWeight: 800, fontSize: 14,
+                cursor: 'pointer',
+              }}>
+                ❌ Repasar {falladasSesion.length} errores
+              </button>
+            )}
+            <button onClick={resetQuiz} style={{
+              padding: '13px 20px', borderRadius: 12, border: 'none',
+              background: '#1a1a1a', color: '#fff', fontWeight: 800, fontSize: 14,
+              cursor: 'pointer',
+            }}>
+
+              Nuevo Test
+            </button>
+          </div>
         </div>
       </div>
     )
   }
+
 
   // ── Pantalla: pregunta en curso ────────────────────────────────────────────
   return (

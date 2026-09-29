@@ -151,6 +151,15 @@ const AdaptiveQuizEngine = ({ subject = 'Oftalmología', modoExamen = false, set
 
   if (quizFinished) {
     const correctCount = answers.filter(a => a.isCorrect).length;
+    const falladasSesion = preguntasCola.filter((q, i) => answers[i] && !answers[i].isCorrect);
+
+    const handleRepasarErrores = () => {
+      setPreguntasCola(falladasSesion);
+      setCurrentIndex(0);
+      setAnswers([]);
+      setQuizFinished(false);
+      setCurrentFeedback(null);
+    };
 
     // Desglose por asignatura (solo en modo examen)
     const desglosePorAsig = modoExamen && Array.isArray(subject) ? subject.map(sub => {
@@ -188,15 +197,26 @@ const AdaptiveQuizEngine = ({ subject = 'Oftalmología', modoExamen = false, set
         )}
 
         <p className="text-slate-600 mb-8">El algoritmo ha guardado tu progreso y reprogramará tus repasos.</p>
-        <button
-          onClick={() => { stopTracking(); setTab('inicio'); }}
-          className="bg-slate-900 text-white px-6 py-3 rounded-lg font-medium hover:bg-slate-800 transition-colors"
-        >
-          Volver al Inicio
-        </button>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          {falladasSesion.length > 0 && (
+            <button
+              onClick={handleRepasarErrores}
+              className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-xl font-bold text-base transition-all hover:scale-105 hover:shadow-lg active:scale-95 shadow-red-200 shadow-sm"
+            >
+              ❌ Repasar {falladasSesion.length} errores
+            </button>
+          )}
+          <button
+            onClick={() => { if (typeof stopTracking === 'function') stopTracking(); if (setTab) setTab('inicio'); else window.location.reload(); }}
+            className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold text-base hover:bg-slate-800 transition-all hover:scale-105"
+          >
+            Volver al Inicio
+          </button>
+        </div>
       </div>
     );
   }
+
 
   if (preguntasCola.length === 0) {
     return <div className="p-12 text-center text-slate-500">Cargando preguntas de {subject}...</div>;
