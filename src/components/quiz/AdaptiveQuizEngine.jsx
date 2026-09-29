@@ -6,8 +6,9 @@ import desglosesData from '../../data/desgloses_filtrables.json';
 import { usePreguntasStats } from '../../hooks/usePreguntasStats';
 import { useTracker } from '../../context/TrackerContext';
 import NotaPersonal from './NotaPersonal';
+import { getOrCreateAnonUserId, createQuizResult } from '../../utils/quizSync';
 
-const AdaptiveQuizEngine = ({ subject = 'Oftalmología', modoExamen = false, setTab }) => {
+const AdaptiveQuizEngine = ({ subject = 'Oftalmología', modoExamen = false, setTab, questionCount = 20 }) => {
   const [preguntasCola, setPreguntasCola] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState([]);
@@ -40,6 +41,7 @@ const AdaptiveQuizEngine = ({ subject = 'Oftalmología', modoExamen = false, set
       .filter(([id, data]) => data.fallos > 0 && !data.dominada)
       .map(([id]) => id);
 
+    let finalCola = [];
     if (modoExamen && Array.isArray(subject)) {
       let colaTotal = [];
       subject.forEach(sub => {
@@ -51,13 +53,17 @@ const AdaptiveQuizEngine = ({ subject = 'Oftalmología', modoExamen = false, set
         const j = Math.floor(Math.random() * (i + 1));
         [colaTotal[i], colaTotal[j]] = [colaTotal[j], colaTotal[i]];
       }
-      setPreguntasCola(colaTotal);
+      finalCola = colaTotal;
     } else {
       const subjectStr = Array.isArray(subject) ? subject[0] : subject;
-      const cola = generarColaPreguntas(bancoFiltrado, repasosPendientes, subjectStr);
-      setPreguntasCola(cola);
+      finalCola = generarColaPreguntas(bancoFiltrado, repasosPendientes, subjectStr);
     }
-  }, [subject, modoExamen]);
+
+    if (questionCount && questionCount > 0) {
+      finalCola = finalCola.slice(0, questionCount);
+    }
+    setPreguntasCola(finalCola);
+  }, [subject, modoExamen, questionCount]);
 
   const currentQuestion = preguntasCola[currentIndex];
   const numToLetter = (num) => ['A', 'B', 'C', 'D', 'E'][num - 1] || num;
@@ -83,7 +89,10 @@ const AdaptiveQuizEngine = ({ subject = 'Oftalmología', modoExamen = false, set
     const finalConfidence = discardedCorrect ? 'red' : answerData.confidence;
 
     // Registrar en estadísticas reales (LocalStorage / backend)
-    registrarRespuesta(questionForCard.id, answerData.isCorrect, answerData.selectedOption);
+    registrarRespuesta(questionForCard.id, answerData.isCorrect, answerData.selectedOption, {
+      confidence: finalConfidence,
+      subject: currentQuestion?.asignatura || (Array.isArray(subject) ? subject[0] : subject)
+    });
 
     const processedAnswerData = {
       ...answerData,
@@ -91,7 +100,7 @@ const AdaptiveQuizEngine = ({ subject = 'Oftalmología', modoExamen = false, set
       discardedCorrect: discardedCorrect
     };
 
-    setAnswers([...answers, processedAnswerData]);
+    setAnswers(prev => [...prev, processedAnswerData]);
 
     // Mostrar feedback Inmediato (Modo Tutor)
     setCurrentFeedback({
@@ -118,9 +127,27 @@ const AdaptiveQuizEngine = ({ subject = 'Oftalmología', modoExamen = false, set
       } catch (e) {
         console.error('Error guardando historial de tests', e);
       }
+
+      // Sync test completion to Supabase
+      const userId = getOrCreateAnonUserId();
+      const correctCount = answers.filter(a => a.isCorrect).length;
+      createQuizResult(userId, {
+        subject: Array.isArray(subject) ? subject.join(', ') : subject,
+        question_count: preguntasCola.length,
+        answers: answers.map((a, i) => ({
+          question_id: preguntasCola[i]?.id,
+          selected: a.selectedOption,
+          is_correct: a.isCorrect,
+          confidence: a.confidence
+        })),
+        total_score: correctCount,
+        duration_seconds: 0
+      });
+
       setQuizFinished(true);
     }
   };
+
 
   if (quizFinished) {
     const correctCount = answers.filter(a => a.isCorrect).length;

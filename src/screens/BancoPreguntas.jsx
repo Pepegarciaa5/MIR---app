@@ -120,6 +120,11 @@ export default function BancoPreguntas({ initialFiltros = null, onFiltrosConsume
       filtradas = filtradas.filter(q => !q.origen?.startsWith('Simulacro'));
     } else if (filtros.modoSimulacros === 'exclusivo') {
       filtradas = filtradas.filter(q => q.origen?.startsWith('Simulacro'));
+    } else if (filtros.modoSimulacros === 'oficiales') {
+      filtradas = filtradas.filter(q => {
+        const o = (q.origen || '').toLowerCase();
+        return o.includes('simulacro') || o.includes('desglose') || o.includes('mir');
+      });
     }
 
     if (filtros.soloFalladas) {
@@ -340,7 +345,8 @@ export default function BancoPreguntas({ initialFiltros = null, onFiltrosConsume
                   onChange={e => setFiltros(prev => ({ ...prev, modoSimulacros: e.target.value }))}
                   className="w-full border-2 border-slate-200 rounded-lg px-4 py-2 font-medium text-slate-700 outline-none focus:border-cyan-500 transition-colors bg-white"
                 >
-                  <option value="incluir">Ambos (Banco + Simulacros)</option>
+                  <option value="incluir">Todas (Banco + Simulacros + Desgloses)</option>
+                  <option value="oficiales">🎯 Solo Simulacros y Desgloses</option>
                   <option value="exclusivo">Solo Simulacros</option>
                   <option value="excluir">Solo Banco y Desgloses</option>
                 </select>

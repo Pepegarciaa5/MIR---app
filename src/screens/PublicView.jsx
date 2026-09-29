@@ -29,6 +29,9 @@ import TEXTOS_DESGLOSES from '../data/desgloses.json'
 import { getPreguntas, ASIGNATURA_NOMBRE } from '../lib/simulacros'
 import { desgloseAnual } from '../data/mirStats'
 import QuestionCard from '../components/quiz/QuestionCard'
+import NotaPersonal from '../components/quiz/NotaPersonal'
+import { usePreguntasStats } from '../hooks/usePreguntasStats'
+import { getOrCreateAnonUserId, createQuizResult } from '../utils/quizSync'
 
 // ─── Constantes visuales (igual que SesionDia) ────────────────────────────────
 const ACCENT      = '#F26522'
@@ -802,10 +805,14 @@ function QuizPublico() {
   , [])
 
   const [asignaturas, setAsignaturas] = useState([])
+  const [numPreguntas, setNumPreguntas] = useState(20)
+  const [soloSimulacrosYDesgloses, setSoloSimulacrosYDesgloses] = useState(false)
   const [cola, setCola]               = useState([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [respuestas, setRespuestas]   = useState({})
   const [quizFinished, setQuizFinished] = useState(false)
+
+  const { registrarRespuesta, getStatsPregunta, guardarNota } = usePreguntasStats()
 
   const toggleAsig = a => setAsignaturas(prev =>
     prev.includes(a) ? prev.filter(x => x !== a) : [...prev, a]
@@ -813,10 +820,16 @@ function QuizPublico() {
 
   const generar = () => {
     let filtradas = ALL_QUESTIONS
+    if (soloSimulacrosYDesgloses) {
+      filtradas = filtradas.filter(q => {
+        const o = (q.origen || '').toLowerCase()
+        return o.includes('simulacro') || o.includes('desglose') || o.includes('mir')
+      })
+    }
     if (asignaturas.length > 0)
       filtradas = filtradas.filter(q => asignaturas.includes(q.asignatura))
 
-    const MAX = 50
+    const MAX = numPreguntas
     const availSubs = [...new Set(filtradas.map(q => q.asignatura))]
     let selected = []
 
@@ -862,6 +875,13 @@ function QuizPublico() {
       handleNext()
       return
     }
+
+    // Registrar en estadísticas y sincronizar con Supabase
+    registrarRespuesta(questionForCard.id, answerData.isCorrect, answerData.selectedOption, {
+      confidence: answerData.confidence,
+      subject: currentQ.asignatura
+    })
+
     setRespuestas(prev => ({
       ...prev,
       [questionForCard.id]: {
@@ -873,8 +893,25 @@ function QuizPublico() {
   }
 
   const handleNext = () => {
-    if (currentIndex < cola.length - 1) setCurrentIndex(i => i + 1)
-    else setQuizFinished(true)
+    if (currentIndex < cola.length - 1) {
+      setCurrentIndex(i => i + 1)
+    } else {
+      // Finalizar quiz y guardar resultado en Supabase
+      const userId = getOrCreateAnonUserId()
+      const correctCount = Object.values(respuestas).filter(a => a.isCorrect).length
+      createQuizResult(userId, {
+        subject: asignaturas.length > 0 ? asignaturas.join(', ') : 'Todas',
+        question_count: cola.length,
+        answers: Object.entries(respuestas).map(([qId, a]) => ({
+          question_id: qId,
+          selected: a.selectedLetter,
+          is_correct: a.isCorrect
+        })),
+        total_score: correctCount,
+        duration_seconds: 0
+      })
+      setQuizFinished(true)
+    }
   }
 
   const resetQuiz = () => {
@@ -894,8 +931,54 @@ function QuizPublico() {
         }}>
           <div style={{ fontSize: 16, fontWeight: 800, color: '#1a1a1a', marginBottom: 4 }}>🧠 Test de Preguntas MIR</div>
           <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 16 }}>
-            {ALL_QUESTIONS.length.toLocaleString('es')} preguntas disponibles · Máximo 50 por sesión
+            {ALL_QUESTIONS.length.toLocaleString('es')} preguntas disponibles
           </div>
+
+          {/* Selector de número de preguntas */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>
+              Número de preguntas
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {[10, 20, 30, 50].map(cnt => (
+                <button
+                  key={cnt}
+                  onClick={() => setNumPreguntas(cnt)}
+                  style={{
+                    flex: 1, padding: '8px 0', borderRadius: 10,
+                    border: `1.5px solid ${numPreguntas === cnt ? ACCENT : '#e2e8f0'}`,
+                    background: numPreguntas === cnt ? '#fff3ec' : '#fff',
+                    color: numPreguntas === cnt ? ACCENT : '#475569',
+                    fontWeight: 800, fontSize: 13, cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  {cnt} pregs
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Filtro: Solo Simulacros y Desgloses */}
+          <div style={{ marginBottom: 16 }}>
+            <label style={{
+              display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
+              fontSize: 13, fontWeight: 700, color: '#334155',
+              background: soloSimulacrosYDesgloses ? '#fff3ec' : '#fafafa',
+              padding: '10px 14px', borderRadius: 10,
+              border: `1.5px solid ${soloSimulacrosYDesgloses ? ACCENT : '#e2e8f0'}`,
+              transition: 'all 0.15s'
+            }}>
+              <input
+                type="checkbox"
+                checked={soloSimulacrosYDesgloses}
+                onChange={e => setSoloSimulacrosYDesgloses(e.target.checked)}
+                style={{ width: 16, height: 16, accentColor: ACCENT, cursor: 'pointer' }}
+              />
+              <span>🎯 Solo preguntas de Simulacros y Desgloses (Excluir otras)</span>
+            </label>
+          </div>
+
 
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: 8 }}>
@@ -929,7 +1012,7 @@ function QuizPublico() {
             onMouseDown={e => e.currentTarget.style.transform = 'scale(0.98)'}
             onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
           >
-            Generar Test Aleatorio 🎲
+            Generar Test ({numPreguntas} preguntas) 🎲
           </button>
         </div>
       </div>
@@ -950,7 +1033,7 @@ function QuizPublico() {
         }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>🎯</div>
           <div style={{ fontSize: 22, fontWeight: 900, color: '#1a1a1a', marginBottom: 6 }}>Sesión completada</div>
-          <div style={{ fontSize: 13, color: '#64748b', marginBottom: 28 }}>¡Buen trabajo!</div>
+          <div style={{ fontSize: 13, color: '#64748b', marginBottom: 28 }}>¡Buen trabajo! Progreso sincronizado.</div>
           <div style={{
             display: 'inline-block', background: '#f8fafc', borderRadius: 16,
             padding: '20px 40px', marginBottom: 28,
@@ -1050,11 +1133,26 @@ function QuizPublico() {
               {currentQ.options[currentQ.answer - 1]}
             </div>
           )}
-          {currentQ.comentario && (
-            <div
-              style={{ fontSize: 13, color: '#374151', lineHeight: 1.6, marginBottom: 12 }}
-              dangerouslySetInnerHTML={{ __html: currentQ.comentario }}
+
+          {/* Nota personal */}
+          <div style={{ marginBottom: 12 }}>
+            <NotaPersonal
+              preguntaId={currentQ.id}
+              nota={getStatsPregunta(currentQ.id)?.nota || ''}
+              onGuardar={guardarNota}
             />
+          </div>
+
+          {currentQ.comentario && (
+            <div style={{ background: '#f8fafc', padding: 12, borderRadius: 10, border: '1px solid #e2e8f0', marginBottom: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: 4 }}>
+                💡 Comentario Oficial CTO
+              </div>
+              <div
+                style={{ fontSize: 13, color: '#374151', lineHeight: 1.6 }}
+                dangerouslySetInnerHTML={{ __html: currentQ.comentario }}
+              />
+            </div>
           )}
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <button onClick={handleNext} style={{
@@ -1081,6 +1179,7 @@ function QuizPublico() {
     </div>
   )
 }
+
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 

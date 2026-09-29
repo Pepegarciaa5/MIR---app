@@ -1,16 +1,12 @@
-/**
- * Archivo: usePreguntasStats.js
- * Descripción: Hook de React para gestionar el progreso individual de cada pregunta (revisada, dudosa, dominada) usando localStorage.
- * Creado: 2026-08-29
- * Última actualización: 2026-08-29
- */
-
 import { useState, useEffect, useCallback } from 'react';
+import { getOrCreateAnonUserId, upsertQuestionStat } from '../utils/quizSync';
+import { supabase } from '../lib/supabase';
 
 const STORAGE_KEY = 'mir_banco_preguntas_stats';
 
 let globalStatsCache = null;
 const listeners = new Set();
+let isInitialFetched = false;
 
 function getGlobalStatsData() {
   if (globalStatsCache) return globalStatsCache;
@@ -31,35 +27,88 @@ function setGlobalStatsData(newStats) {
 }
 
 /**
- * Hook para gestionar las estadísticas locales del banco de preguntas.
- * Implementa un patrón de estado global para que todos los componentes
- * compartan y sincronicen el mismo estado de localStorage sin sobrescribirse.
+ * Hook para gestionar las estadísticas locales y remotas (Supabase) del banco de preguntas.
  */
 export function usePreguntasStats() {
   const [stats, setStats] = useState(getGlobalStatsData);
 
   useEffect(() => {
     listeners.add(setStats);
+    
+    // Fetch initial stats from Supabase on first mount to sync cloud data
+    if (!isInitialFetched) {
+      isInitialFetched = true;
+      const userId = getOrCreateAnonUserId();
+      supabase
+        .from('user_question_stats')
+        .select('*')
+        .eq('user_id', userId)
+        .then(({ data, error }) => {
+          if (!error && data && data.length > 0) {
+            const currentStats = getGlobalStatsData();
+            const merged = { ...currentStats };
+            data.forEach(item => {
+              if (item.question_id) {
+                merged[item.question_id] = {
+                  ...(merged[item.question_id] || {}),
+                  status: item.status,
+                  dudosa: item.status === 'needs_review' && item.confidence === 'yellow',
+                  dominada: item.status === 'mastered',
+                  nota: item.note || merged[item.question_id]?.nota || '',
+                  confidence_history: item.confidence_history || []
+                };
+              }
+            });
+            setGlobalStatsData(merged);
+          }
+        })
+        .catch(err => console.error('Error fetching Supabase stats:', err));
+    }
+
     return () => listeners.delete(setStats);
   }, []);
 
-  const registrarRespuesta = useCallback((preguntaId, esCorrecta, respuestaSeleccionada) => {
+  const syncToCloud = (preguntaId, updatedQuestionStats) => {
+    const userId = getOrCreateAnonUserId();
+    const status = updatedQuestionStats.dominada
+      ? 'mastered'
+      : (updatedQuestionStats.fallos > 0 || updatedQuestionStats.dudosa ? 'needs_review' : 'mastered');
+
+    upsertQuestionStat(userId, preguntaId, {
+      subject: updatedQuestionStats.subject || 'General',
+      status: status,
+      confidence_history: updatedQuestionStats.confidence_history || [],
+      note: updatedQuestionStats.nota || ''
+    });
+  };
+
+  const registrarRespuesta = useCallback((preguntaId, esCorrecta, respuestaSeleccionada, extraData = {}) => {
     const currentStats = getGlobalStatsData();
     const p = currentStats[preguntaId] || {
       vecesVistas: 0, aciertos: 0, fallos: 0, ultimaRespuesta: null, ultimaFecha: null, dudosa: false, dominada: false, corregida: false
     };
 
-    setGlobalStatsData({
+    const newConfidence = extraData.confidence || (esCorrecta ? 'green' : 'red');
+    const newHistory = [...(p.confidence_history || []), newConfidence];
+
+    const updated = {
+      ...p,
+      vecesVistas: p.vecesVistas + 1,
+      aciertos: esCorrecta ? p.aciertos + 1 : p.aciertos,
+      fallos: !esCorrecta ? p.fallos + 1 : p.fallos,
+      ultimaRespuesta: respuestaSeleccionada,
+      ultimaFecha: new Date().toISOString(),
+      confidence_history: newHistory,
+      subject: extraData.subject || p.subject || 'General'
+    };
+
+    const newStats = {
       ...currentStats,
-      [preguntaId]: {
-        ...p,
-        vecesVistas: p.vecesVistas + 1,
-        aciertos: esCorrecta ? p.aciertos + 1 : p.aciertos,
-        fallos: !esCorrecta ? p.fallos + 1 : p.fallos,
-        ultimaRespuesta: respuestaSeleccionada,
-        ultimaFecha: new Date().toISOString()
-      }
-    });
+      [preguntaId]: updated
+    };
+
+    setGlobalStatsData(newStats);
+    syncToCloud(preguntaId, updated);
   }, []);
 
   const marcarEstado = useCallback((preguntaId, tipo) => {
@@ -68,14 +117,17 @@ export function usePreguntasStats() {
       vecesVistas: 0, aciertos: 0, fallos: 0, ultimaRespuesta: null, ultimaFecha: null, dudosa: false, dominada: false, corregida: false
     };
 
+    const updated = {
+      ...p,
+      dudosa: tipo === 'dudosa',
+      dominada: tipo === 'dominada'
+    };
+
     setGlobalStatsData({
       ...currentStats,
-      [preguntaId]: {
-        ...p,
-        dudosa: tipo === 'dudosa',
-        dominada: tipo === 'dominada'
-      }
+      [preguntaId]: updated
     });
+    syncToCloud(preguntaId, updated);
   }, []);
 
   const marcarCorregida = useCallback((preguntaId, estado = true) => {
@@ -84,13 +136,16 @@ export function usePreguntasStats() {
       vecesVistas: 0, aciertos: 0, fallos: 0, ultimaRespuesta: null, ultimaFecha: null, dudosa: false, dominada: false, corregida: false
     };
 
+    const updated = {
+      ...p,
+      corregida: estado
+    };
+
     setGlobalStatsData({
       ...currentStats,
-      [preguntaId]: {
-        ...p,
-        corregida: estado
-      }
+      [preguntaId]: updated
     });
+    syncToCloud(preguntaId, updated);
   }, []);
 
   const getStatsPregunta = useCallback((preguntaId) => {
@@ -102,10 +157,12 @@ export function usePreguntasStats() {
     const p = currentStats[preguntaId] || {
       vecesVistas: 0, aciertos: 0, fallos: 0, ultimaRespuesta: null, ultimaFecha: null, dudosa: false, dominada: false, corregida: false
     };
+    const updated = { ...p, nota: nota.trim() };
     setGlobalStatsData({
       ...currentStats,
-      [preguntaId]: { ...p, nota: nota.trim() }
+      [preguntaId]: updated
     });
+    syncToCloud(preguntaId, updated);
   }, []);
 
   // Obtener rendimiento global
@@ -138,3 +195,4 @@ export function usePreguntasStats() {
     guardarNota
   };
 }
+
