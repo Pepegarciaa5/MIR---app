@@ -7,11 +7,17 @@ import React, { useState, useEffect } from 'react';
 export default function NotaPersonal({ preguntaId, nota: notaInicial = '', onGuardar }) {
   const [nota, setNota] = useState(notaInicial || '');
   const [guardado, setGuardado] = useState(false);
+  const prevPreguntaIdRef = React.useRef(preguntaId);
 
-  // Sync si cambia la pregunta
+  // Sync cuando cambia la pregunta o si la nota inicial se carga asíncronamente
   useEffect(() => {
-    setNota(notaInicial || '');
-    setGuardado(false);
+    if (prevPreguntaIdRef.current !== preguntaId) {
+      prevPreguntaIdRef.current = preguntaId;
+      setNota(notaInicial || '');
+      setGuardado(false);
+    } else if (notaInicial && !nota) {
+      setNota(notaInicial);
+    }
   }, [preguntaId, notaInicial]);
 
   const handleGuardar = () => {

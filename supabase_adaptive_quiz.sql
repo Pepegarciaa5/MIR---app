@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS user_question_stats (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id text NOT NULL, -- O uuid si usas Supabase Auth
   question_id text NOT NULL,
-  subject text NOT NULL,
+  subject text NOT NULL DEFAULT 'General',
   
   -- Estado actual en el algoritmo SRS
   status text NOT NULL CHECK (status IN ('mastered', 'needs_review')),
@@ -15,6 +15,9 @@ CREATE TABLE IF NOT EXISTS user_question_stats (
   
   -- Historial de respuestas (Verde, Naranja, Rojo) para analíticas
   confidence_history jsonb DEFAULT '[]'::jsonb,
+
+  -- Nota personal del usuario para esta pregunta
+  note text DEFAULT '',
   
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
@@ -22,6 +25,7 @@ CREATE TABLE IF NOT EXISTS user_question_stats (
   -- Evitar duplicados por usuario y pregunta
   UNIQUE (user_id, question_id)
 );
+
 
 -- 2. Rendimiento por asignatura para el motor de recomendaciones
 CREATE TABLE IF NOT EXISTS user_subject_performance (

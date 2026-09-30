@@ -33,12 +33,16 @@ export async function upsertQuestionStat(userId, questionId, statsObj) {
   const payload = {
     user_id: userId,
     question_id: questionId,
-    ...statsObj,
+    subject: statsObj.subject || 'General',
+    status: statsObj.status || 'needs_review',
+    note: statsObj.note ?? statsObj.nota ?? '',
+    confidence_history: statsObj.confidence_history || [],
   };
-  const { error } = await supabase.from('user_question_stats').upsert(payload);
+  const { error } = await supabase.from('user_question_stats').upsert(payload, { onConflict: 'user_id,question_id' });
   if (error) console.error('Supabase upsert error (question stat):', error);
   return !error;
 }
+
 
 /**
  * Insert a completed quiz result into Supabase.
