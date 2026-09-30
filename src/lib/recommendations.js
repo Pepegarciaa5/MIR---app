@@ -33,11 +33,12 @@ export function calcularDistanciaObjetivo(asignatura, aciertoActualPorcentaje) {
  * Prioriza repasos pendientes, luego rellena con nuevas.
  * Descarta preguntas de simulacro con dificultad 5.
  */
-export function generarColaPreguntas(bancoPreguntasTodas, repasosPendientesIds, asignatura) {
+export function generarColaPreguntas(bancoPreguntasTodas, repasosPendientesIds, asignatura, archivedIds = []) {
   // 1. Filtrar preguntas de esta asignatura o bloque
   const preguntasAsignatura = bancoPreguntasTodas.filter(q => {
-    // Si la pregunta no tiene asignatura, ignorar
+    // Si la pregunta no tiene asignatura o está archivada, ignorar
     if (!q.asignatura) return false;
+    if (q.archivada || (Array.isArray(archivedIds) && archivedIds.includes(q.id))) return false;
 
     // A veces q.asignatura es el nombre ("Digestivo") y a veces el código ("DG").
     // Buscamos su código original para poder cruzar con los grupos.

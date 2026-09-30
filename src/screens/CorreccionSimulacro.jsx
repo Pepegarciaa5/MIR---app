@@ -6,7 +6,7 @@ import { simulacrosMeta } from '../data/simulacrosMeta';
 import NotaPersonal from '../components/quiz/NotaPersonal';
 
 export default function CorreccionSimulacro() {
-  const { stats, marcarCorregida, getStatsPregunta, guardarNota } = usePreguntasStats();
+  const { stats, marcarCorregida, getStatsPregunta, guardarNota, archivarPregunta } = usePreguntasStats();
   const { elapsed, activeEntry } = useTracker();
   const [preguntasQueue, setPreguntasQueue] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -25,8 +25,9 @@ export default function CorreccionSimulacro() {
     // 3. Filtrar y clasificar en grupos
     let pendientes = todas.filter(p => {
       if (p.ignorar) return false;
-      const stat = stats[`${p.simulacro}-${p.numero}`] || stats[p.id] || stats[p.pregunta_id];
-      if (stat && stat.corregida) return false;
+      const qKey = p.pregunta_id || p.id || `${p.simulacro}-${p.numero}`;
+      const stat = stats[qKey] || stats[`${p.simulacro}-${p.numero}`] || stats[p.id] || stats[p.pregunta_id];
+      if (stat && (stat.corregida || stat.archivada || stat.status === 'archived')) return false;
 
       const meta = simulacrosMeta.find(m => m.numero === p.simulacro);
       const cuenta_total = meta?.cuenta_total || 3000;
@@ -258,12 +259,26 @@ export default function CorreccionSimulacro() {
               </div>
             </div>
 
-            <button
-              onClick={handleNext}
-              className="w-full bg-green-500 text-white font-bold text-lg py-4 rounded-xl hover:bg-green-600 transition-colors shadow-sm flex items-center justify-center gap-2"
-            >
-              <span>✓</span> Lo he entendido, Marcar como Aprendida
-            </button>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={handleNext}
+                className="flex-1 bg-green-500 text-white font-bold text-base py-4 rounded-xl hover:bg-green-600 transition-colors shadow-sm flex items-center justify-center gap-2"
+              >
+                <span>✓</span> Lo he entendido, Marcar como Aprendida
+              </button>
+
+              <button
+                onClick={() => {
+                  const targetId = fullQ.pregunta_id || fullQ.id || `${fullQ.simulacro}-${fullQ.numero}`;
+                  archivarPregunta(targetId, 'missing_data');
+                  handleNext();
+                }}
+                className="px-4 py-4 bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 font-bold text-sm rounded-xl transition-colors flex items-center justify-center gap-2"
+                title="Archivar para siempre (no volverá a salir)"
+              >
+                <span>📦</span> Faltan datos / imagen (Archivar)
+              </button>
+            </div>
           </div>
         </div>
       )}

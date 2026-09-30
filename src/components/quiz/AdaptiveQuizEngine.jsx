@@ -15,15 +15,19 @@ const AdaptiveQuizEngine = ({ subject = 'Oftalmología', modoExamen = false, set
   const [quizFinished, setQuizFinished] = useState(false);
   const [currentFeedback, setCurrentFeedback] = useState(null);
 
-  const { registrarRespuesta, stats, getStatsPregunta, guardarNota } = usePreguntasStats();
+  const { registrarRespuesta, stats, getStatsPregunta, guardarNota, archivarPregunta } = usePreguntasStats();
 
   // Al montar, generamos la cola
   useEffect(() => {
+    const archivedIds = Object.entries(stats || {})
+      .filter(([_, data]) => data.archivada || data.status === 'archived')
+      .map(([id]) => id);
+
     const bancoSimulacros = bancoPreguntas.filter(q =>
-      q.origen?.startsWith('Simulacro') && !q.image && !q.imagen && !q.imagen_nombre
+      q.origen?.startsWith('Simulacro') && !q.image && !q.imagen && !q.imagen_nombre && !archivedIds.includes(q.id)
     );
     const bancoDesgloses = desglosesData
-      .filter(q => !q.imagen_nombre)
+      .filter(q => !q.imagen_nombre && !archivedIds.includes(q.id))
       .map(d => ({
         id: d.id,
         origen: `Desgloses ${d.anualidad}`,
@@ -38,14 +42,14 @@ const AdaptiveQuizEngine = ({ subject = 'Oftalmología', modoExamen = false, set
 
     const bancoFiltrado = [...bancoSimulacros, ...bancoDesgloses];
     const repasosPendientes = Object.entries(stats || {})
-      .filter(([id, data]) => data.fallos > 0 && !data.dominada)
+      .filter(([id, data]) => data.fallos > 0 && !data.dominada && !data.archivada && data.status !== 'archived')
       .map(([id]) => id);
 
     let finalCola = [];
     if (modoExamen && Array.isArray(subject)) {
       let colaTotal = [];
       subject.forEach(sub => {
-        const cola = generarColaPreguntas(bancoFiltrado, repasosPendientes, sub);
+        const cola = generarColaPreguntas(bancoFiltrado, repasosPendientes, sub, archivedIds);
         colaTotal = [...colaTotal, ...cola];
       });
       // Fisher-Yates shuffle - aleatorización verdadera
@@ -56,7 +60,7 @@ const AdaptiveQuizEngine = ({ subject = 'Oftalmología', modoExamen = false, set
       finalCola = colaTotal;
     } else {
       const subjectStr = Array.isArray(subject) ? subject[0] : subject;
-      finalCola = generarColaPreguntas(bancoFiltrado, repasosPendientes, subjectStr);
+      finalCola = generarColaPreguntas(bancoFiltrado, repasosPendientes, subjectStr, archivedIds);
     }
 
     if (questionCount && questionCount > 0) {
@@ -80,6 +84,9 @@ const AdaptiveQuizEngine = ({ subject = 'Oftalmología', modoExamen = false, set
 
   const handleAnswerSubmit = (answerData) => {
     if (answerData.skipped) {
+      if (answerData.archive || answerData.reason === 'missing_data') {
+        archivarPregunta(currentQuestion.id, 'missing_data');
+      }
       handleNextQuestion();
       return;
     }

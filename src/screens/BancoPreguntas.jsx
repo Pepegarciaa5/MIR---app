@@ -54,7 +54,7 @@ const numToLetter = (num) => ['A', 'B', 'C', 'D', 'E'][num - 1] || num;
 
 export default function BancoPreguntas({ initialFiltros = null, onFiltrosConsumed = null }) {
   const [quizFinished, setQuizFinished] = useState(false);
-  const { registrarRespuesta, getStatsPregunta, guardarNota } = usePreguntasStats();
+  const { registrarRespuesta, getStatsPregunta, guardarNota, archivarPregunta, isArchivada } = usePreguntasStats();
 
   const asignaturasDisponibles = useMemo(() => {
     return [...new Set(QUESTIONS.map(q => q.asignatura))].filter(Boolean).sort();
@@ -111,6 +111,9 @@ export default function BancoPreguntas({ initialFiltros = null, onFiltrosConsume
 
   const handleFiltrar = () => {
     let filtradas = QUESTIONS;
+
+    // Excluir preguntas archivadas
+    filtradas = filtradas.filter(q => !isArchivada(q.id));
 
     if (filtros.asignaturas.length > 0) {
       filtradas = filtradas.filter(q => filtros.asignaturas.includes(q.asignatura));
@@ -228,6 +231,9 @@ export default function BancoPreguntas({ initialFiltros = null, onFiltrosConsume
 
   const handleAnswerSubmit = (answerData) => {
     if (answerData.skipped) {
+      if (answerData.archive || answerData.reason === 'missing_data') {
+        archivarPregunta(questionForCard.id, 'missing_data');
+      }
       setRespuestasDesglose(prev => ({ ...prev, [questionForCard.id]: { skipped: true } }));
       handleNext();
       return;

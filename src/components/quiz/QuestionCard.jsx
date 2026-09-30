@@ -129,13 +129,14 @@ const QuestionCard = ({ question, onAnswer }) => {
           </div>
         </div>
       )}
-      {/* Botón para omitir si falta imagen */}
+      {/* Botón para archivar si faltan datos/imagen */}
       <div className="mt-8 pt-4 border-t border-slate-100 flex justify-end">
         <button
-          onClick={() => onAnswer({ skipped: true, reason: 'missing_data' })}
-          className="text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-slate-50"
+          onClick={() => onAnswer({ skipped: true, archive: true, reason: 'missing_data' })}
+          className="text-xs font-bold text-slate-400 hover:text-red-600 transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-red-50 border border-transparent hover:border-red-100"
+          title="Archivar esta pregunta para siempre (no volverá a salir en ningún test o desglose)"
         >
-          <span>⚠️</span> Imposible resolver (Faltan datos/imagen)
+          <span>📦</span> Imposible resolver (Faltan datos/imagen) · Archivar
         </button>
       </div>
     </div>

@@ -52,6 +52,7 @@ export function usePreguntasStats() {
                 merged[item.question_id] = {
                   ...(merged[item.question_id] || {}),
                   status: item.status,
+                  archivada: item.status === 'archived' || merged[item.question_id]?.archivada || false,
                   dudosa: item.status === 'needs_review' && item.confidence === 'yellow',
                   dominada: item.status === 'mastered',
                   nota: item.note || merged[item.question_id]?.nota || '',
@@ -70,9 +71,11 @@ export function usePreguntasStats() {
 
   const syncToCloud = (preguntaId, updatedQuestionStats) => {
     const userId = getOrCreateAnonUserId();
-    const status = updatedQuestionStats.dominada
-      ? 'mastered'
-      : (updatedQuestionStats.fallos > 0 || updatedQuestionStats.dudosa ? 'needs_review' : 'mastered');
+    const status = updatedQuestionStats.archivada
+      ? 'archived'
+      : (updatedQuestionStats.dominada
+        ? 'mastered'
+        : (updatedQuestionStats.fallos > 0 || updatedQuestionStats.dudosa ? 'needs_review' : 'mastered'));
 
     upsertQuestionStat(userId, preguntaId, {
       subject: updatedQuestionStats.subject || 'General',
@@ -165,6 +168,31 @@ export function usePreguntasStats() {
     syncToCloud(preguntaId, updated);
   }, []);
 
+  const archivarPregunta = useCallback((preguntaId, motivo = 'missing_data') => {
+    if (!preguntaId) return;
+    const currentStats = getGlobalStatsData();
+    const p = currentStats[preguntaId] || {
+      vecesVistas: 0, aciertos: 0, fallos: 0, ultimaRespuesta: null, ultimaFecha: null, dudosa: false, dominada: false, corregida: false
+    };
+    const updated = {
+      ...p,
+      archivada: true,
+      motivoArchivada: motivo,
+      fechaArchivada: new Date().toISOString()
+    };
+    const newStats = {
+      ...currentStats,
+      [preguntaId]: updated
+    };
+    setGlobalStatsData(newStats);
+    syncToCloud(preguntaId, updated);
+  }, []);
+
+  const isArchivada = useCallback((preguntaId) => {
+    if (!preguntaId) return false;
+    return !!stats[preguntaId]?.archivada || stats[preguntaId]?.status === 'archived';
+  }, [stats]);
+
   // Obtener rendimiento global
   const getGlobalStats = useCallback(() => {
     let totalRespuestas = 0;
@@ -192,7 +220,9 @@ export function usePreguntasStats() {
     marcarCorregida,
     getStatsPregunta,
     getGlobalStats,
-    guardarNota
+    guardarNota,
+    archivarPregunta,
+    isArchivada
   };
 }
 

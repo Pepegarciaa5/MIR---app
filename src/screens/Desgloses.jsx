@@ -15,7 +15,7 @@ const getSessionData = (key, defaultVal) => {
 
 export default function Desgloses() {
   const [quizFinished, setQuizFinished] = useState(false);
-  const { registrarRespuesta, getStatsPregunta, guardarNota } = usePreguntasStats();
+  const { registrarRespuesta, getStatsPregunta, guardarNota, archivarPregunta, isArchivada } = usePreguntasStats();
 
   // Extract distinct subjects and topics
   const asignaturas = useMemo(() => {
@@ -71,6 +71,9 @@ export default function Desgloses() {
 
   const handleFiltrar = () => {
     let filtradas = desglosesData;
+    
+    // Excluir preguntas archivadas
+    filtradas = filtradas.filter(q => !isArchivada(q.id));
     
     if (filtros.asignatura) {
       filtradas = filtradas.filter(q => q.asignatura === filtros.asignatura);
@@ -146,6 +149,9 @@ export default function Desgloses() {
 
   const handleAnswerSubmit = (answerData) => {
     if (answerData.skipped) {
+      if (answerData.archive || answerData.reason === 'missing_data') {
+        archivarPregunta(currentQuestionData.id, 'missing_data');
+      }
       setRespuestasDesglose(prev => ({
         ...prev,
         [questionForCard.id]: { skipped: true }
