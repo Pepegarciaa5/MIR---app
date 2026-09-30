@@ -38,6 +38,10 @@ export async function upsertQuestionStat(userId, questionId, statsObj) {
     note: statsObj.note ?? statsObj.nota ?? '',
     confidence_history: statsObj.confidence_history || [],
   };
+  if (statsObj.racha_verde !== undefined) payload.racha_verde = statsObj.racha_verde;
+  if (statsObj.latencia_hasta !== undefined) payload.latencia_hasta = statsObj.latencia_hasta;
+  if (statsObj.puntuacion_prioridad !== undefined) payload.puntuacion_prioridad = statsObj.puntuacion_prioridad;
+
   const { error } = await supabase.from('user_question_stats').upsert(payload, { onConflict: 'user_id,question_id' });
   if (error) console.error('Supabase upsert error (question stat):', error);
   return !error;

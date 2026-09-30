@@ -27,6 +27,82 @@ function setGlobalStatsData(newStats) {
 }
 
 /**
+ * Helper para calcular la latencia (horas) y la prioridad (1 a 10) según el resultado y la seguridad.
+ */
+export function calcularPrioridadYLatencia(esCorrecta, seguridad = 'green', estadoPrevio = {}) {
+  const normalizeConfidence = (conf) => {
+    if (conf === 'yellow' || conf === 'orange') return 'orange';
+    if (conf === 'green') return 'green';
+    return 'red';
+  };
+
+  const c = normalizeConfidence(seguridad);
+  const rachaActual = estadoPrevio.rachaVerde || 0;
+  const teniaFalloPrevio = (estadoPrevio.fallos || 0) > 0;
+
+  let rachaVerde = 0;
+  let latenciaHoras = 24; // Por defecto 1 día
+  let puntuacionPrioridad = 5;
+
+  if (!esCorrecta) {
+    // FALLADA
+    rachaVerde = 0;
+    latenciaHoras = 24; // 1 día a dormir
+    if (c === 'green') {
+      puntuacionPrioridad = 10; // Fallo de sobreconfianza (grave)
+    } else {
+      puntuacionPrioridad = 9;  // Fallo en duda/rojo
+    }
+  } else {
+    // ACIERTADA
+    if (c === 'red') {
+      rachaVerde = 0;
+      latenciaHoras = 24; // 1 día a dormir
+      puntuacionPrioridad = 8; // Acertada en Rojo (acierto por suerte)
+    } else if (c === 'orange') {
+      rachaVerde = 0;
+      latenciaHoras = 72; // 3 días a dormir (72h)
+      if (teniaFalloPrevio) {
+        puntuacionPrioridad = 6; // Acertada en naranja viniendo de un fallo previo (mejorada pero volátil)
+      } else {
+        puntuacionPrioridad = 5; // Acertada en naranja normal
+      }
+    } else if (c === 'green') {
+      rachaVerde = rachaActual + 1;
+      if (rachaVerde === 1) {
+        latenciaHoras = 240; // 10 días (240h)
+        puntuacionPrioridad = 3;
+      } else if (rachaVerde === 2) {
+        latenciaHoras = 720; // 30 días (720h)
+        puntuacionPrioridad = 2;
+      } else {
+        latenciaHoras = 2160; // 90 días (2160h) -> Dominada
+        puntuacionPrioridad = 1;
+      }
+    }
+  }
+
+  const latenciaHasta = new Date(Date.now() + latenciaHoras * 3600 * 1000).toISOString();
+
+  return {
+    rachaVerde,
+    latenciaHoras,
+    latenciaHasta,
+    puntuacionPrioridad
+  };
+}
+
+/**
+ * Helper para comprobar si una pregunta está durmiendo (en latencia).
+ */
+export function isEnLatencia(preguntaId, statsMap) {
+  if (!preguntaId || !statsMap) return false;
+  const p = statsMap[preguntaId];
+  if (!p || !p.latenciaHasta) return false;
+  return new Date(p.latenciaHasta).getTime() > Date.now();
+}
+
+/**
  * Hook para gestionar las estadísticas locales y remotas (Supabase) del banco de preguntas.
  */
 export function usePreguntasStats() {
@@ -56,7 +132,10 @@ export function usePreguntasStats() {
                   dudosa: item.status === 'needs_review' && item.confidence === 'yellow',
                   dominada: item.status === 'mastered',
                   nota: item.note || merged[item.question_id]?.nota || '',
-                  confidence_history: item.confidence_history || []
+                  confidence_history: item.confidence_history || [],
+                  rachaVerde: item.racha_verde || merged[item.question_id]?.rachaVerde || 0,
+                  latenciaHasta: item.latencia_hasta || merged[item.question_id]?.latenciaHasta || null,
+                  puntuacionPrioridad: item.puntuacion_prioridad || merged[item.question_id]?.puntuacionPrioridad || null
                 };
               }
             });
@@ -81,7 +160,10 @@ export function usePreguntasStats() {
       subject: updatedQuestionStats.subject || 'General',
       status: status,
       confidence_history: updatedQuestionStats.confidence_history || [],
-      note: updatedQuestionStats.nota || ''
+      note: updatedQuestionStats.nota || '',
+      racha_verde: updatedQuestionStats.rachaVerde || 0,
+      latencia_hasta: updatedQuestionStats.latenciaHasta || null,
+      puntuacion_prioridad: updatedQuestionStats.puntuacionPrioridad || 7
     });
   };
 
@@ -94,6 +176,12 @@ export function usePreguntasStats() {
     const newConfidence = extraData.confidence || (esCorrecta ? 'green' : 'red');
     const newHistory = [...(p.confidence_history || []), newConfidence];
 
+    const { rachaVerde, latenciaHasta, puntuacionPrioridad } = calcularPrioridadYLatencia(
+      esCorrecta,
+      newConfidence,
+      p
+    );
+
     const updated = {
       ...p,
       vecesVistas: p.vecesVistas + 1,
@@ -102,7 +190,11 @@ export function usePreguntasStats() {
       ultimaRespuesta: respuestaSeleccionada,
       ultimaFecha: new Date().toISOString(),
       confidence_history: newHistory,
-      subject: extraData.subject || p.subject || 'General'
+      subject: extraData.subject || p.subject || 'General',
+      rachaVerde,
+      latenciaHasta,
+      puntuacionPrioridad,
+      dominada: rachaVerde >= 3
     };
 
     const newStats = {
@@ -222,7 +314,8 @@ export function usePreguntasStats() {
     getGlobalStats,
     guardarNota,
     archivarPregunta,
-    isArchivada
+    isArchivada,
+    isEnLatencia: (id) => isEnLatencia(id, stats)
   };
 }
 

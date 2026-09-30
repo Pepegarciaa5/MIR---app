@@ -1,9 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const QuestionCard = ({ question, onAnswer }) => {
   const [selectedOption, setSelectedOption] = useState(null);
   const [discardedOptions, setDiscardedOptions] = useState([]);
   const [showConfidence, setShowConfidence] = useState(false);
+  const [seconds, setSeconds] = useState(0);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+
+  // Reiniciar estado y tiempo al cambiar de pregunta
+  useEffect(() => {
+    setSeconds(0);
+    setIsSubmitted(false);
+    setSelectedOption(null);
+    setDiscardedOptions([]);
+    setShowConfidence(false);
+  }, [question?.id]);
+
+  // Contador de segundos
+  useEffect(() => {
+    if (isSubmitted) return;
+
+    const interval = setInterval(() => {
+      setSeconds((prev) => prev + 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isSubmitted, question?.id]);
+
+  const formatTimer = (totalSeconds) => {
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  };
 
   // Opciones mock si la pregunta no las trae estructuradas
   const options = question?.options || [
@@ -28,6 +56,7 @@ const QuestionCard = ({ question, onAnswer }) => {
   };
 
   const handleConfidenceSubmit = (confidenceLevel) => {
+    setIsSubmitted(true);
     onAnswer({
       questionId: question.id,
       selectedOption,
@@ -39,6 +68,30 @@ const QuestionCard = ({ question, onAnswer }) => {
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 max-w-3xl mx-auto w-full">
+      {/* Header con Temporizador */}
+      <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+        <div className="flex items-center gap-2">
+          <span className={`w-2 h-2 rounded-full ${isSubmitted ? 'bg-slate-300' : 'bg-emerald-500 animate-pulse'}`} />
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+            {isSubmitted ? 'Tiempo en pregunta' : 'Tiempo en esta pregunta'}
+          </span>
+        </div>
+        <div 
+          className={`
+            flex items-center gap-1.5 px-3 py-1 rounded-full font-mono text-xs font-bold border transition-colors shadow-xs
+            ${seconds > 120 
+              ? 'bg-red-50 text-red-600 border-red-200 animate-pulse' 
+              : seconds > 60 
+                ? 'bg-amber-50 text-amber-700 border-amber-200' 
+                : 'bg-slate-100 text-slate-700 border-slate-200'}
+          `}
+          title={seconds > 120 ? '¡Atención! Llevas más de 2 minutos en esta pregunta' : 'Tiempo transcurrido en la pregunta actual'}
+        >
+          <span className="text-sm">⏱️</span>
+          <span>{formatTimer(seconds)}</span>
+        </div>
+      </div>
+
       <div className="mb-6">
         <h3 className="text-lg font-medium text-slate-900 leading-relaxed">
           {question?.text || "¿Cuál de las siguientes afirmaciones es correcta?"}
@@ -132,7 +185,10 @@ const QuestionCard = ({ question, onAnswer }) => {
       {/* Botón para archivar si faltan datos/imagen */}
       <div className="mt-8 pt-4 border-t border-slate-100 flex justify-end">
         <button
-          onClick={() => onAnswer({ skipped: true, archive: true, reason: 'missing_data' })}
+          onClick={() => {
+            setIsSubmitted(true);
+            onAnswer({ skipped: true, archive: true, reason: 'missing_data' });
+          }}
           className="text-xs font-bold text-slate-400 hover:text-red-600 transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-red-50 border border-transparent hover:border-red-100"
           title="Archivar esta pregunta para siempre (no volverá a salir en ningún test o desglose)"
         >
@@ -144,3 +200,4 @@ const QuestionCard = ({ question, onAnswer }) => {
 };
 
 export default QuestionCard;
+

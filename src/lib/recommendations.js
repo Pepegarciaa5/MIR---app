@@ -29,19 +29,37 @@ export function calcularDistanciaObjetivo(asignatura, aciertoActualPorcentaje) {
 }
 
 /**
- * Filtra y construye una cola de 10 preguntas.
- * Prioriza repasos pendientes, luego rellena con nuevas.
- * Descarta preguntas de simulacro con dificultad 5.
+ * Filtra y construye una cola de preguntas según el nuevo algoritmo inteligente:
+ * - Filtra por asignatura / bloque.
+ * - Excluye preguntas archivadas.
+ * - Excluye preguntas en latencia (salvo si ignoreLatency es true, ej. Desgloses).
+ * - Calcula la cuota adaptativa de preguntas nuevas (20% a 50%) según el número de repasos urgentes (prioridad >= 8).
+ * - Ordena las preguntas de repaso estrictamente por su puntuación de prioridad (10 ➔ 1).
  */
-export function generarColaPreguntas(bancoPreguntasTodas, repasosPendientesIds, asignatura, archivedIds = []) {
-  // 1. Filtrar preguntas de esta asignatura o bloque
-  const preguntasAsignatura = bancoPreguntasTodas.filter(q => {
-    // Si la pregunta no tiene asignatura o está archivada, ignorar
-    if (!q.asignatura) return false;
-    if (q.archivada || (Array.isArray(archivedIds) && archivedIds.includes(q.id))) return false;
+export function generarColaPreguntas(
+  bancoPreguntasTodas,
+  statsMapInput = {},
+  asignatura = null,
+  archivedIds = [],
+  targetCount = 10,
+  options = {}
+) {
+  const { ignoreLatency = false } = options;
 
-    // A veces q.asignatura es el nombre ("Digestivo") y a veces el código ("DG").
-    // Buscamos su código original para poder cruzar con los grupos.
+  // Compatibilidad: si statsMapInput es un Array de IDs o no está definido
+  let statsMap = {};
+  if (Array.isArray(statsMapInput)) {
+    statsMap = Object.fromEntries(statsMapInput.map(id => [id, { fallos: 1, puntuacionPrioridad: 9 }]));
+  } else if (statsMapInput && typeof statsMapInput === 'object') {
+    statsMap = statsMapInput;
+  }
+
+  // 1. Filtrar preguntas pertenecientes a la asignatura (si se especifica) y no archivadas
+  const candidatasBase = bancoPreguntasTodas.filter(q => {
+    if (q.archivada || (Array.isArray(archivedIds) && archivedIds.includes(q.id))) return false;
+    if (!asignatura) return true;
+
+    if (!q.asignatura) return false;
     const codigo = Object.keys(ASIGNATURA_NOMBRE).find(c => ASIGNATURA_NOMBRE[c] === q.asignatura) || q.asignatura;
     
     const isGroupMatch = GRUPOS_ASIGNATURAS[codigo] === asignatura;
@@ -52,33 +70,87 @@ export function generarColaPreguntas(bancoPreguntasTodas, repasosPendientesIds, 
     return isGroupMatch || isNameMatch || isCodeMatch || isDirectMatch;
   });
 
-  // 2. Extraer repasos pendientes (si existen en el banco)
-  const repasos = preguntasAsignatura.filter(q => repasosPendientesIds.includes(q.id));
-
-  // 3. Obtener preguntas candidatas nuevas (no están en repasos)
-  const candidatasNuevas = preguntasAsignatura.filter(q => !repasosPendientesIds.includes(q.id));
-
-  // 4. Aplicar FILTRO: Descartar simulacros de dificultad 5
-  const nuevasFiltradas = candidatasNuevas.filter(q => {
+  // 2. Filtrar simulacros de dificultad 5
+  const candidatasSinDif5 = candidatasBase.filter(q => {
     const esSimulacro = (q.simulacro !== null && q.simulacro !== undefined);
-    if (esSimulacro && q.dificultad === 5) {
-      return false; // DESCARTAR
-    }
-    return true; // MANTENER
+    return !(esSimulacro && q.dificultad === 5);
   });
 
-  // 5. Rellenar hasta 10
-  const cola = [...repasos];
-  let i = 0;
-  
-  // Mezclar un poco las nuevas para no dar siempre las primeras
-  const nuevasMezcladas = [...nuevasFiltradas].sort(() => 0.5 - Math.random());
-
-  while (cola.length < 10 && i < nuevasMezcladas.length) {
-    cola.push(nuevasMezcladas[i]);
-    i++;
+  // 3. Si ignoreLatency es true (ej. Desgloses), devolver todas
+  if (ignoreLatency) {
+    return candidatasSinDif5;
   }
 
-  // Devolver las seleccionadas
-  return cola;
+  // 4. Excluir las preguntas que están durmiendo en latencia
+  const now = Date.now();
+  const candidatasDisponibles = candidatasSinDif5.filter(q => {
+    const s = statsMap[q.id];
+    if (!s || !s.latenciaHasta) return true;
+    return new Date(s.latenciaHasta).getTime() <= now;
+  });
+
+  // 5. Separar entre Preguntas Nuevas (vírgenes) y Preguntas de Repaso
+  const nuevas = candidatasDisponibles.filter(q => {
+    const s = statsMap[q.id];
+    return !s || (!s.vecesVistas || s.vecesVistas === 0);
+  });
+
+  const repasos = candidatasDisponibles.filter(q => {
+    const s = statsMap[q.id];
+    return s && s.vecesVistas > 0;
+  }).map(q => {
+    const s = statsMap[q.id] || {};
+    let prio = s.puntuacionPrioridad;
+    if (!prio) {
+      if (s.fallos > 0) prio = s.dudosa ? 9 : 10;
+      else if (s.dudosa) prio = 5;
+      else if (s.dominada) prio = 1;
+      else prio = 5;
+    }
+    return { ...q, _prio: prio };
+  });
+
+  // 6. Contar repasos urgentes (prioridad >= 8) para determinar la cuota adaptativa de nuevas (20% - 50%)
+  const repasosUrgentes = repasos.filter(r => r._prio >= 8);
+  const proporcionUrgentes = targetCount > 0 ? (repasosUrgentes.length / targetCount) : 0;
+
+  let pctNuevas = 0.50; // Por defecto 50%
+  if (proporcionUrgentes >= 0.50) {
+    pctNuevas = 0.20; // 20% si hay mucha carga de fallos urgentes
+  } else if (proporcionUrgentes >= 0.20) {
+    pctNuevas = 0.35; // 35% si hay carga media
+  } else {
+    pctNuevas = 0.50; // 50% si la cola de fallos está limpia
+  }
+
+  const numNuevasDeseadas = Math.min(nuevas.length, Math.round(targetCount * pctNuevas));
+  const numRepasosDeseados = Math.max(0, targetCount - numNuevasDeseadas);
+
+  // 7. Seleccionar preguntas nuevas (mezcladas aleatoriamente)
+  const nuevasSeleccionadas = [...nuevas].sort(() => 0.5 - Math.random()).slice(0, numNuevasDeseadas);
+
+  // 8. Seleccionar preguntas de repaso ordenadas por prioridad DESC (10 -> 1) con pequeña aleatoriedad en empates
+  const repasosOrdenados = [...repasos].sort((a, b) => {
+    if (b._prio !== a._prio) return b._prio - a._prio;
+    return 0.5 - Math.random();
+  });
+  const repasosSeleccionados = repasosOrdenados.slice(0, numRepasosDeseados);
+
+  // 9. Combinar y rellenar si alguna lista quedó corta
+  let finalCola = [...nuevasSeleccionadas, ...repasosSeleccionados];
+
+  if (finalCola.length < targetCount) {
+    const idsUsados = new Set(finalCola.map(q => q.id));
+    const restantesNuevas = nuevas.filter(q => !idsUsados.has(q.id));
+    const restantesRepasos = repasosOrdenados.filter(q => !idsUsados.has(q.id));
+    const restantes = [...restantesNuevas, ...restantesRepasos];
+    
+    let i = 0;
+    while (finalCola.length < targetCount && i < restantes.length) {
+      finalCola.push(restantes[i]);
+      i++;
+    }
+  }
+
+  return finalCola;
 }

@@ -5,6 +5,7 @@ import TEXTOS_DESGLOSES from '../data/desgloses.json';
 import { getPreguntas, ASIGNATURA_NOMBRE } from '../lib/simulacros';
 import { desgloseAnual } from '../data/mirStats';
 import { usePreguntasStats } from '../hooks/usePreguntasStats';
+import { generarColaPreguntas } from '../lib/recommendations';
 import QuestionCard from '../components/quiz/QuestionCard';
 import NotaPersonal from '../components/quiz/NotaPersonal';
 
@@ -178,27 +179,29 @@ export default function BancoPreguntas({ initialFiltros = null, onFiltrosConsume
         quotas[sub] = quota;
       });
 
-      // Select questions based on quotas
+      // Select questions using priority algorithm & adaptive quotas
       for (const sub of availableSubjects) {
-        const subQuestions = pool.filter(q => q.asignatura === sub).sort(() => 0.5 - Math.random());
-        const toTake = subQuestions.slice(0, quotas[sub]);
-        selectedQuestions.push(...toTake);
-        // Remove taken from pool
-        pool = pool.filter(q => !toTake.includes(q));
-        remainingQuota -= toTake.length;
+        const quota = quotas[sub] || 1;
+        if (quota > 0) {
+          const subQuestions = generarColaPreguntas(pool, stats, sub, [], quota);
+          selectedQuestions.push(...subQuestions);
+          const takenIds = new Set(subQuestions.map(q => q.id));
+          pool = pool.filter(q => !takenIds.has(q.id));
+          remainingQuota -= subQuestions.length;
+        }
       }
 
-      // Fill remaining quota randomly if needed
+      // Fill remaining quota if needed
       if (remainingQuota > 0 && pool.length > 0) {
-        const extraQuestions = pool.sort(() => 0.5 - Math.random()).slice(0, remainingQuota);
+        const extraQuestions = generarColaPreguntas(pool, stats, null, [], remainingQuota);
         selectedQuestions.push(...extraQuestions);
       }
       
       // Shuffle final array to mix subjects
       selectedQuestions.sort(() => 0.5 - Math.random());
     } else {
-      // Only 1 subject (or 0), just shuffle and slice
-      selectedQuestions = [...filtradas].sort(() => 0.5 - Math.random()).slice(0, MAX_PREGUNTAS);
+      // Single subject or all subjects, apply priority algorithm & adaptive quotas
+      selectedQuestions = generarColaPreguntas(filtradas, stats, null, [], MAX_PREGUNTAS);
     }
 
     setCola(selectedQuestions);

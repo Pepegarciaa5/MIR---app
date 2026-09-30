@@ -41,15 +41,13 @@ const AdaptiveQuizEngine = ({ subject = 'Oftalmología', modoExamen = false, set
       }));
 
     const bancoFiltrado = [...bancoSimulacros, ...bancoDesgloses];
-    const repasosPendientes = Object.entries(stats || {})
-      .filter(([id, data]) => data.fallos > 0 && !data.dominada && !data.archivada && data.status !== 'archived')
-      .map(([id]) => id);
 
     let finalCola = [];
     if (modoExamen && Array.isArray(subject)) {
       let colaTotal = [];
+      const perSubCount = questionCount ? Math.ceil(questionCount / subject.length) : 10;
       subject.forEach(sub => {
-        const cola = generarColaPreguntas(bancoFiltrado, repasosPendientes, sub, archivedIds);
+        const cola = generarColaPreguntas(bancoFiltrado, stats, sub, archivedIds, perSubCount);
         colaTotal = [...colaTotal, ...cola];
       });
       // Fisher-Yates shuffle - aleatorización verdadera
@@ -60,7 +58,8 @@ const AdaptiveQuizEngine = ({ subject = 'Oftalmología', modoExamen = false, set
       finalCola = colaTotal;
     } else {
       const subjectStr = Array.isArray(subject) ? subject[0] : subject;
-      finalCola = generarColaPreguntas(bancoFiltrado, repasosPendientes, subjectStr, archivedIds);
+      const count = questionCount || 10;
+      finalCola = generarColaPreguntas(bancoFiltrado, stats, subjectStr, archivedIds, count);
     }
 
     if (questionCount && questionCount > 0) {
