@@ -110,7 +110,8 @@ export function usePreguntasStats() {
 
   const sincronizarDesdeNube = useCallback(async (silent = true) => {
     try {
-      const { data, error } = await supabase.from('user_question_stats').select('*');
+      const userId = getOrCreateAnonUserId();
+      const { data, error } = await supabase.from('user_question_stats').select('*').eq('user_id', userId);
       if (error) {
         console.warn('Sincronización Supabase omitida o con error:', error.message);
         if (!silent) alert(`Error de conexión con Supabase: ${error.message || 'No se pudo leer la nube'}`);
@@ -125,8 +126,11 @@ export function usePreguntasStats() {
           if (item.question_id) {
             const prev = merged[item.question_id] || {};
             const confHist = Array.isArray(item.confidence_history) ? item.confidence_history : [];
-            const aciertosCloud = confHist.filter(c => c === 'green').length;
-            const fallosCloud = confHist.filter(c => c === 'red' || c === 'orange' || c === 'yellow').length;
+            const aciertosCloud = confHist.filter(c => (typeof c === 'string' ? c === 'green' : c?.c === 'green')).length;
+            const fallosCloud = confHist.filter(c => {
+              const val = typeof c === 'string' ? c : c?.c;
+              return val === 'red' || val === 'orange' || val === 'yellow';
+            }).length;
             const vistasCloud = confHist.length;
 
             merged[item.question_id] = {
@@ -256,7 +260,8 @@ export function usePreguntasStats() {
     };
 
     const newConfidence = extraData.confidence || (esCorrecta ? 'green' : 'red');
-    const newHistory = [...(p.confidence_history || []), newConfidence];
+    const nowIso = new Date().toISOString();
+    const newHistory = [...(p.confidence_history || []), { c: newConfidence, t: nowIso }];
 
     const { rachaVerde, latenciaHasta, puntuacionPrioridad } = calcularPrioridadYLatencia(
       esCorrecta,
@@ -270,7 +275,7 @@ export function usePreguntasStats() {
       aciertos: esCorrecta ? p.aciertos + 1 : p.aciertos,
       fallos: !esCorrecta ? p.fallos + 1 : p.fallos,
       ultimaRespuesta: respuestaSeleccionada,
-      ultimaFecha: new Date().toISOString(),
+      ultimaFecha: nowIso,
       confidence_history: newHistory,
       subject: extraData.subject || p.subject || 'General',
       rachaVerde,

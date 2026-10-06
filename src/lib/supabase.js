@@ -7,7 +7,8 @@
 
 import { createClient } from '@supabase/supabase-js'
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
+const DEFAULT_SUPABASE_URL = 'https://clpjzokhiuavsaboetgn.supabase.co'
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL
 
 const DEFAULT_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNscGp6b2toaXVhdnNhYm9ldGduIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODA4NTUyMiwiZXhwIjoyMDkzNjYxNTIyfQ.uUrd8iE16WZO1XehRyWZey62eZTrujqEHyqk3DkMPWI'
 

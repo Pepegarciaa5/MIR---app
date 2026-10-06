@@ -98,7 +98,17 @@ export default function Progreso() {
 
   const preguntasData = useMemo(() => {
     const now = new Date()
-    const todayStr = now.toISOString().slice(0, 10)
+    const getLocalDateStr = (d) => {
+      if (!d) return ''
+      try {
+        const dateObj = typeof d === 'string' ? new Date(d) : d
+        return isNaN(dateObj.getTime()) ? '' : dateObj.toLocaleDateString('sv-SE')
+      } catch (e) {
+        return ''
+      }
+    }
+
+    const todayStr = getLocalDateStr(now)
     const { monday: wMonday, sunday: wSunday } = getWeekBounds()
 
     let hoy = 0, hoyAciertos = 0, hoyFallos = 0
@@ -108,34 +118,74 @@ export default function Progreso() {
     const porDia = [0, 0, 0, 0, 0, 0, 0]
 
     Object.entries(preguntasStats).forEach(([qId, s]) => {
-      if (!s.ultimaFecha) return
-      const fecha = new Date(s.ultimaFecha)
-      const fechaStr = s.ultimaFecha.slice(0, 10)
-      const asig = qMap[qId] || 'Desconocida'
+      if (!s) return
+      const asig = qMap[qId] || s.subject || 'General'
 
-      total += s.vecesVistas
-      totalAciertos += s.aciertos
-      totalFallos += s.fallos
+      const vistas = s.vecesVistas || 0
+      const aciertos = s.aciertos || 0
+      const fallos = s.fallos || 0
+      total += vistas
+      totalAciertos += aciertos
+      totalFallos += fallos
 
-      if (fechaStr === todayStr) {
-        hoy += s.vecesVistas
-        hoyAciertos += s.aciertos
-        hoyFallos += s.fallos
-      }
+      const confHist = Array.isArray(s.confidence_history) ? s.confidence_history : []
+      let hasDetailedTimestamps = false
 
-      if (fecha >= wMonday && fecha <= wSunday) {
-        semana += s.vecesVistas
-        semanaAciertos += s.aciertos
-        semanaFallos += s.fallos
+      confHist.forEach(item => {
+        if (item && typeof item === 'object' && item.t) {
+          hasDetailedTimestamps = true
+          const itemDate = new Date(item.t)
+          const itemDateStr = getLocalDateStr(itemDate)
+          const isGreen = item.c === 'green'
 
-        porAsigSemana[asig] = porAsigSemana[asig] || { total: 0, aciertos: 0, fallos: 0 }
-        porAsigSemana[asig].total += s.vecesVistas
-        porAsigSemana[asig].aciertos += s.aciertos
-        porAsigSemana[asig].fallos += s.fallos
+          if (itemDateStr === todayStr) {
+            hoy++
+            if (isGreen) hoyAciertos++
+            else hoyFallos++
+          }
 
-        const dow = fecha.getDay()
-        const idx = dow === 0 ? 6 : dow - 1
-        porDia[idx] += s.vecesVistas
+          if (itemDate >= wMonday && itemDate <= wSunday) {
+            semana++
+            if (isGreen) semanaAciertos++
+            else semanaFallos++
+
+            porAsigSemana[asig] = porAsigSemana[asig] || { total: 0, aciertos: 0, fallos: 0 }
+            porAsigSemana[asig].total++
+            if (isGreen) porAsigSemana[asig].aciertos++
+            else porAsigSemana[asig].fallos++
+
+            const dow = itemDate.getDay()
+            const idx = dow === 0 ? 6 : dow - 1
+            porDia[idx]++
+          }
+        }
+      })
+
+      if (!hasDetailedTimestamps && s.ultimaFecha) {
+        const lastDate = new Date(s.ultimaFecha)
+        const lastDateStr = getLocalDateStr(lastDate)
+        const isLastCorrect = (s.aciertos || 0) >= (s.fallos || 0)
+
+        if (lastDateStr === todayStr) {
+          hoy++
+          if (isLastCorrect) hoyAciertos++
+          else hoyFallos++
+        }
+
+        if (lastDate >= wMonday && lastDate <= wSunday) {
+          semana++
+          if (isLastCorrect) semanaAciertos++
+          else semanaFallos++
+
+          porAsigSemana[asig] = porAsigSemana[asig] || { total: 0, aciertos: 0, fallos: 0 }
+          porAsigSemana[asig].total++
+          if (isLastCorrect) porAsigSemana[asig].aciertos++
+          else porAsigSemana[asig].fallos++
+
+          const dow = lastDate.getDay()
+          const idx = dow === 0 ? 6 : dow - 1
+          porDia[idx]++
+        }
       }
     })
 
