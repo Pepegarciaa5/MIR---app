@@ -257,28 +257,69 @@ export default function BancoPreguntas({ initialFiltros = null, onFiltrosConsume
     }));
   };
 
+  const numToLetterIdx = (letter) => ['A', 'B', 'C', 'D', 'E'].indexOf(letter);
+
+  const handleFinalizarSesion = () => {
+    const contestadasIds = new Set(
+      Object.keys(respuestasDesglose).filter(qId => respuestasDesglose[qId] && !respuestasDesglose[qId].skipped)
+    );
+
+    if (contestadasIds.size === 0) {
+      if (window.confirm('No has respondido ninguna pregunta. ¿Descartar la sesión?')) {
+        setCola([]);
+        setRespuestasDesglose({});
+        setCurrentIndex(0);
+        setQuizFinished(false);
+      }
+      return;
+    }
+
+    const finalCola = cola.filter(q => contestadasIds.has(q.id));
+    setCola(finalCola);
+    setQuizFinished(true);
+  };
+
   if (quizFinished) {
-    const correctCount = Object.values(respuestasDesglose).filter(a => a.isCorrect).length;
+    const contestadas = cola.filter(q => respuestasDesglose[q.id] && !respuestasDesglose[q.id].skipped);
+    const correctCount = contestadas.filter(q => respuestasDesglose[q.id]?.isCorrect).length;
+    const incorrectCount = contestadas.length - correctCount;
+
     return (
-      <div className="min-h-screen bg-slate-50 py-12 px-4 flex items-center justify-center">
-        <div className="max-w-2xl w-full p-10 bg-white rounded-3xl shadow-lg border border-slate-100 text-center animate-in slide-in-from-bottom-8 fade-in duration-500">
-          <div className="text-6xl mb-6">🎯</div>
+      <div className="min-h-screen bg-slate-50 py-8 px-4 flex flex-col items-center">
+        <div className="max-w-3xl w-full p-8 bg-white rounded-3xl shadow-lg border border-slate-100 text-center animate-in slide-in-from-bottom-8 fade-in duration-500 mb-8">
+          <div className="text-6xl mb-4">🎯</div>
           <h2 className="text-3xl font-black text-slate-900 mb-2">Sesión Finalizada</h2>
-          <p className="text-slate-500 mb-8 font-medium">¡Buen trabajo! Este ha sido tu rendimiento en la sesión.</p>
+          <p className="text-slate-500 mb-6 font-medium">Resumen de las preguntas contestadas en esta sesión.</p>
           
-          <div className="bg-slate-50 rounded-2xl p-8 inline-block mb-10 border border-slate-100 shadow-inner">
-            <div className="text-7xl font-black text-cyan-500 mb-2 tracking-tighter">
-              {correctCount} <span className="text-4xl text-slate-300 font-bold mx-1">/</span> {cola.length}
+          <div className="flex justify-center gap-4 mb-8 flex-wrap">
+            <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100 shadow-inner flex-1 min-w-[140px] max-w-[200px]">
+              <div className="text-5xl font-black text-emerald-500 mb-1 tracking-tighter">
+                {correctCount}
+              </div>
+              <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                Aciertos
+              </div>
             </div>
-            <div className="text-sm font-bold text-slate-400 uppercase tracking-widest">
-              Aciertos Totales
+
+            <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100 shadow-inner flex-1 min-w-[140px] max-w-[200px]">
+              <div className="text-5xl font-black text-red-500 mb-1 tracking-tighter">
+                {incorrectCount}
+              </div>
+              <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                Fallos
+              </div>
+            </div>
+
+            <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100 shadow-inner flex-1 min-w-[140px] max-w-[200px]">
+              <div className="text-5xl font-black text-cyan-500 mb-1 tracking-tighter">
+                {contestadas.length}
+              </div>
+              <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                Contestadas
+              </div>
             </div>
           </div>
-          
-          <p className="text-slate-600 mb-8">
-            Tus respuestas individuales se han guardado en segundo plano en tu historial global para que el algoritmo optimice tus repasos futuros.
-          </p>
-          
+
           <button 
             onClick={() => {
               setQuizFinished(false);
@@ -289,10 +330,67 @@ export default function BancoPreguntas({ initialFiltros = null, onFiltrosConsume
               sessionStorage.removeItem('mir_banco_respuestas');
               sessionStorage.removeItem('mir_banco_currentIndex');
             }}
-            className="w-full sm:w-auto bg-slate-900 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-slate-800 transition-all hover:scale-105 hover:shadow-lg active:scale-95"
+            className="bg-slate-900 text-white px-8 py-3 rounded-xl font-bold text-base hover:bg-slate-800 transition-all hover:scale-105 active:scale-95"
           >
             Configurar Nuevo Test
           </button>
+        </div>
+
+        {/* REVISIÓN DETALLADA DE RESPUESTAS Y EXPLICACIONES */}
+        <div className="max-w-3xl w-full space-y-6">
+          <h3 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+            <span>📋</span> Revisión de Preguntas Contestadas ({contestadas.length})
+          </h3>
+
+          {contestadas.map((q, idx) => {
+            const ans = respuestasDesglose[q.id];
+            if (!ans) return null;
+            const isCorrect = ans.isCorrect;
+            const idxSelected = ans.selectedLetter ? numToLetterIdx(ans.selectedLetter) : -1;
+            const selectedOptText = idxSelected >= 0 && q.options ? q.options[idxSelected] : ans.selectedLetter;
+            const correctOptText = q.options ? q.options[q.answer - 1] : numToLetter(q.answer);
+
+            return (
+              <div key={q.id} className={`p-6 bg-white rounded-2xl border-2 ${isCorrect ? 'border-emerald-200' : 'border-red-200'} shadow-sm space-y-4 text-left`}>
+                <div className="flex items-center justify-between gap-2">
+                  <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${isCorrect ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>
+                    {isCorrect ? '✓ Correcta' : '✗ Fallada'}
+                  </span>
+                  <span className="text-xs font-semibold text-slate-400">
+                    Pregunta {idx + 1} de {contestadas.length} • {q.asignatura}
+                  </span>
+                </div>
+
+                <div className="text-base font-bold text-slate-900 leading-snug">
+                  {q.text}
+                </div>
+
+                <div className="space-y-2 text-sm font-medium">
+                  {!isCorrect && ans.selectedLetter && (
+                    <div className="p-3 rounded-lg bg-red-50 text-red-700 border border-red-200">
+                      <span className="font-bold">Tu respuesta:</span> {ans.selectedLetter}) {selectedOptText}
+                    </div>
+                  )}
+                  <div className="p-3 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200">
+                    <span className="font-bold">Respuesta correcta:</span> {numToLetter(q.answer)}) {correctOptText}
+                  </div>
+                </div>
+
+                {q.comentario && (
+                  <div className="bg-slate-50 p-4 rounded-xl text-slate-700 text-sm border border-slate-200">
+                    <div className="font-bold text-slate-900 mb-1">Explicación:</div>
+                    <div dangerouslySetInnerHTML={{ __html: q.comentario }} />
+                  </div>
+                )}
+
+                <NotaPersonal
+                  preguntaId={q.id}
+                  nota={getStatsPregunta(q.id)?.nota || ''}
+                  onGuardar={guardarNota}
+                />
+              </div>
+            );
+          })}
         </div>
       </div>
     );
@@ -307,17 +405,10 @@ export default function BancoPreguntas({ initialFiltros = null, onFiltrosConsume
             <h2 className="text-xl font-bold text-slate-900">Banco de Preguntas Global</h2>
             {cola.length > 0 && (
               <button 
-                onClick={() => {
-                  if (window.confirm('¿Descartar la sesión actual?')) {
-                    setCola([]);
-                    setRespuestasDesglose({});
-                    setCurrentIndex(0);
-                    setQuizFinished(false);
-                  }
-                }}
-                className="text-red-500 hover:text-red-600 font-bold text-sm"
+                onClick={handleFinalizarSesion}
+                className="text-red-500 hover:text-red-600 font-bold text-sm bg-red-50 px-3 py-1.5 rounded-lg border border-red-200 transition-colors"
               >
-                Cerrar Sesión
+                🏁 Finalizar y Revisar Test
               </button>
             )}
           </div>
