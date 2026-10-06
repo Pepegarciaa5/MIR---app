@@ -13,6 +13,9 @@ import EntradaEditable from '../components/EntradaEditable'
 import ProgresoDiario from '../components/ProgresoDiario'
 import { usePreguntasStats } from '../hooks/usePreguntasStats'
 import QUESTIONS from '../data/bancoPreguntas.json'
+import TEXTOS_SIMULACROS from '../data/simulacros_textos.json'
+import TEXTOS_DESGLOSES from '../data/desgloses.json'
+import { getPreguntas, ASIGNATURA_NOMBRE } from '../lib/simulacros'
 
 const ACCENT = '#F26522'
 const BLUE = '#3b82f6'
@@ -92,7 +95,18 @@ export default function Progreso() {
 
   const qMap = useMemo(() => {
     const m = {}
-    QUESTIONS.forEach(q => { m[q.id] = q.asignatura })
+    const STATS_MAP = new Map(getPreguntas().map(p => [p.pregunta_id, p]))
+
+    QUESTIONS.forEach(q => { if (q.id) m[q.id] = q.asignatura })
+    TEXTOS_SIMULACROS.forEach(t => {
+      const stats_cto = STATS_MAP.get(t.id) || {}
+      const asig = ASIGNATURA_NOMBRE[stats_cto.asignatura] || stats_cto.asignatura || 'Simulacros'
+      if (t.id) m[t.id] = asig
+    })
+    TEXTOS_DESGLOSES.forEach(d => {
+      if (d.id) m[d.id] = d.asignatura || 'Desgloses'
+    })
+
     return m
   }, [])
 

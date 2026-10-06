@@ -133,6 +133,10 @@ export function usePreguntasStats() {
             }).length;
             const vistasCloud = confHist.length;
 
+            const finalAciertos = vistasCloud > 0 ? aciertosCloud : (prev.aciertos || 0);
+            const finalFallos = vistasCloud > 0 ? fallosCloud : (prev.fallos || 0);
+            const finalVistas = vistasCloud > 0 ? vistasCloud : Math.max(prev.vecesVistas || 0, finalAciertos + finalFallos);
+
             merged[item.question_id] = {
               ...prev,
               status: item.status,
@@ -145,9 +149,9 @@ export function usePreguntasStats() {
               latenciaHasta: item.latencia_hasta || prev.latenciaHasta || null,
               puntuacionPrioridad: item.puntuacion_prioridad ?? prev.puntuacionPrioridad ?? null,
               ultimaFecha: item.updated_at || item.created_at || prev.ultimaFecha,
-              vecesVistas: Math.max(prev.vecesVistas || 0, vistasCloud || 1),
-              aciertos: Math.max(prev.aciertos || 0, aciertosCloud),
-              fallos: Math.max(prev.fallos || 0, fallosCloud)
+              vecesVistas: finalVistas,
+              aciertos: finalAciertos,
+              fallos: finalFallos
             };
             updatedCount++;
           }
@@ -173,17 +177,28 @@ export function usePreguntasStats() {
     let count = 0;
 
     for (const [preguntaId, s] of entries) {
-      if (s.vecesVistas > 0 || s.nota || s.archivada) {
+      if (s.vecesVistas > 0 || s.nota || s.archivada || s.aciertos > 0 || s.fallos > 0) {
         const status = s.archivada
           ? 'archived'
           : (s.dominada
             ? 'mastered'
             : (s.fallos > 0 || s.dudosa ? 'needs_review' : 'mastered'));
 
+        let confHist = Array.isArray(s.confidence_history) ? [...s.confidence_history] : [];
+        const aciertosCount = s.aciertos || 0;
+        const fallosCount = s.fallos || 0;
+
+        if (confHist.length < (aciertosCount + fallosCount)) {
+          const synthesized = [];
+          for (let i = 0; i < aciertosCount; i++) synthesized.push('green');
+          for (let i = 0; i < fallosCount; i++) synthesized.push('red');
+          confHist = synthesized;
+        }
+
         const success = await upsertQuestionStat(userId, preguntaId, {
           subject: s.subject || 'General',
           status: status,
-          confidence_history: s.confidence_history || [],
+          confidence_history: confHist,
           note: s.nota || '',
           racha_verde: s.rachaVerde || 0,
           latencia_hasta: s.latenciaHasta || null,
