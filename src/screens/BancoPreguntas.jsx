@@ -55,7 +55,7 @@ const numToLetter = (num) => ['A', 'B', 'C', 'D', 'E'][num - 1] || num;
 
 export default function BancoPreguntas({ initialFiltros = null, onFiltrosConsumed = null }) {
   const [quizFinished, setQuizFinished] = useState(false);
-  const { registrarRespuesta, getStatsPregunta, guardarNota, archivarPregunta, isArchivada } = usePreguntasStats();
+  const { stats, registrarRespuesta, getStatsPregunta, guardarNota, archivarPregunta, isArchivada } = usePreguntasStats();
 
   const asignaturasDisponibles = useMemo(() => {
     return [...new Set(QUESTIONS.map(q => q.asignatura))].filter(Boolean).sort();

@@ -88,7 +88,7 @@ export default function Progreso() {
   const MAX_H = Math.max(...byDay, ...PLAN_HOURS, 1)
 
   // --- Estadísticas de preguntas ---
-  const { stats: preguntasStats } = usePreguntasStats()
+  const { stats: preguntasStats, sincronizarDesdeNube, subirProgresoLocalANube, exportarJSON, importarJSON } = usePreguntasStats()
 
   const qMap = useMemo(() => {
     const m = {}
@@ -170,9 +170,54 @@ export default function Progreso() {
       </section>
 
       <section>
-        <h3 className="text-base font-bold text-slate-700 tracking-tight mb-3 flex items-center gap-2 mt-4">
-          <span className="w-1.5 h-1.5 rounded-full bg-teal-500"></span> Banco de Preguntas
-        </h3>
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-3 mt-4">
+          <h3 className="text-base font-bold text-slate-700 tracking-tight flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-teal-500"></span> Banco de Preguntas
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            <button 
+              onClick={() => {
+                const jsonStr = exportarJSON();
+                navigator.clipboard.writeText(jsonStr).then(() => {
+                  alert('¡Copia de seguridad (JSON) copiada al portapapeles! Puedes pegarla en otro dispositivo.');
+                }).catch(() => {
+                  prompt('Copia este código de seguridad:', jsonStr);
+                });
+              }} 
+              className="text-xs font-bold text-slate-600 bg-white hover:bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200 transition-colors flex items-center gap-1"
+              title="Copiar JSON de progreso"
+            >
+              📋 Copiar Backup JSON
+            </button>
+            <button 
+              onClick={() => {
+                const text = prompt('Pega aquí el JSON formateado o código de backup:');
+                if (text) importarJSON(text);
+              }} 
+              className="text-xs font-bold text-slate-600 bg-white hover:bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200 transition-colors flex items-center gap-1"
+              title="Restaurar progreso desde JSON"
+            >
+              📥 Pegar Backup JSON
+            </button>
+            <button 
+              onClick={async () => {
+                const count = await subirProgresoLocalANube();
+                alert(`¡Se han intentado subir ${count} preguntas a Supabase!`);
+              }} 
+              className="text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg border border-slate-200 transition-colors flex items-center gap-1"
+              title="Sube las preguntas guardadas en este dispositivo a la nube Supabase"
+            >
+              ⬆️ Subir a Nube
+            </button>
+            <button 
+              onClick={() => sincronizarDesdeNube(false)} 
+              className="text-xs font-bold text-teal-600 bg-teal-50 hover:bg-teal-100 px-3 py-1.5 rounded-lg border border-teal-200 transition-colors flex items-center gap-1"
+              title="Descarga el progreso acumulado en la nube a este dispositivo"
+            >
+              🔄 Descargar de Nube
+            </button>
+          </div>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 lg:gap-4 mb-4">
           <div className="glass-card p-5 relative overflow-hidden group">
             <div className="absolute -right-4 -top-4 w-24 h-24 bg-teal-500/10 rounded-full blur-2xl group-hover:bg-teal-500/20 transition-all"></div>

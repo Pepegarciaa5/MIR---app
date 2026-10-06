@@ -6,18 +6,12 @@
  */
 import { supabase } from '../lib/supabase';
 
-// Retrieve or generate an anonymous user ID stored in localStorage.
+// Retrieve or generate a unified user ID stored in localStorage.
 export function getOrCreateAnonUserId() {
   const KEY = 'mir_user_id';
   let id = localStorage.getItem(KEY);
   if (!id) {
-    try {
-      // Use crypto API if available (modern browsers)
-      id = crypto.randomUUID();
-    } catch (e) {
-      // Fallback to a simple random string
-      id = 'uid_' + Math.random().toString(36).substr(2, 9);
-    }
+    id = 'mir_user_main';
     localStorage.setItem(KEY, id);
   }
   return id;

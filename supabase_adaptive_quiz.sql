@@ -43,15 +43,17 @@ CREATE TABLE IF NOT EXISTS user_subject_performance (
   UNIQUE (user_id, subject)
 );
 
--- Políticas RLS básicas
+-- Políticas RLS permitiendo lectura y escritura pública para app anónima
 ALTER TABLE user_question_stats ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_subject_performance ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "public read stats" ON user_question_stats FOR SELECT USING (true);
-CREATE POLICY "service write stats" ON user_question_stats FOR ALL USING (true);
+DROP POLICY IF EXISTS "public read stats" ON user_question_stats;
+DROP POLICY IF EXISTS "service write stats" ON user_question_stats;
+CREATE POLICY "public all stats" ON user_question_stats FOR ALL USING (true) WITH CHECK (true);
 
-CREATE POLICY "public read performance" ON user_subject_performance FOR SELECT USING (true);
-CREATE POLICY "service write performance" ON user_subject_performance FOR ALL USING (true);
+DROP POLICY IF EXISTS "public read performance" ON user_subject_performance;
+DROP POLICY IF EXISTS "service write performance" ON user_subject_performance;
+CREATE POLICY "public all performance" ON user_subject_performance FOR ALL USING (true) WITH CHECK (true);
 
 -- Función para actualizar updated_at automáticamente
 CREATE OR REPLACE FUNCTION update_updated_at_column()

@@ -108,45 +108,119 @@ export function isEnLatencia(preguntaId, statsMap) {
 export function usePreguntasStats() {
   const [stats, setStats] = useState(getGlobalStatsData);
 
+  const sincronizarDesdeNube = useCallback(async (silent = true) => {
+    try {
+      const { data, error } = await supabase.from('user_question_stats').select('*');
+      if (error) {
+        console.warn('Sincronización Supabase omitida o con error:', error.message);
+        if (!silent) alert(`Error de conexión con Supabase: ${error.message || 'No se pudo leer la nube'}`);
+        return 0;
+      }
+      if (data && data.length > 0) {
+        const currentStats = getGlobalStatsData();
+        const merged = { ...currentStats };
+        let updatedCount = 0;
+
+        data.forEach(item => {
+          if (item.question_id) {
+            const prev = merged[item.question_id] || {};
+            const confHist = Array.isArray(item.confidence_history) ? item.confidence_history : [];
+            const aciertosCloud = confHist.filter(c => c === 'green').length;
+            const fallosCloud = confHist.filter(c => c === 'red' || c === 'orange' || c === 'yellow').length;
+            const vistasCloud = confHist.length;
+
+            merged[item.question_id] = {
+              ...prev,
+              status: item.status,
+              archivada: item.status === 'archived' || prev.archivada || false,
+              dudosa: item.status === 'needs_review' && item.confidence === 'yellow',
+              dominada: item.status === 'mastered',
+              nota: item.note || prev.nota || '',
+              confidence_history: confHist.length > 0 ? confHist : (prev.confidence_history || []),
+              rachaVerde: item.racha_verde ?? prev.rachaVerde ?? 0,
+              latenciaHasta: item.latencia_hasta || prev.latenciaHasta || null,
+              puntuacionPrioridad: item.puntuacion_prioridad ?? prev.puntuacionPrioridad ?? null,
+              ultimaFecha: item.updated_at || item.created_at || prev.ultimaFecha,
+              vecesVistas: Math.max(prev.vecesVistas || 0, vistasCloud || 1),
+              aciertos: Math.max(prev.aciertos || 0, aciertosCloud),
+              fallos: Math.max(prev.fallos || 0, fallosCloud)
+            };
+            updatedCount++;
+          }
+        });
+        setGlobalStatsData(merged);
+        if (!silent) alert(`¡Sincronización completada! Se han descargado ${data.length} preguntas de la nube.`);
+        return data.length;
+      } else {
+        if (!silent) alert('No se encontraron registros de preguntas en la nube de Supabase.');
+        return 0;
+      }
+    } catch (err) {
+      console.warn('Excepción al consultar Supabase:', err.message);
+      if (!silent) alert(`Excepción al sincronizar: ${err.message}`);
+      return 0;
+    }
+  }, []);
+
+  const subirProgresoLocalANube = useCallback(async () => {
+    const currentStats = getGlobalStatsData();
+    const userId = getOrCreateAnonUserId();
+    const entries = Object.entries(currentStats);
+    let count = 0;
+
+    for (const [preguntaId, s] of entries) {
+      if (s.vecesVistas > 0 || s.nota || s.archivada) {
+        const status = s.archivada
+          ? 'archived'
+          : (s.dominada
+            ? 'mastered'
+            : (s.fallos > 0 || s.dudosa ? 'needs_review' : 'mastered'));
+
+        const success = await upsertQuestionStat(userId, preguntaId, {
+          subject: s.subject || 'General',
+          status: status,
+          confidence_history: s.confidence_history || [],
+          note: s.nota || '',
+          racha_verde: s.rachaVerde || 0,
+          latencia_hasta: s.latenciaHasta || null,
+          puntuacion_prioridad: s.puntuacionPrioridad || 7
+        });
+        if (success) count++;
+      }
+    }
+    return count;
+  }, []);
+
+  const exportarJSON = useCallback(() => {
+    const currentStats = getGlobalStatsData();
+    return JSON.stringify(currentStats, null, 2);
+  }, []);
+
+  const importarJSON = useCallback((jsonStr) => {
+    try {
+      const parsed = JSON.parse(jsonStr);
+      if (typeof parsed !== 'object' || parsed === null) throw new Error('Formato JSON no válido');
+      const currentStats = getGlobalStatsData();
+      const merged = { ...currentStats, ...parsed };
+      setGlobalStatsData(merged);
+      // Subir también lo importado a Supabase
+      const entriesCount = Object.keys(parsed).length;
+      alert(`¡Éxito! Se han importado ${entriesCount} preguntas al almacenamiento local.`);
+      return true;
+    } catch (e) {
+      alert(`Error al importar JSON: ${e.message}`);
+      return false;
+    }
+  }, []);
+
   useEffect(() => {
     listeners.add(setStats);
     
-    // Fetch initial stats from Supabase on first mount to sync cloud data
-    if (!isInitialFetched) {
-      isInitialFetched = true;
-      const userId = getOrCreateAnonUserId();
-      supabase
-        .from('user_question_stats')
-        .select('*')
-        .eq('user_id', userId)
-        .then(({ data, error }) => {
-          if (!error && data && data.length > 0) {
-            const currentStats = getGlobalStatsData();
-            const merged = { ...currentStats };
-            data.forEach(item => {
-              if (item.question_id) {
-                merged[item.question_id] = {
-                  ...(merged[item.question_id] || {}),
-                  status: item.status,
-                  archivada: item.status === 'archived' || merged[item.question_id]?.archivada || false,
-                  dudosa: item.status === 'needs_review' && item.confidence === 'yellow',
-                  dominada: item.status === 'mastered',
-                  nota: item.note || merged[item.question_id]?.nota || '',
-                  confidence_history: item.confidence_history || [],
-                  rachaVerde: item.racha_verde || merged[item.question_id]?.rachaVerde || 0,
-                  latenciaHasta: item.latencia_hasta || merged[item.question_id]?.latenciaHasta || null,
-                  puntuacionPrioridad: item.puntuacion_prioridad || merged[item.question_id]?.puntuacionPrioridad || null
-                };
-              }
-            });
-            setGlobalStatsData(merged);
-          }
-        })
-        .catch(err => console.error('Error fetching Supabase stats:', err));
-    }
+    // Fetch initial stats from Supabase silently on mount to sync cloud data across devices
+    sincronizarDesdeNube(true);
 
     return () => listeners.delete(setStats);
-  }, []);
+  }, [sincronizarDesdeNube]);
 
   const syncToCloud = (preguntaId, updatedQuestionStats) => {
     const userId = getOrCreateAnonUserId();
@@ -315,6 +389,10 @@ export function usePreguntasStats() {
     guardarNota,
     archivarPregunta,
     isArchivada,
+    sincronizarDesdeNube,
+    subirProgresoLocalANube,
+    exportarJSON,
+    importarJSON,
     isEnLatencia: (id) => isEnLatencia(id, stats)
   };
 }
