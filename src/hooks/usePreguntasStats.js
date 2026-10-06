@@ -216,11 +216,19 @@ export function usePreguntasStats() {
   useEffect(() => {
     listeners.add(setStats);
     
-    // Fetch initial stats from Supabase silently on mount to sync cloud data across devices
-    sincronizarDesdeNube(true);
+    // Auto two-way sync on mount: upload local localStorage history to cloud, then fetch combined cloud stats
+    const autoSync = async () => {
+      try {
+        await subirProgresoLocalANube();
+        await sincronizarDesdeNube(true);
+      } catch (err) {
+        console.warn('Auto cloud sync error:', err);
+      }
+    };
+    autoSync();
 
     return () => listeners.delete(setStats);
-  }, [sincronizarDesdeNube]);
+  }, [sincronizarDesdeNube, subirProgresoLocalANube]);
 
   const syncToCloud = (preguntaId, updatedQuestionStats) => {
     const userId = getOrCreateAnonUserId();
