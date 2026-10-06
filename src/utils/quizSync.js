@@ -9,12 +9,8 @@ import { supabase } from '../lib/supabase';
 // Retrieve or generate a unified user ID stored in localStorage.
 export function getOrCreateAnonUserId() {
   const KEY = 'mir_user_id';
-  let id = localStorage.getItem(KEY);
-  if (!id) {
-    id = 'mir_user_main';
-    localStorage.setItem(KEY, id);
-  }
-  return id;
+  localStorage.setItem(KEY, 'mir_user_main');
+  return 'mir_user_main';
 }
 
 /**
