@@ -25,15 +25,34 @@ const percentilesOficiales = {
   12: { p10: 55,    p25: 74,    p50: 93.33, p75: 110.92, p90: 126.67 }
 };
 
+export const SIMULACROS_FECHAS = {
+  1: '2025-09-13',
+  2: '2025-10-10',
+  3: '2025-11-14',
+  4: '2025-12-20',
+  5: '2026-02-06',
+  6: '2026-03-14',
+  7: '2026-04-25',
+  8: '2026-05-30',
+  9: '2026-06-20',
+  10: '2026-07-11',
+  11: '2026-08-01',
+  12: '2026-08-22',
+  13: '2026-09-05',
+  14: '2026-09-19',
+  15: '2026-09-26',
+  16: '2026-10-03',
+}
+
 // Default/historical metadata for v1/fallback
 const historicalMeta = [
-  { numero: 1, fecha: '2025-09', neta: 128, percentil_global: 25, cuenta_total: 3894, campo: { p25: 128, p50: 169, p75: 220 } },
-  { numero: 2, fecha: '2025-10', neta: 160, percentil_global: 43, cuenta_total: 3576, campo: { p25: 127, p50: 171, p75: 220 } },
-  { numero: 3, fecha: '2025-12', neta: 168, percentil_global: 52, cuenta_total: 2985, campo: { p25: 124, p50: 164, p75: 213 } },
-  { numero: 4, fecha: '2026-02', neta: 222, percentil_global: 52, cuenta_total: 2857, campo: { p25: 168, p50: 218, p75: 268 } },
-  { numero: 5, fecha: '2026-05', neta: 206, percentil_global: 45, cuenta_total: 3393, campo: { p25: 157, p50: 214, p75: 269 } },
-  { numero: 6, fecha: '2026-03', neta: 132, percentil_global: 20, cuenta_total: 3336, campo: { p25: 146, p50: 192, p75: 247 } },
-  { numero: 7, fecha: '2026-05', neta: 247, percentil_global: 67, cuenta_total: 3277, campo: null }
+  { numero: 1, fecha: '2025-09-13', neta: 128, percentil_global: 25, cuenta_total: 3894, campo: { p25: 128, p50: 169, p75: 220 } },
+  { numero: 2, fecha: '2025-10-10', neta: 160, percentil_global: 43, cuenta_total: 3576, campo: { p25: 127, p50: 171, p75: 220 } },
+  { numero: 3, fecha: '2025-11-14', neta: 168, percentil_global: 52, cuenta_total: 2985, campo: { p25: 124, p50: 164, p75: 213 } },
+  { numero: 4, fecha: '2025-12-20', neta: 222, percentil_global: 52, cuenta_total: 2857, campo: { p25: 168, p50: 218, p75: 268 } },
+  { numero: 5, fecha: '2026-02-06', neta: 206, percentil_global: 45, cuenta_total: 3393, campo: { p25: 157, p50: 214, p75: 269 } },
+  { numero: 6, fecha: '2026-03-14', neta: 132, percentil_global: 20, cuenta_total: 3336, campo: { p25: 146, p50: 192, p75: 247 } },
+  { numero: 7, fecha: '2026-04-25', neta: 247, percentil_global: 67, cuenta_total: 3277, campo: null }
 ]
 
 // Build dynamic metadata list
@@ -55,14 +74,14 @@ export const simulacrosMeta = richSims.map(s => {
     ? { p25: s.percentiles_campo.p25, p50: s.percentiles_campo.p50, p75: s.percentiles_campo.p75 }
     : (hist?.campo ?? null));
 
-  let fecha = hist?.fecha || null
-  if (!fecha && s.fecha) {
-    fecha = s.fecha.slice(0, 7) // "2026-08-26" -> "2026-08"
-  }
+  const fechaFull = SIMULACROS_FECHAS[s.numero] || s.fecha || hist?.fecha || null
+  const fecha = fechaFull || `Simulacro ${s.numero}`
 
   return {
     numero: s.numero,
-    fecha: fecha || `Simulacro ${s.numero}`,
+    fecha,
+    fechaFull,
+    fechaTimestamp: fechaFull ? new Date(fechaFull).getTime() : 0,
     neta,
     percentil_global,
     cuenta_total,
@@ -71,7 +90,11 @@ export const simulacrosMeta = richSims.map(s => {
 })
 
 if (simulacrosMeta.length === 0) {
-  simulacrosMeta.push(...historicalMeta)
+  simulacrosMeta.push(...historicalMeta.map(h => ({
+    ...h,
+    fechaFull: SIMULACROS_FECHAS[h.numero] || h.fecha,
+    fechaTimestamp: new Date(SIMULACROS_FECHAS[h.numero] || h.fecha).getTime()
+  })))
 }
 
 // Order chronologically by:

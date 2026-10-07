@@ -22,10 +22,16 @@ import {
   ASIGNATURA_NOMBRE,
   attachTextoToPregunta
 } from '../lib/simulacros'
+
+
+
 import { getEspecialidadColor } from '../data/especialidadesMIR'
+
 import { simulacrosMeta, simulacrosOrdenCronologico } from '../data/simulacrosMeta'
 import { usePreguntasStats } from '../hooks/usePreguntasStats'
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
+import NotaPersonal from '../components/quiz/NotaPersonal'
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine, ComposedChart, Bar, Line, Legend, Cell } from 'recharts'
+
 
 const ACCENT = '#F26522'
 
@@ -148,74 +154,273 @@ function SparklineSVG({ data, width = 80, height = 30 }) {
   )
 }
 
-function DualSVGLineChart({ data, width="100%", height=250 }) {
-  if(!data || data.length === 0) return null;
-  const padding = 30;
-  const W = 600;
-  const H = 200;
-  const innerW = W - padding * 2;
-  const innerH = H - padding * 2;
-  
-  const allNetas = [...data.map(d => d.neta), ...data.map(d => d.netaAjustada)].filter(n => n != null);
-  const minNeta = Math.max(0, Math.min(...allNetas) - 20);
-  const maxNeta = Math.max(...allNetas) + 20;
-  
-  const minDif = 1.5;
-  const maxDif = 4.5;
-  
+function formatDiaMes(fechaStr) {
+  if (!fechaStr) return ''
+  const parts = fechaStr.split('-')
+  if (parts.length >= 3) {
+    const day = parseInt(parts[2], 10)
+    const monthIdx = parseInt(parts[1], 10) - 1
+    const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+    return `${day} ${meses[monthIdx] || ''}`
+  }
+  return fechaStr
+}
+
+function DualSVGLineChart({ data }) {
+  const [zoomLevel, setZoomLevel] = useState(1)
+  const [hoveredPoint, setHoveredPoint] = useState(null)
+
+  if (!data || data.length === 0) return null
+
+  // Timestamps to position points proportionally according to actual calendar date differences
+  const validTimes = data.map(d => d.fechaTimestamp || (d.fechaFull ? new Date(d.fechaFull).getTime() : 0)).filter(t => t > 0)
+  const minTime = validTimes.length ? Math.min(...validTimes) : 0
+  const maxTime = validTimes.length ? Math.max(...validTimes) : 0
+  const timeSpan = (maxTime - minTime) || 1
+
+  const baseW = 850
+  const W = Math.round(baseW * zoomLevel)
+  const H = 270
+  const padding = { top: 40, right: 45, bottom: 65, left: 45 }
+  const innerW = W - padding.left - padding.right
+  const innerH = H - padding.top - padding.bottom
+
+  const allNetas = [...data.map(d => d.neta), ...data.map(d => d.netaAjustada)].filter(n => n != null)
+  const minNeta = Math.max(0, Math.min(...allNetas) - 15)
+  const maxNeta = Math.max(...allNetas) + 25
+
+  const minDif = 1.5
+  const maxDif = 4.5
+
   const pointsNeta = data.map((d, i) => {
-    const x = padding + (i / Math.max(1, (data.length - 1))) * innerW;
-    const y = padding + innerH - ((d.neta - minNeta) / (maxNeta - minNeta)) * innerH;
-    return { x, y, d };
-  });
-  const pathNeta = `M ${pointsNeta.map(p => `${p.x},${p.y}`).join(' L ')}`;
+    const t = d.fechaTimestamp || (d.fechaFull ? new Date(d.fechaFull).getTime() : 0)
+    const ratio = (t && timeSpan > 0) ? (t - minTime) / timeSpan : (i / Math.max(1, data.length - 1))
+    const x = padding.left + ratio * innerW
+    const y = padding.top + innerH - ((d.neta - minNeta) / (maxNeta - minNeta)) * innerH
+    return { x, y, d, ratio }
+  })
+  const pathNeta = `M ${pointsNeta.map(p => `${p.x},${p.y}`).join(' L ')}`
 
   const pointsAjustada = data.map((d, i) => {
-    if (d.netaAjustada == null) return null;
-    const x = padding + (i / Math.max(1, (data.length - 1))) * innerW;
-    const y = padding + innerH - ((d.netaAjustada - minNeta) / (maxNeta - minNeta)) * innerH;
-    return { x, y, d };
-  }).filter(Boolean);
-  const pathAjustada = pointsAjustada.length > 0 ? `M ${pointsAjustada.map(p => `${p.x},${p.y}`).join(' L ')}` : '';
+    if (d.netaAjustada == null) return null
+    const t = d.fechaTimestamp || (d.fechaFull ? new Date(d.fechaFull).getTime() : 0)
+    const ratio = (t && timeSpan > 0) ? (t - minTime) / timeSpan : (i / Math.max(1, data.length - 1))
+    const x = padding.left + ratio * innerW
+    const y = padding.top + innerH - ((d.netaAjustada - minNeta) / (maxNeta - minNeta)) * innerH
+    return { x, y, d, ratio }
+  }).filter(Boolean)
+  const pathAjustada = pointsAjustada.length > 0 ? `M ${pointsAjustada.map(p => `${p.x},${p.y}`).join(' L ')}` : ''
 
   const pointsDif = data.map((d, i) => {
-    const x = padding + (i / Math.max(1, (data.length - 1))) * innerW;
-    const y = padding + innerH - ((d.dificultadMedia - minDif) / (maxDif - minDif)) * innerH;
-    return { x, y, d };
-  });
-  const pathDif = `M ${pointsDif.map(p => `${p.x},${p.y}`).join(' L ')}`;
+    const t = d.fechaTimestamp || (d.fechaFull ? new Date(d.fechaFull).getTime() : 0)
+    const ratio = (t && timeSpan > 0) ? (t - minTime) / timeSpan : (i / Math.max(1, data.length - 1))
+    const x = padding.left + ratio * innerW
+    const y = padding.top + innerH - ((d.dificultadMedia - minDif) / (maxDif - minDif)) * innerH
+    return { x, y, d, ratio }
+  })
+  const pathDif = `M ${pointsDif.map(p => `${p.x},${p.y}`).join(' L ')}`
+
+  const yTicks = [minNeta, Math.round(minNeta + (maxNeta - minNeta) * 0.33), Math.round(minNeta + (maxNeta - minNeta) * 0.66), maxNeta]
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto bg-transparent overflow-visible">
-      <path d={pathNeta} fill="none" stroke="#10b981" strokeWidth="3.5" strokeLinejoin="round" />
-      {pathAjustada && <path d={pathAjustada} fill="none" stroke="#f59e0b" strokeWidth="2.5" strokeDasharray="6 6" strokeLinejoin="round" />}
-      <path d={pathDif} fill="none" stroke="#94a3b8" strokeWidth="2" strokeDasharray="3 4" opacity="0.6" strokeLinejoin="round" />
-      
-      {pointsAjustada.map((p, i) => (
-        <g key={`ajustada-${i}`}>
-          <circle cx={p.x} cy={p.y} r="3" fill="#f59e0b" />
-          <text x={p.x} y={p.y - 12} fontSize="9" fill="#f59e0b" fontWeight="bold" textAnchor="middle">{p.d.netaAjustada}</text>
-        </g>
-      ))}
+    <div className="space-y-3">
+      {/* Zoom Controls */}
+      <div className="flex items-center justify-between gap-4 bg-slate-50/80 p-3 rounded-xl border border-slate-200/80 flex-wrap">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold text-slate-600 flex items-center gap-1.5">
+            <span>🔍</span> Zoom: <span className="font-black text-slate-900">{Math.round(zoomLevel * 100)}%</span>
+          </span>
+          {zoomLevel > 1 && (
+            <span className="text-[11px] font-semibold text-accent bg-accent-bg px-2 py-0.5 rounded-md border border-accent/20">
+              ↔ Scrollear de derecha a izquierda para ver en detalle
+            </span>
+          )}
+        </div>
 
-      {pointsNeta.map((p, i) => (
-        <g key={`neta-${i}`} className="group">
-          <circle cx={p.x} cy={p.y} r="4.5" fill="#10b981" stroke="#fff" strokeWidth="2" className="drop-shadow-sm transition-all group-hover:r-[6]" />
-          <text x={p.x} y={p.y + 18} fontSize="10" fill="#059669" fontWeight="bold" textAnchor="middle">{p.d.neta}</text>
-        </g>
-      ))}
-      
-      {pointsDif.map((p, i) => (
-        <g key={`dif-${i}`}>
-          <circle cx={p.x} cy={p.y} r="2" fill="#94a3b8" />
-          <text x={p.x} y={p.y + 12} fontSize="8.5" fill="#94a3b8" textAnchor="middle" fontWeight="600">{p.d.dificultadMedia}</text>
-        </g>
-      ))}
-      {pointsNeta.map((p, i) => (
-        <text key={`label-${i}`} x={p.x} y={H - padding + 24} fontSize="9.5" fill="#64748b" textAnchor="middle" fontWeight="600">{p.d.fecha}</text>
-      ))}
-    </svg>
-  );
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setZoomLevel(1)}
+            className={`px-3 py-1 text-xs font-bold rounded-lg border transition-all ${
+              zoomLevel === 1 
+                ? 'bg-slate-900 text-white border-slate-900 shadow-sm' 
+                : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+            }`}
+            title="Ver todo de un vistazo"
+          >
+            De un vistazo (100%)
+          </button>
+          
+          <button
+            onClick={() => setZoomLevel(prev => Math.max(1, Math.round((prev - 0.25) * 100) / 100))}
+            disabled={zoomLevel <= 1}
+            className="w-7 h-7 flex items-center justify-center font-black rounded-lg border border-slate-200 bg-white text-slate-700 disabled:opacity-40 hover:bg-slate-100 transition-all text-sm"
+            title="Alejar zoom"
+          >
+            −
+          </button>
+
+          <input
+            type="range"
+            min="1"
+            max="3"
+            step="0.25"
+            value={zoomLevel}
+            onChange={(e) => setZoomLevel(parseFloat(e.target.value))}
+            className="w-24 accent-accent cursor-pointer"
+          />
+
+          <button
+            onClick={() => setZoomLevel(prev => Math.min(3, Math.round((prev + 0.25) * 100) / 100))}
+            disabled={zoomLevel >= 3}
+            className="w-7 h-7 flex items-center justify-center font-black rounded-lg border border-slate-200 bg-white text-slate-700 disabled:opacity-40 hover:bg-slate-100 transition-all text-sm"
+            title="Acercar zoom"
+          >
+            +
+          </button>
+        </div>
+      </div>
+
+      {/* Horizontal Scroll Area */}
+      <div className="w-full overflow-x-auto custom-scrollbar relative rounded-2xl bg-white border border-slate-100 shadow-sm p-2">
+        <div style={{ width: zoomLevel > 1 ? `${zoomLevel * 100}%` : '100%', minWidth: W }}>
+          <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto overflow-visible bg-transparent">
+            {/* Grid lines */}
+            {yTicks.map((val, idx) => {
+              const y = padding.top + innerH - ((val - minNeta) / (maxNeta - minNeta)) * innerH
+              return (
+                <g key={`ytick-${idx}`}>
+                  <line x1={padding.left} y1={y} x2={W - padding.right} y2={y} stroke="#f1f5f9" strokeWidth="1" strokeDasharray="4 4" />
+                  <text x={padding.left - 8} y={y + 3} fontSize="9" fill="#94a3b8" textAnchor="end" fontWeight="600">{val}</text>
+                </g>
+              )
+            })}
+
+            {/* Hover vertical guide line */}
+            {hoveredPoint && (
+              <line 
+                x1={hoveredPoint.x} y1={padding.top} 
+                x2={hoveredPoint.x} y2={H - padding.bottom} 
+                stroke="#cbd5e1" strokeWidth="1.5" strokeDasharray="3 3" 
+              />
+            )}
+
+            {/* Path lines */}
+            <path d={pathNeta} fill="none" stroke="#10b981" strokeWidth="3.5" strokeLinejoin="round" />
+            {pathAjustada && <path d={pathAjustada} fill="none" stroke="#f59e0b" strokeWidth="2.5" strokeDasharray="6 6" strokeLinejoin="round" />}
+            <path d={pathDif} fill="none" stroke="#94a3b8" strokeWidth="2" strokeDasharray="3 4" opacity="0.5" strokeLinejoin="round" />
+
+            {/* Points for Adjusted Netas */}
+            {pointsAjustada.map((p, i) => (
+              <g key={`ajustada-${i}`}>
+                <circle cx={p.x} cy={p.y} r="3" fill="#f59e0b" />
+                <text x={p.x} y={p.y - 10} fontSize="9" fill="#d97706" fontWeight="bold" textAnchor="middle">{p.d.netaAjustada}</text>
+              </g>
+            ))}
+
+            {/* Points for Real Netas */}
+            {pointsNeta.map((p, i) => {
+              const isHovered = hoveredPoint?.d.simulacro === p.d.simulacro
+              return (
+                <g 
+                  key={`neta-${i}`} 
+                  className="cursor-pointer group"
+                  onMouseEnter={() => setHoveredPoint(p)}
+                  onMouseLeave={() => setHoveredPoint(null)}
+                >
+                  <circle 
+                    cx={p.x} cy={p.y} 
+                    r={isHovered ? 7 : 4.5} 
+                    fill="#10b981" 
+                    stroke="#fff" 
+                    strokeWidth={2} 
+                    className="drop-shadow-sm transition-all duration-150" 
+                  />
+                  <text x={p.x} y={p.y + 16} fontSize="10" fill="#047857" fontWeight="900" textAnchor="middle">{p.d.neta}</text>
+                </g>
+              )
+            })}
+
+            {/* Points for Difficulty */}
+            {pointsDif.map((p, i) => (
+              <g key={`dif-${i}`}>
+                <circle cx={p.x} cy={p.y} r="2.5" fill="#94a3b8" />
+                <text x={p.x} y={p.y + 11} fontSize="8.5" fill="#64748b" textAnchor="middle" fontWeight="600">{p.d.dificultadMedia}</text>
+              </g>
+            ))}
+
+            {/* X-Axis labels: S{num} on line 1, formatted day & month on line 2 */}
+            {pointsNeta.map((p, i) => {
+              const fechaFormatted = formatDiaMes(p.d.fechaFull || p.d.fecha)
+              const isHovered = hoveredPoint?.d.simulacro === p.d.simulacro
+              return (
+                <g 
+                  key={`label-${i}`} 
+                  className="cursor-pointer"
+                  onMouseEnter={() => setHoveredPoint(p)}
+                  onMouseLeave={() => setHoveredPoint(null)}
+                >
+                  {/* Vertical tick mark at exact proportional position */}
+                  <line 
+                    x1={p.x} y1={H - padding.bottom} 
+                    x2={p.x} y2={H - padding.bottom + 5} 
+                    stroke={isHovered ? '#334155' : '#cbd5e1'} 
+                    strokeWidth={isHovered ? '2' : '1'} 
+                  />
+                  {/* S11 label */}
+                  <text 
+                    x={p.x} 
+                    y={H - padding.bottom + 20} 
+                    fontSize="11" 
+                    fill={isHovered ? '#0f172a' : '#1e293b'} 
+                    textAnchor="middle" 
+                    fontWeight="800"
+                  >
+                    S{p.d.simulacro}
+                  </text>
+                  {/* Date (día y mes) label */}
+                  <text 
+                    x={p.x} 
+                    y={H - padding.bottom + 34} 
+                    fontSize="9.5" 
+                    fill={isHovered ? '#0f172a' : '#64748b'} 
+                    textAnchor="middle" 
+                    fontWeight="600"
+                  >
+                    {fechaFormatted}
+                  </text>
+                </g>
+              )
+            })}
+          </svg>
+        </div>
+
+        {/* Hover Tooltip Card */}
+        {hoveredPoint && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-slate-900/95 text-white px-4 py-2.5 rounded-xl text-xs shadow-xl pointer-events-none border border-slate-700 backdrop-blur-md flex items-center gap-4 z-20">
+            <div>
+              <div className="font-black text-sm text-amber-400">S{hoveredPoint.d.simulacro} • {formatDiaMes(hoveredPoint.d.fechaFull || hoveredPoint.d.fecha)}</div>
+              <div className="text-[11px] text-slate-300 font-medium mt-0.5">{hoveredPoint.d.fechaFull || hoveredPoint.d.fecha}</div>
+            </div>
+            <div className="h-8 w-px bg-slate-700"></div>
+            <div className="flex gap-4">
+              <div>
+                <div className="text-[10px] uppercase font-bold text-emerald-400 tracking-wider">Neta Real</div>
+                <div className="text-sm font-black">{hoveredPoint.d.neta}</div>
+              </div>
+              <div>
+                <div className="text-[10px] uppercase font-bold text-amber-400 tracking-wider">Ajustada</div>
+                <div className="text-sm font-black">{hoveredPoint.d.netaAjustada}</div>
+              </div>
+              <div>
+                <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Dificultad</div>
+                <div className="text-sm font-black">{hoveredPoint.d.dificultadMedia}</div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
 }
 
 // NUEVO GRÁFICO: Aciertos en lugar de Netas para Asignaturas
@@ -278,6 +483,134 @@ function SubjectAciertosLineChart({ data, width="100%", height=200 }) {
   );
 }
 
+// ─── Gráfico: Aciertos vs Población ──────────────────────────────────────────
+
+function AciertosVsPoblacionChart({ questions, onBucketClick }) {
+  const buckets = [
+    { name: '0-20% (Muy Difíciles)', min: 0, max: 20, total: 0, acertadas: 0, sumaPct: 0 },
+    { name: '20-40% (Difíciles)', min: 20, max: 40, total: 0, acertadas: 0, sumaPct: 0 },
+    { name: '40-60% (Medias)', min: 40, max: 60, total: 0, acertadas: 0, sumaPct: 0 },
+    { name: '60-80% (Fáciles)', min: 60, max: 80, total: 0, acertadas: 0, sumaPct: 0 },
+    { name: '80-100% (Regalo)', min: 80, max: 100, total: 0, acertadas: 0, sumaPct: 0 },
+  ];
+
+  let hasData = false;
+  
+  questions.forEach(q => {
+    let pctNum = null;
+    if (q.pct_field_correct != null) pctNum = q.pct_field_correct * 100;
+    else if (q.pct_correcta != null) {
+      const meta = simulacrosMeta.find(m => m.numero === q.simulacro)
+      const total = meta?.cuenta_total || 3000
+      pctNum = (q.pct_correcta / total) * 100;
+    }
+    
+    if (pctNum != null) {
+      hasData = true;
+      // Tratar 100% de acierto para que entre en el último bucket
+      const adjustedPct = pctNum >= 100 ? 99.9 : pctNum;
+      for (let b of buckets) {
+        if (adjustedPct >= b.min && adjustedPct < b.max) {
+          b.total++;
+          b.sumaPct += pctNum;
+          if (q.acertada) b.acertadas++;
+          break;
+        }
+      }
+    }
+  });
+
+  if (!hasData) {
+    return <div className="p-5 text-center text-slate-400 font-medium glass-card">No hay datos de acierto global para comparar.</div>
+  }
+
+  const data = buckets.map(b => ({
+    name: b.name,
+    min: b.min,
+    max: b.max,
+    TuAcierto: b.total > 0 ? Math.round((b.acertadas / b.total) * 100) : 0,
+    TotalPreguntas: b.total,
+    Esperado: b.total > 0 ? Math.round((b.sumaPct / b.total) * 10) / 10 : (b.min + b.max) / 2
+  }));
+
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-slate-900 text-white p-3 rounded-lg shadow-xl text-xs border border-slate-700 z-50 relative">
+          <p className="font-bold mb-2 text-sm">{label}</p>
+          <div className="flex flex-col gap-1.5">
+            <p className="text-slate-300 flex justify-between gap-4">
+              <span>Volumen de preguntas:</span> 
+              <span className="text-white font-bold">{payload.find(p => p.dataKey === 'TotalPreguntas')?.value}</span>
+            </p>
+            <div className="h-px w-full bg-slate-700 my-1"></div>
+            <p className="text-slate-400 flex justify-between gap-4">
+              <span>Acierto esperado:</span> 
+              <span>~{payload.find(p => p.dataKey === 'Esperado')?.value}%</span>
+            </p>
+            <p className="text-emerald-400 font-black flex justify-between gap-4 text-[13px]">
+              <span>Tu acierto:</span> 
+              <span>{payload.find(p => p.dataKey === 'TuAcierto')?.value}%</span>
+            </p>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  return (
+    <div className="w-full h-72 -ml-2 mt-2">
+      <ResponsiveContainer width="100%" height="100%">
+        <ComposedChart
+          data={data}
+          margin={{ top: 20, right: 20, bottom: 20, left: -20 }}
+        >
+          <CartesianGrid stroke="#f1f5f9" vertical={false} />
+          <XAxis dataKey="name" tick={{fontSize: 9, fill: '#64748b', fontWeight: 600}} axisLine={false} tickLine={false} dy={10} interval={0} />
+          <YAxis yAxisId="left" domain={[0, 100]} tick={{fontSize: 10, fill: '#64748b'}} axisLine={false} tickLine={false} />
+          <YAxis yAxisId="right" orientation="right" hide />
+          <RechartsTooltip content={<CustomTooltip />} cursor={{fill: '#f8fafc'}} />
+          <Legend wrapperStyle={{fontSize: '11px', fontWeight: 600, color: '#475569'}} />
+          
+          <Bar 
+            yAxisId="right" 
+            dataKey="TotalPreguntas" 
+            name="Nº Preguntas" 
+            fill="#e2e8f0" 
+            radius={[4, 4, 0, 0]} 
+            barSize={35} 
+            onClick={(data) => {
+              if (onBucketClick && data) {
+                // data o data.payload dependiendo de la versión de recharts
+                onBucketClick(data.payload || data);
+              }
+            }}
+            cursor={onBucketClick ? "pointer" : "default"}
+          />
+          <Line yAxisId="left" type="monotone" dataKey="Esperado" name="Acierto Medio de la Población" stroke="#94a3b8" strokeDasharray="5 5" strokeWidth={2} dot={false} />
+          <Line 
+            yAxisId="left" 
+            type="monotone" 
+            dataKey="TuAcierto" 
+            name="Tu % de Acierto" 
+            stroke="#10b981" 
+            strokeWidth={3} 
+            dot={{r: 5, fill: '#10b981', stroke: '#fff', strokeWidth: 2}} 
+            activeDot={{
+              r: 7, 
+              onClick: (e, payload) => {
+                if (onBucketClick && payload && payload.payload) onBucketClick(payload.payload)
+              }, 
+              cursor: onBucketClick ? "pointer" : "default"
+            }} 
+          />
+        </ComposedChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
+
 // ─── Componentes de UI ────────────────────────────────────────────────────────
 
 function HeaderBar({ title, onBack }) {
@@ -301,10 +634,19 @@ function HeaderBar({ title, onBack }) {
 function QuestionRow({ q, highlightColor }) {
   const [open, setOpen] = useState(false)
   const fullQ = useMemo(() => open ? attachTextoToPregunta(q) : q, [open, q])
-  const { getStatsPregunta, marcarCorregida } = usePreguntasStats()
+  const { getStatsPregunta, marcarCorregida, guardarNota } = usePreguntasStats()
   
-  const stats = getStatsPregunta(q.pregunta_id || q.id) || {}
+  const qId = q.pregunta_id || q.id || `${q.simulacro}-${q.numero}`
+  const stats = getStatsPregunta(qId) || (q.simulacro && q.numero ? getStatsPregunta(`${q.simulacro}-${q.numero}`) : null) || {}
   const isCorregida = !!stats.corregida
+
+  const toggleCorregida = () => {
+    const nextState = !isCorregida;
+    marcarCorregida(qId, nextState);
+    if (q.simulacro && q.numero) {
+      marcarCorregida(`${q.simulacro}-${q.numero}`, nextState);
+    }
+  };
 
   // Calcular % de acierto: primero intentar pct_field_correct (ya es ratio 0-1),
   // si no está disponible usar pct_correcta / cuenta_total del meta del simulacro
@@ -403,9 +745,20 @@ function QuestionRow({ q, highlightColor }) {
             </div>
           )}
 
+          <NotaPersonal
+            preguntaId={qId}
+            nota={stats.nota || ''}
+            onGuardar={(id, notaText) => {
+              guardarNota(id, notaText);
+              if (q.simulacro && q.numero && `${q.simulacro}-${q.numero}` !== id) {
+                guardarNota(`${q.simulacro}-${q.numero}`, notaText);
+              }
+            }}
+          />
+
           <div className="mt-5 border-t border-slate-200/60 pt-5 flex justify-end">
             <button
-              onClick={() => marcarCorregida(q.pregunta_id || q.id, !isCorregida)}
+              onClick={toggleCorregida}
               className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm ${
                 isCorregida 
                   ? 'bg-emerald-100 text-emerald-800 border-2 border-emerald-300 hover:bg-emerald-200'
@@ -464,6 +817,7 @@ function QuestionListDropdown({ title, subtitle, count, icon, color, questions, 
 // ─── Vistas a Pantalla Completa ────────────────────────────────────────────────
 
 function VistaPostMortemFullScreen({ num, onBack }) {
+  const [bucketSeleccionado, setBucketSeleccionado] = useState(null)
   const pm = useMemo(() => getPostMortemSimulacro(num), [num])
   
   if (!pm) return (
@@ -497,6 +851,43 @@ function VistaPostMortemFullScreen({ num, onBack }) {
     if (subidones.length > 0) diagnostico += `Has mejorado muchísimo en ${subidones.slice(0, 2).map(d => d.nombre).join(' y ')}. `
   } else {
     diagnostico = `Un simulacro estable. Estás en el percentil ${meta.percentil_global}%, muy cerca de tu media histórica. Aún así, tienes margen de mejora.`
+  }
+
+  if (bucketSeleccionado) {
+    const min = bucketSeleccionado.min;
+    const max = bucketSeleccionado.max;
+    // Filtrar preguntas que caen en este rango
+    const filtered = pmQuestions.filter(q => {
+      let pctNum = null;
+      if (q.pct_field_correct != null) pctNum = q.pct_field_correct * 100;
+      else if (q.pct_correcta != null) {
+        const metaLocal = simulacrosMeta.find(m => m.numero === q.simulacro)
+        const total = metaLocal?.cuenta_total || 3000
+        pctNum = (q.pct_correcta / total) * 100;
+      }
+      if (pctNum == null) return false;
+      const adjustedPct = pctNum >= 100 ? 99.9 : pctNum;
+      return adjustedPct >= min && adjustedPct < max;
+    });
+
+    return (
+      <div className="animate-fade-in max-w-5xl mx-auto pb-20">
+        <HeaderBar title={`Preguntas: ${bucketSeleccionado.name}`} onBack={() => setBucketSeleccionado(null)} />
+        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+          <div className="p-4 bg-slate-50 border-b border-slate-200">
+            <div className="font-bold text-slate-800">
+              Mostrando {filtered.length} preguntas donde el acierto medio de la población es del {min}% al {max}%.
+            </div>
+            <div className="text-xs text-slate-500 mt-1">
+              Las opciones en rojo fueron tus fallos. Las opciones en verde son la respuesta correcta.
+            </div>
+          </div>
+          <div className="divide-y divide-slate-100">
+            {filtered.map(q => <QuestionRow key={`${q.simulacro}-${q.numero}`} q={q} highlightColor="#3b82f6" />)}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -575,6 +966,14 @@ function VistaPostMortemFullScreen({ num, onBack }) {
             <div className="bg-slate-50 rounded-xl p-2 border border-slate-100">
               <ScatterPlotSVG questions={pmQuestions} />
             </div>
+          </div>
+
+          <div className="glass-card p-5">
+            <h3 className="text-sm font-black text-slate-900 mb-2">Tu Acierto vs Población</h3>
+            <p className="text-xs font-medium text-slate-500 mb-4">
+              Compara tu rendimiento según la dificultad de las preguntas (las barras grises indican cuántas preguntas hubo de ese nivel).
+            </p>
+            <AciertosVsPoblacionChart questions={pmQuestions} onBucketClick={(bucket) => setBucketSeleccionado(bucket)} />
           </div>
 
           <div>

@@ -288,6 +288,8 @@ export function getAnalisisDificultad() {
     return {
       simulacro: num,
       fecha: meta?.fecha || `Simulacro ${num}`,
+      fechaFull: meta?.fechaFull || meta?.fecha,
+      fechaTimestamp: meta?.fechaTimestamp || (meta?.fechaFull ? new Date(meta.fechaFull).getTime() : 0),
       neta: netaReal,
       netaAjustada: netaAjustada,
       aciertos: ps.filter(p => p.acertada).length,
