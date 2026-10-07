@@ -2,7 +2,26 @@ import { useState, useEffect, useCallback } from 'react';
 import { getOrCreateAnonUserId, upsertQuestionStat } from '../utils/quizSync';
 import { supabase } from '../lib/supabase';
 
+import rawSimulacrosData from '../data/simulacrosCTO.json';
+
 const STORAGE_KEY = 'mir_banco_preguntas_stats';
+
+// Bidirectional alias maps between pregunta_id (UUID) and simulacro-numero (e.g. "14-12")
+const uuidToSimNumMap = {};
+const simNumToUuidMap = {};
+
+try {
+  const preguntasList = Array.isArray(rawSimulacrosData) ? rawSimulacrosData : (rawSimulacrosData.preguntas || []);
+  preguntasList.forEach(p => {
+    if (p.pregunta_id && p.simulacro && p.numero) {
+      const simNumKey = `${p.simulacro}-${p.numero}`;
+      uuidToSimNumMap[p.pregunta_id] = simNumKey;
+      simNumToUuidMap[simNumKey] = p.pregunta_id;
+    }
+  });
+} catch (e) {
+  console.warn('Error constructing simulacro alias map:', e);
+}
 
 let globalStatsCache = null;
 const listeners = new Set();
@@ -140,7 +159,7 @@ export function usePreguntasStats() {
             const isCorregida = item.status === 'corrected' || (item.note && item.note.includes('[CORREGIDA]')) || prev.corregida || false;
             const cleanNote = item.note ? item.note.replace(/\[CORREGIDA\]\s*/g, '') : (prev.nota || '');
 
-            merged[item.question_id] = {
+            const qStatObj = {
               ...prev,
               status: item.status,
               archivada: item.status === 'archived' || prev.archivada || false,
@@ -157,6 +176,15 @@ export function usePreguntasStats() {
               aciertos: finalAciertos,
               fallos: finalFallos
             };
+
+            merged[item.question_id] = qStatObj;
+            if (uuidToSimNumMap[item.question_id]) {
+              merged[uuidToSimNumMap[item.question_id]] = qStatObj;
+            }
+            if (simNumToUuidMap[item.question_id]) {
+              merged[simNumToUuidMap[item.question_id]] = qStatObj;
+            }
+
             updatedCount++;
           }
         });
@@ -271,7 +299,7 @@ export function usePreguntasStats() {
       noteWithTag = `[CORREGIDA] ${noteWithTag}`.trim();
     }
 
-    upsertQuestionStat(userId, preguntaId, {
+    const payload = {
       subject: updatedQuestionStats.subject || 'General',
       status: status,
       confidence_history: updatedQuestionStats.confidence_history || [],
@@ -279,12 +307,21 @@ export function usePreguntasStats() {
       racha_verde: updatedQuestionStats.rachaVerde || 0,
       latencia_hasta: updatedQuestionStats.latenciaHasta || null,
       puntuacion_prioridad: updatedQuestionStats.puntuacionPrioridad || 7
-    });
+    };
+
+    upsertQuestionStat(userId, preguntaId, payload);
+    const alias1 = uuidToSimNumMap[preguntaId];
+    if (alias1) upsertQuestionStat(userId, alias1, payload);
+    const alias2 = simNumToUuidMap[preguntaId];
+    if (alias2) upsertQuestionStat(userId, alias2, payload);
   };
 
   const registrarRespuesta = useCallback((preguntaId, esCorrecta, respuestaSeleccionada, extraData = {}) => {
     const currentStats = getGlobalStatsData();
-    const p = currentStats[preguntaId] || {
+    const alias1 = uuidToSimNumMap[preguntaId];
+    const alias2 = simNumToUuidMap[preguntaId];
+
+    const p = currentStats[preguntaId] || (alias1 ? currentStats[alias1] : null) || (alias2 ? currentStats[alias2] : null) || {
       vecesVistas: 0, aciertos: 0, fallos: 0, ultimaRespuesta: null, ultimaFecha: null, dudosa: false, dominada: false, corregida: false
     };
 
@@ -317,6 +354,8 @@ export function usePreguntasStats() {
       ...currentStats,
       [preguntaId]: updated
     };
+    if (alias1) newStats[alias1] = updated;
+    if (alias2) newStats[alias2] = updated;
 
     setGlobalStatsData(newStats);
     syncToCloud(preguntaId, updated);
@@ -324,7 +363,10 @@ export function usePreguntasStats() {
 
   const marcarEstado = useCallback((preguntaId, tipo) => {
     const currentStats = getGlobalStatsData();
-    const p = currentStats[preguntaId] || {
+    const alias1 = uuidToSimNumMap[preguntaId];
+    const alias2 = simNumToUuidMap[preguntaId];
+
+    const p = currentStats[preguntaId] || (alias1 ? currentStats[alias1] : null) || (alias2 ? currentStats[alias2] : null) || {
       vecesVistas: 0, aciertos: 0, fallos: 0, ultimaRespuesta: null, ultimaFecha: null, dudosa: false, dominada: false, corregida: false
     };
 
@@ -334,16 +376,23 @@ export function usePreguntasStats() {
       dominada: tipo === 'dominada'
     };
 
-    setGlobalStatsData({
+    const newStats = {
       ...currentStats,
       [preguntaId]: updated
-    });
+    };
+    if (alias1) newStats[alias1] = updated;
+    if (alias2) newStats[alias2] = updated;
+
+    setGlobalStatsData(newStats);
     syncToCloud(preguntaId, updated);
   }, []);
 
   const marcarCorregida = useCallback((preguntaId, estado = true) => {
     const currentStats = getGlobalStatsData();
-    const p = currentStats[preguntaId] || {
+    const alias1 = uuidToSimNumMap[preguntaId];
+    const alias2 = simNumToUuidMap[preguntaId];
+
+    const p = currentStats[preguntaId] || (alias1 ? currentStats[alias1] : null) || (alias2 ? currentStats[alias2] : null) || {
       vecesVistas: 0, aciertos: 0, fallos: 0, ultimaRespuesta: null, ultimaFecha: null, dudosa: false, dominada: false, corregida: false
     };
 
@@ -352,15 +401,25 @@ export function usePreguntasStats() {
       corregida: estado
     };
 
-    setGlobalStatsData({
+    const newStats = {
       ...currentStats,
       [preguntaId]: updated
-    });
+    };
+    if (alias1) newStats[alias1] = updated;
+    if (alias2) newStats[alias2] = updated;
+
+    setGlobalStatsData(newStats);
     syncToCloud(preguntaId, updated);
   }, []);
 
   const getStatsPregunta = useCallback((preguntaId) => {
-    return stats[preguntaId] || null;
+    if (!preguntaId) return null;
+    if (stats[preguntaId]) return stats[preguntaId];
+    const alias1 = uuidToSimNumMap[preguntaId];
+    if (alias1 && stats[alias1]) return stats[alias1];
+    const alias2 = simNumToUuidMap[preguntaId];
+    if (alias2 && stats[alias2]) return stats[alias2];
+    return null;
   }, [stats]);
 
   const guardarNota = useCallback((preguntaId, nota) => {

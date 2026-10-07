@@ -25,8 +25,7 @@ export default function CorreccionSimulacro() {
     // 3. Filtrar y clasificar en grupos
     let pendientes = todas.filter(p => {
       if (p.ignorar) return false;
-      const qKey = p.pregunta_id || p.id || `${p.simulacro}-${p.numero}`;
-      const stat = stats[qKey] || stats[`${p.simulacro}-${p.numero}`] || stats[p.id] || stats[p.pregunta_id];
+      const stat = getStatsPregunta(p.pregunta_id) || getStatsPregunta(`${p.simulacro}-${p.numero}`) || getStatsPregunta(p.id);
       if (stat && (stat.corregida || stat.archivada || stat.status === 'archived')) return false;
 
       const meta = simulacrosMeta.find(m => m.numero === p.simulacro);
