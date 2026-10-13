@@ -8,6 +8,8 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     server: {
+      port: 5173,
+      strictPort: true,
       // Proxy Anthropic API calls so the key never touches the browser bundle
       proxy: {
         '/api/claude': {

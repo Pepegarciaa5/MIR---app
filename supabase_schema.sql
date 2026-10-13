@@ -54,12 +54,20 @@ create table if not exists planes_adicionales (
   created_at timestamp with time zone default now()
 );
 
+-- 6. Conceptos clave para estudio
+create table if not exists conceptos_clave (
+  id serial primary key,
+  afirmacion text not null,
+  created_at timestamp with time zone default now()
+);
+
 -- Acceso público de solo lectura (para el blog público)
 alter table tracker_entries enable row level security;
 alter table repasos enable row level security;
 alter table bloques_completados enable row level security;
 alter table bloques_descartados enable row level security;
 alter table planes_adicionales enable row level security;
+alter table conceptos_clave enable row level security;
 
 -- Cualquiera puede leer (blog público)
 create policy "public read tracker_entries" on tracker_entries for select using (true);
@@ -67,6 +75,7 @@ create policy "public read repasos" on repasos for select using (true);
 create policy "public read bloques_completados" on bloques_completados for select using (true);
 create policy "public read bloques_descartados" on bloques_descartados for select using (true);
 create policy "public read planes_adicionales" on planes_adicionales for select using (true);
+create policy "public read conceptos_clave" on conceptos_clave for select using (true);
 
 -- Solo escritura con service role (desde la app con tu clave)
 create policy "service write tracker_entries" on tracker_entries for all using (true);
@@ -74,3 +83,4 @@ create policy "service write repasos" on repasos for all using (true);
 create policy "service write bloques_completados" on bloques_completados for all using (true);
 create policy "service write bloques_descartados" on bloques_descartados for all using (true);
 create policy "service write planes_adicionales" on planes_adicionales for all using (true);
+create policy "service write conceptos_clave" on conceptos_clave for all using (true);

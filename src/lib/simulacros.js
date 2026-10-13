@@ -816,3 +816,155 @@ export function getTrampasConceptuales(umbralPct = 0.20) {
 
   return trampas
 }
+
+// ─── Diagramas de Bigotes (Boxplots) y Rendimiento vs Media ─────────────────
+
+function quantile(arr, q) {
+  if (!arr || arr.length === 0) return 0
+  if (arr.length === 1) return arr[0]
+  const sorted = [...arr].sort((a, b) => a - b)
+  const pos = (sorted.length - 1) * q
+  const base = Math.floor(pos)
+  const rest = pos - base
+  if (sorted[base + 1] !== undefined) {
+    return sorted[base] + rest * (sorted[base + 1] - sorted[base])
+  } else {
+    return sorted[base]
+  }
+}
+
+export function computeBoxplot(values) {
+  if (!values || values.length === 0) {
+    return { min: 0, q1: 0, median: 0, q3: 0, max: 0, mean: 0 }
+  }
+  const sorted = [...values].sort((a, b) => a - b)
+  const min = Math.round(sorted[0] * 10) / 10
+  const max = Math.round(sorted[sorted.length - 1] * 10) / 10
+  const q1 = Math.round(quantile(sorted, 0.25) * 10) / 10
+  const median = Math.round(quantile(sorted, 0.50) * 10) / 10
+  const q3 = Math.round(quantile(sorted, 0.75) * 10) / 10
+  const mean = Math.round((sorted.reduce((a, b) => a + b, 0) / sorted.length) * 10) / 10
+  return { min, q1, median, q3, max, mean }
+}
+
+/**
+ * Devuelve todas las asignaturas relevantes (>3 preguntas por simulacro)
+ * con su diagrama de bigotes histórico, su posición respecto a la media de la academia
+ * y el desglose de lo sucedido en cada simulacro.
+ */
+export function getAnalisisBigotesPorAsignatura(minAvgPreguntas = 3) {
+  const byAsig = {}
+
+  preguntas.forEach(p => {
+    if (p.ignorar) return
+    const asig = p.asignatura
+    if (!byAsig[asig]) {
+      byAsig[asig] = {
+        codigo: asig,
+        nombre: ASIGNATURA_NOMBRE[asig] || asig,
+        totalPreguntas: 0,
+        acertadasTotal: 0,
+        falladasTotal: 0,
+        blancasTotal: 0,
+        netaTotal: 0,
+        sims: {},
+      }
+    }
+    const a = byAsig[asig]
+    a.totalPreguntas++
+    if (p.acertada) a.acertadasTotal++
+    else if (p.fallada) a.falladasTotal++
+    else a.blancasTotal++
+    a.netaTotal += (p.neta || 0)
+
+    if (!a.sims[p.simulacro]) a.sims[p.simulacro] = []
+    a.sims[p.simulacro].push(p)
+  })
+
+  const resultados = []
+
+  Object.values(byAsig).forEach(a => {
+    const simNums = Object.keys(a.sims).map(Number).sort((x, y) => x - y)
+    const avgPreguntas = simNums.length > 0 ? a.totalPreguntas / simNums.length : 0
+    if (avgPreguntas <= minAvgPreguntas) return
+
+    const simulacrosDetalle = simNums.map(num => {
+      const ps = a.sims[num]
+      const meta = simulacrosMeta.find(m => m.numero === num)
+      const cuenta_total = meta?.cuenta_total || 3000
+      const ac = ps.filter(p => p.acertada).length
+      const fa = ps.filter(p => p.fallada).length
+      const bl = ps.filter(p => !p.acertada && !p.fallada).length
+      const neta = ac - (fa / 3)
+      const total = ps.length
+      const myPct = total > 0 ? (ac / total) * 100 : 0
+
+      const pctsPoblacion = ps.map(p => {
+        if (p.pct_field_correct != null) return p.pct_field_correct * 100
+        if (p.pct_correcta) return (p.pct_correcta / cuenta_total) * 100
+        return 50
+      })
+
+      const popMean = pctsPoblacion.length > 0 
+        ? pctsPoblacion.reduce((s, v) => s + v, 0) / pctsPoblacion.length 
+        : 50
+      
+      const boxplotPreguntas = computeBoxplot(pctsPoblacion)
+      const diffVsMean = myPct - popMean
+
+      return {
+        simulacro: num,
+        total,
+        acertadas: ac,
+        falladas: fa,
+        blancas: bl,
+        neta: Math.round(neta * 100) / 100,
+        myPct: Math.round(myPct * 10) / 10,
+        popMean: Math.round(popMean * 10) / 10,
+        diffVsMean: Math.round(diffVsMean * 10) / 10,
+        boxplotPreguntas
+      }
+    })
+
+    const studentPctList = simulacrosDetalle.map(s => s.myPct)
+    const popMeanList = simulacrosDetalle.map(s => s.popMean)
+    const diffList = simulacrosDetalle.map(s => s.diffVsMean)
+
+    const boxplotStudent = computeBoxplot(studentPctList)
+    const boxplotDiff = computeBoxplot(diffList)
+
+    const miAciertoGlobal = a.totalPreguntas > 0 ? Math.round((a.acertadasTotal / a.totalPreguntas) * 1000) / 10 : 0
+    const mediaPoblacionGlobal = popMeanList.length > 0 
+      ? Math.round((popMeanList.reduce((s, v) => s + v, 0) / popMeanList.length) * 10) / 10 
+      : 50
+    const diffGlobal = Math.round((miAciertoGlobal - mediaPoblacionGlobal) * 10) / 10
+
+    resultados.push({
+      codigo: a.codigo,
+      nombre: a.nombre,
+      totalPreguntas: a.totalPreguntas,
+      avgPreguntas: Math.round(avgPreguntas * 10) / 10,
+      miAciertoGlobal,
+      mediaPoblacionGlobal,
+      diffGlobal,
+      acertadasTotal: a.acertadasTotal,
+      falladasTotal: a.falladasTotal,
+      blancasTotal: a.blancasTotal,
+      netaTotal: Math.round(a.netaTotal * 100) / 100,
+      boxplotStudent,
+      boxplotDiff,
+      simulacros: simulacrosDetalle
+    })
+  })
+
+  return resultados.sort((a, b) => b.totalPreguntas - a.totalPreguntas)
+}
+
+/**
+ * Devuelve los datos detallados de boxplot para una única asignatura seleccionada.
+ */
+export function getDetalleBigotesAsignatura(codigoAsignatura) {
+  const todos = getAnalisisBigotesPorAsignatura(0) // sin filtro para permitir cualquiera
+  return todos.find(a => a.codigo === codigoAsignatura || a.nombre === codigoAsignatura) || null
+}
+

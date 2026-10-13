@@ -20,7 +20,9 @@ import {
   getPuntosRegalados,
   getTrampasConceptuales,
   ASIGNATURA_NOMBRE,
-  attachTextoToPregunta
+  attachTextoToPregunta,
+  getAnalisisBigotesPorAsignatura,
+  getDetalleBigotesAsignatura
 } from '../lib/simulacros'
 
 
@@ -481,6 +483,131 @@ function SubjectAciertosLineChart({ data, width="100%", height=200 }) {
       ))}
     </svg>
   );
+}
+
+// ─── Componentes de Divergencia vs Cohorte (Opción A) ────────────────────────
+
+function DivergenceBarSVG({ diff, min = -35, max = 35, width = '100%', height = 24 }) {
+  if (diff == null) return null
+  const W = 280
+  const H = height
+  const midX = W / 2
+  const innerW = W - 36
+
+  // Clamped diff
+  const clamped = Math.max(min, Math.min(max, diff))
+  const isPos = clamped >= 0
+  const barLen = (Math.abs(clamped) / max) * (innerW / 2)
+  const barX = isPos ? midX : midX - barLen
+
+  return (
+    <div className="relative w-full" style={{ maxWidth: W }}>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto overflow-visible">
+        {/* Fondo pista */}
+        <line x1={18} y1={H / 2} x2={W - 18} y2={H / 2} stroke="#f1f5f9" strokeWidth="6" strokeLinecap="round" />
+        
+        {/* Eje central 0 (Media Cohorte) */}
+        <line x1={midX} y1={2} x2={midX} y2={H - 2} stroke="#94a3b8" strokeWidth="1.5" strokeDasharray="2 2" />
+
+        {/* Barra de divergencia */}
+        <rect
+          x={barX}
+          y={(H - 12) / 2}
+          width={Math.max(3, barLen)}
+          height={12}
+          rx={3}
+          fill={isPos ? '#10b981' : '#ef4444'}
+          className="transition-all duration-300 shadow-xs"
+        />
+
+        {/* Etiquetas de escala */}
+        <text x={18} y={H - 1} fontSize="8" fill="#94a3b8" textAnchor="start" fontWeight="bold">-35%</text>
+        <text x={midX} y={H - 1} fontSize="8.5" fill="#64748b" textAnchor="middle" fontWeight="bold">0 (Media)</text>
+        <text x={W - 18} y={H - 1} fontSize="8" fill="#94a3b8" textAnchor="end" fontWeight="bold">+35%</text>
+      </svg>
+    </div>
+  )
+}
+
+function DivergenceChartSVG({ simulacros, height = 180 }) {
+  if (!simulacros || simulacros.length === 0) return null
+
+  const W = 680
+  const H = height
+  const pad = { top: 25, bottom: 35, left: 60, right: 25 }
+  const innerW = W - pad.left - pad.right
+  const innerH = H - pad.top - pad.bottom
+
+  const maxAbsDiff = Math.max(25, ...simulacros.map(s => Math.abs(s.diffVsMean)))
+  const zeroY = pad.top + innerH / 2
+
+  const stepX = innerW / simulacros.length
+  const barW = Math.max(9, stepX * 0.6)
+
+  return (
+    <div className="w-full overflow-x-auto custom-scrollbar">
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto min-w-[580px] bg-white rounded-xl border border-slate-100 p-2 shadow-xs">
+        {/* Línea horizontal 0 (Media de la cohorte) */}
+        <line x1={pad.left} y1={zeroY} x2={W - pad.right} y2={zeroY} stroke="#475569" strokeWidth="1.5" strokeDasharray="3 3" />
+        <text x={pad.left - 8} y={zeroY + 3.5} fontSize="10" fill="#334155" fontWeight="900" textAnchor="end">0% (Media)</text>
+        
+        {/* Líneas guía +20% y -20% */}
+        {[-20, 20].map(v => {
+          const y = zeroY - (v / maxAbsDiff) * (innerH / 2)
+          return (
+            <g key={v}>
+              <line x1={pad.left} y1={y} x2={W - pad.right} y2={y} stroke="#f1f5f9" strokeWidth="1" strokeDasharray="2 2" />
+              <text x={pad.left - 8} y={y + 3} fontSize="9" fill="#94a3b8" fontWeight="bold" textAnchor="end">{v > 0 ? `+${v}%` : `${v}%`}</text>
+            </g>
+          )
+        })}
+
+        {/* Barras por simulacro */}
+        {simulacros.map((sim, i) => {
+          const x = pad.left + i * stepX + (stepX - barW) / 2
+          const diff = sim.diffVsMean
+          const barH = (Math.abs(diff) / maxAbsDiff) * (innerH / 2)
+          const y = diff >= 0 ? zeroY - barH : zeroY
+          const isPos = diff >= 0
+
+          return (
+            <g key={sim.simulacro} className="transition-all hover:opacity-80">
+              <rect
+                x={x}
+                y={y}
+                width={barW}
+                height={Math.max(3, barH)}
+                rx={2.5}
+                fill={isPos ? '#10b981' : '#ef4444'}
+              />
+              {/* Valor encima/debajo de la barra */}
+              <text
+                x={x + barW / 2}
+                y={isPos ? y - 4 : y + barH + 11}
+                fontSize="9"
+                fontWeight="800"
+                fill={isPos ? '#059669' : '#dc2626'}
+                textAnchor="middle"
+              >
+                {diff > 0 ? `+${diff}%` : `${diff}%`}
+              </text>
+              {/* Etiqueta Simulacro */}
+              <text
+                x={x + barW / 2}
+                y={H - 10}
+                fontSize="9.5"
+                fontWeight="800"
+                fill="#475569"
+                textAnchor="middle"
+              >
+                S{sim.simulacro}
+              </text>
+            </g>
+          )
+        })}
+      </svg>
+    </div>
+  )
 }
 
 // ─── Gráfico: Aciertos vs Población ──────────────────────────────────────────
@@ -1010,6 +1137,187 @@ function VistaPostMortemFullScreen({ num, onBack }) {
   )
 }
 
+// ─── Divergencia vs la Cohorte en Cada Simulacro (Opción A) ─────────────────
+
+function DivergenciaSimulacrosGrid({ asignaturaCodigo, asignaturaNombre }) {
+  const detalle = useMemo(() => getDetalleBigotesAsignatura(asignaturaCodigo), [asignaturaCodigo])
+  const [filtroSim, setFiltroSim] = useState('todos')
+
+  if (!detalle || !detalle.simulacros || detalle.simulacros.length === 0) {
+    return null
+  }
+
+  const simulacrosFiltrados = detalle.simulacros.filter(s => {
+    if (filtroSim === 'recientes') return s.simulacro >= 12
+    if (filtroSim === 'superadas') return s.diffVsMean >= 0
+    if (filtroSim === 'alertas') return s.diffVsMean < 0
+    return true
+  })
+
+  return (
+    <div className="glass-card p-6 mb-8">
+      {/* Encabezado y Filtros */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-100">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="text-xl">📊</span>
+            <h3 className="text-base font-black text-slate-900 m-0">
+              Divergencia vs la Cohorte de {asignaturaNombre} (S1 al S17)
+            </h3>
+          </div>
+          <p className="text-xs font-medium text-slate-500 mt-1">
+            Comparativa real y exacta frente a la media de miles de opositores. La línea 0% representa el promedio de la academia.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Posición global */}
+          <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-xl border border-slate-200 text-xs">
+            <div>
+              <span className="text-slate-400 font-bold block text-[10px] uppercase">Tu Global</span>
+              <span className="text-sm font-black text-slate-800">{detalle.miAciertoGlobal}%</span>
+            </div>
+            <div className="h-6 w-px bg-slate-200" />
+            <div>
+              <span className="text-slate-400 font-bold block text-[10px] uppercase">Media Cohorte</span>
+              <span className="text-sm font-bold text-slate-500">{detalle.mediaPoblacionGlobal}%</span>
+            </div>
+            <div className="h-6 w-px bg-slate-200" />
+            <div>
+              <span className="text-slate-400 font-bold block text-[10px] uppercase">Diferencia</span>
+              <span className={`text-sm font-black ${detalle.diffGlobal >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                {detalle.diffGlobal > 0 ? '+' : ''}{detalle.diffGlobal}%
+              </span>
+            </div>
+          </div>
+
+          {/* Filtros */}
+          <div className="flex bg-slate-100 p-0.5 rounded-lg text-xs font-bold">
+            <button
+              onClick={() => setFiltroSim('todos')}
+              className={`px-2.5 py-1 rounded-md transition-all ${
+                filtroSim === 'todos' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-900'
+              }`}
+            >
+              Todos ({detalle.simulacros.length})
+            </button>
+            <button
+              onClick={() => setFiltroSim('recientes')}
+              className={`px-2.5 py-1 rounded-md transition-all ${
+                filtroSim === 'recientes' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-900'
+              }`}
+            >
+              Fase 2 (S12-S17)
+            </button>
+            <button
+              onClick={() => setFiltroSim('superadas')}
+              className={`px-2.5 py-1 rounded-md transition-all ${
+                filtroSim === 'superadas' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-500 hover:text-slate-900'
+              }`}
+            >
+              Superaste
+            </button>
+            <button
+              onClick={() => setFiltroSim('alertas')}
+              className={`px-2.5 py-1 rounded-md transition-all ${
+                filtroSim === 'alertas' ? 'bg-white text-red-600 shadow-xs' : 'text-slate-500 hover:text-slate-900'
+              }`}
+            >
+              Bajo la media
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Gráfico Visual de Barras Divergentes */}
+      <div className="mb-6">
+        <DivergenceChartSVG simulacros={detalle.simulacros} height={190} />
+      </div>
+
+      {/* Grid de tarjetas de simulacros */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {simulacrosFiltrados.map((sim) => {
+          const isAbove = sim.diffVsMean >= 0
+          const diffSign = sim.diffVsMean > 0 ? '+' : ''
+
+          return (
+            <div
+              key={sim.simulacro}
+              className="p-4 rounded-xl border bg-white shadow-xs hover:shadow-md transition-all flex flex-col justify-between"
+              style={{
+                borderColor: isAbove ? '#10b98135' : '#ef444435',
+                borderTop: `4px solid ${isAbove ? '#10b981' : '#ef4444'}`
+              }}
+            >
+              <div>
+                {/* Header de la tarjeta */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black text-slate-900">
+                      Simulacro S{sim.simulacro}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-semibold">
+                      ({sim.total} pregs)
+                    </span>
+                  </div>
+                  <span
+                    className={`text-[10.5px] font-black px-2.5 py-0.5 rounded-full ${
+                      isAbove ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'
+                    }`}
+                  >
+                    {diffSign}{sim.diffVsMean}% vs cohorte
+                  </span>
+                </div>
+
+                {/* Comparativa Visual Directa: Tú vs Cohorte */}
+                <div className="space-y-2 py-2.5 px-3 bg-slate-50/80 rounded-lg mb-3 border border-slate-100">
+                  {/* Barra Tú */}
+                  <div>
+                    <div className="flex justify-between text-[10px] font-bold mb-1">
+                      <span className="text-slate-700 uppercase">Tú ({sim.acertadas}/{sim.total})</span>
+                      <span className="font-black text-slate-900">{sim.myPct}%</span>
+                    </div>
+                    <div className="w-full bg-slate-200/80 h-2 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{
+                          width: `${Math.min(100, sim.myPct)}%`,
+                          backgroundColor: isAbove ? '#10b981' : '#ef4444'
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Barra Cohorte */}
+                  <div>
+                    <div className="flex justify-between text-[10px] font-bold mb-1">
+                      <span className="text-slate-500 uppercase">Media Cohorte</span>
+                      <span className="text-slate-600 font-bold">{sim.popMean}%</span>
+                    </div>
+                    <div className="w-full bg-slate-200/80 h-2 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-slate-500 rounded-full transition-all duration-500"
+                        style={{ width: `${Math.min(100, sim.popMean)}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer con desglose */}
+              <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] font-semibold text-slate-400">
+                <span>{sim.falladas} fallos • {sim.blancas} blancas • Netas: {sim.neta}</span>
+                <span className={isAbove ? 'text-emerald-600 font-bold' : 'text-red-500 font-bold'}>
+                  {isAbove ? 'Superaste al grupo' : 'Bajo la cohorte'}
+                </span>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
 
 function VistaDetalleAsignaturaFullScreen({ data, onBack }) {
   const preguntasRevisar = useMemo(() => getPreguntasARevisarAsignatura(data.codigo), [data.codigo])
@@ -1071,6 +1379,9 @@ function VistaDetalleAsignaturaFullScreen({ data, onBack }) {
           )}
         </div>
       </div>
+
+      {/* DIVERGENCIA VS LA COHORTE EN CADA SIMULACRO */}
+      <DivergenciaSimulacrosGrid asignaturaCodigo={data.codigo} asignaturaNombre={data.nombre} />
 
       {/* Preguntas a Revisar */}
       <div>
@@ -1358,27 +1669,159 @@ function AsignaturaRow({ data, onClick }) {
   )
 }
 
+function AsignaturaDivergenciaRow({ data, onClick }) {
+  const [hoveredSim, setHoveredSim] = useState(null)
+  const col = getEspecialidadColor(data.nombre)
+  const isAbove = data.diffGlobal >= 0
+  const diffSign = data.diffGlobal > 0 ? '+' : ''
+
+  return (
+    <div
+      onClick={onClick}
+      className="p-3.5 border-b border-slate-100 bg-white cursor-pointer transition-all hover:bg-slate-50/90 group"
+      style={{ borderLeft: `4px solid ${isAbove ? '#10b981' : '#ef4444'}` }}
+    >
+      {/* Header: Nombre + Métricas */}
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <span
+            className="text-[11px] font-black px-2.5 py-0.5 rounded-full truncate"
+            style={{ color: col.text, background: col.bg, border: `1px solid ${col.border || col.bg}` }}
+          >
+            {data.nombre}
+          </span>
+          <span className="text-[10px] text-slate-400 font-semibold">
+            {data.totalPreguntas} pregs (~{data.avgPreguntas}/sim)
+          </span>
+        </div>
+
+        {/* Badge Diferencia vs Media de la cohorte */}
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-bold text-slate-500">
+            {data.miAciertoGlobal}% vs {data.mediaPoblacionGlobal}%
+          </span>
+          <span
+            className={`text-[11px] font-black px-2 py-0.5 rounded-full ${
+              isAbove ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'
+            }`}
+          >
+            {diffSign}{data.diffGlobal}%
+          </span>
+        </div>
+      </div>
+
+      {/* Barra de divergencia horizontal (0 = Media Cohorte) */}
+      <div className="my-1.5">
+        <DivergenceBarSVG diff={data.diffGlobal} height={24} />
+      </div>
+
+      {/* Tira de simulacros cronológicos (lo que ha pasado en cada examen) */}
+      <div className="mt-2.5">
+        <div className="flex items-center justify-between text-[9.5px] text-slate-400 font-bold mb-1">
+          <span>SIMULACROS (S1 - S17):</span>
+          {hoveredSim ? (
+            <span className="text-slate-800 font-black truncate max-w-[200px]">
+              S{hoveredSim.simulacro}: {hoveredSim.acertadas}/{hoveredSim.total} ({hoveredSim.myPct}%) • {hoveredSim.diffVsMean > 0 ? '+' : ''}{hoveredSim.diffVsMean}% vs cohorte
+            </span>
+          ) : (
+            <span className="text-slate-400 font-normal">Pasa el ratón para ver detalle</span>
+          )}
+        </div>
+
+        <div className="flex flex-wrap gap-1 items-center">
+          {data.simulacros.map((sim) => {
+            const diff = sim.diffVsMean
+            let bgPill = 'bg-slate-100 text-slate-600 border-slate-200'
+            if (diff >= 5) bgPill = 'bg-emerald-500 text-white border-emerald-600'
+            else if (diff <= -5) bgPill = 'bg-red-500 text-white border-red-600'
+            else bgPill = 'bg-amber-400 text-slate-900 border-amber-500'
+
+            return (
+              <div
+                key={sim.simulacro}
+                onMouseEnter={() => setHoveredSim(sim)}
+                onMouseLeave={() => setHoveredSim(null)}
+                className={`w-5 h-5 rounded flex items-center justify-center text-[9px] font-black border transition-transform hover:scale-125 hover:z-10 shadow-2xs cursor-pointer ${bgPill}`}
+                title={`S${sim.simulacro}: ${sim.acertadas}/${sim.total} (${sim.myPct}% vs ${sim.popMean}% cohorte, ${sim.diffVsMean > 0 ? '+' : ''}${sim.diffVsMean}%)`}
+              >
+                {sim.simulacro}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function TablaAnalisisIntegral({ onSelectAsignatura }) {
+  const [tabModo, setTabModo] = useState('divergencia')
   const analisis = useMemo(() => getAnalisisGlobalPorAsignatura(), [])
+  const analisisDivergencia = useMemo(() => getAnalisisBigotesPorAsignatura(3), [])
   const datosFiltrados = analisis.filter(a => a.global.total > 10)
+
+  const handleSelectFromDivergencia = (item) => {
+    const full = analisis.find(a => a.codigo === item.codigo || a.nombre === item.nombre) || item
+    onSelectAsignatura(full)
+  }
 
   return (
     <div className="glass-card overflow-hidden h-full flex flex-col shadow-md">
-      <div className="p-5 bg-slate-50/80 border-b border-slate-200">
-        <h3 className="m-0 text-base font-black text-slate-900 tracking-tight">Matriz de Prioridades</h3>
-        <div className="text-xs font-bold text-slate-500 mt-1">
-          Clic en una asignatura para profundizar
+      <div className="p-4 bg-slate-50/80 border-b border-slate-200">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="m-0 text-base font-black text-slate-900 tracking-tight">Análisis por Asignatura</h3>
+          <span className="text-[10px] font-bold bg-slate-200/80 text-slate-700 px-2 py-0.5 rounded-full">
+            {tabModo === 'divergencia' ? `${analisisDivergencia.length} Asigs (>3 preg)` : `${datosFiltrados.length} Asigs`}
+          </span>
+        </div>
+
+        {/* Selector de modo */}
+        <div className="grid grid-cols-2 gap-1 bg-slate-200/60 p-1 rounded-xl text-xs font-bold">
+          <button
+            onClick={() => setTabModo('divergencia')}
+            className={`py-1.5 px-2 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+              tabModo === 'divergencia' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <span>📊</span>
+            <span>Tú vs Cohorte</span>
+          </button>
+          <button
+            onClick={() => setTabModo('prioridades')}
+            className={`py-1.5 px-2 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+              tabModo === 'prioridades' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <span>🔥</span>
+            <span>Prioridades</span>
+          </button>
+        </div>
+        
+        <div className="text-[11px] font-medium text-slate-500 mt-2">
+          {tabModo === 'divergencia'
+            ? 'Diferencial exacto (±%) de tu acierto frente a la media real de la academia en cada examen.'
+            : 'Ordenado por impacto de rentabilidad MIR y fallos recientes.'}
         </div>
       </div>
       
       <div className="flex flex-col flex-1 overflow-y-auto custom-scrollbar">
-        {datosFiltrados.map((item) => (
-          <AsignaturaRow 
-            key={item.codigo} 
-            data={item} 
-            onClick={() => onSelectAsignatura(item)}
-          />
-        ))}
+        {tabModo === 'divergencia' ? (
+          analisisDivergencia.map((item) => (
+            <AsignaturaDivergenciaRow
+              key={item.codigo}
+              data={item}
+              onClick={() => handleSelectFromDivergencia(item)}
+            />
+          ))
+        ) : (
+          datosFiltrados.map((item) => (
+            <AsignaturaRow 
+              key={item.codigo} 
+              data={item} 
+              onClick={() => onSelectAsignatura(item)}
+            />
+          ))
+        )}
       </div>
     </div>
   )
