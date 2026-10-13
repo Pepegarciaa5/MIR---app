@@ -6,7 +6,8 @@ import desglosesData from '../../data/desgloses_filtrables.json';
 import { usePreguntasStats } from '../../hooks/usePreguntasStats';
 import { useTracker } from '../../context/TrackerContext';
 import NotaPersonal from './NotaPersonal';
-import { getOrCreateAnonUserId, createQuizResult } from '../../utils/quizSync';
+import SyncStatusBanner from './SyncStatusBanner';
+import { getOrCreateAnonUserId, createQuizResult, flushOfflineSyncQueue } from '../../utils/quizSync';
 
 const AdaptiveQuizEngine = ({ subject = 'Oftalmología', modoExamen = false, setTab, questionCount = null }) => {
   const [preguntasCola, setPreguntasCola] = useState([]);
@@ -14,6 +15,7 @@ const AdaptiveQuizEngine = ({ subject = 'Oftalmología', modoExamen = false, set
   const [answers, setAnswers] = useState([]);
   const [quizFinished, setQuizFinished] = useState(false);
   const [currentFeedback, setCurrentFeedback] = useState(null);
+  const [syncState, setSyncState] = useState(null);
 
   const { registrarRespuesta, stats, getStatsPregunta, guardarNota, archivarPregunta } = usePreguntasStats();
 
@@ -154,6 +156,36 @@ const AdaptiveQuizEngine = ({ subject = 'Oftalmología', modoExamen = false, set
     }
   };
 
+  const runSync = React.useCallback(async () => {
+    setSyncState({ status: 'syncing' });
+    const res = await flushOfflineSyncQueue();
+    if (res.success) {
+      setSyncState({
+        status: 'synced',
+        syncedCount: res.syncedStats || answers.length,
+        lastSyncTime: res.lastSyncTime
+      });
+    } else if (!res.isOnline) {
+      setSyncState({
+        status: 'offline',
+        pendingCount: res.pendingStats || answers.length
+      });
+    } else {
+      setSyncState({
+        status: 'error',
+        errorMsg: res.error,
+        pendingCount: res.pendingStats || answers.length
+      });
+    }
+  }, [answers.length]);
+
+  useEffect(() => {
+    if (!quizFinished) return;
+    runSync();
+    const handleOnline = () => runSync();
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, [quizFinished, runSync]);
 
   if (quizFinished) {
     const correctCount = answers.filter(a => a.isCorrect).length;
@@ -184,6 +216,9 @@ const AdaptiveQuizEngine = ({ subject = 'Oftalmología', modoExamen = false, set
         </h2>
         <div className="text-6xl font-black text-cyan-500 mb-2">{correctCount} / {preguntasCola.length}</div>
         <p className="text-slate-500 text-sm mb-6">{Math.round(correctCount / preguntasCola.length * 100)}% de acierto</p>
+
+        {/* Banner de Sincronización con Supabase (Offline / Online) */}
+        <SyncStatusBanner syncState={syncState} onRetry={runSync} className="mb-6" />
 
         {desglosePorAsig && (
           <div className="bg-slate-50 rounded-xl p-4 mb-6 text-left space-y-2">

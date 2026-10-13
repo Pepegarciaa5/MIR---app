@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getOrCreateAnonUserId, upsertQuestionStat } from '../utils/quizSync';
+import { getOrCreateAnonUserId, upsertQuestionStat, flushOfflineSyncQueue, getOfflineQueueStats, enqueueQuestionStat } from '../utils/quizSync';
 import { supabase } from '../lib/supabase';
 
 import rawSimulacrosData from '../data/simulacrosCTO.json';
@@ -232,7 +232,7 @@ export function usePreguntasStats() {
           noteWithTag = `[CORREGIDA] ${noteWithTag}`.trim();
         }
 
-        const success = await upsertQuestionStat(userId, preguntaId, {
+        enqueueQuestionStat(userId, preguntaId, {
           subject: s.subject || 'General',
           status: status,
           confidence_history: confHist,
@@ -241,10 +241,12 @@ export function usePreguntasStats() {
           latencia_hasta: s.latenciaHasta || null,
           puntuacion_prioridad: s.puntuacionPrioridad || 7
         });
-        if (success) count++;
+        count++;
       }
     }
-    return count;
+
+    const syncRes = await flushOfflineSyncQueue();
+    return syncRes.success ? count : 0;
   }, []);
 
   const exportarJSON = useCallback(() => {
@@ -494,6 +496,8 @@ export function usePreguntasStats() {
     subirProgresoLocalANube,
     exportarJSON,
     importarJSON,
+    flushOfflineSyncQueue,
+    getOfflineQueueStats,
     isEnLatencia: (id) => isEnLatencia(id, stats)
   };
 }

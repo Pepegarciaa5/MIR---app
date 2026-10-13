@@ -8,6 +8,8 @@ import { usePreguntasStats } from '../hooks/usePreguntasStats';
 import { generarColaPreguntas } from '../lib/recommendations';
 import QuestionCard from '../components/quiz/QuestionCard';
 import NotaPersonal from '../components/quiz/NotaPersonal';
+import SyncStatusBanner from '../components/quiz/SyncStatusBanner';
+import { getOrCreateAnonUserId, createQuizResult, flushOfflineSyncQueue } from '../utils/quizSync';
 
 const STATS_MAP = new Map(getPreguntas().map(p => [p.pregunta_id, p]));
 
@@ -55,6 +57,7 @@ const numToLetter = (num) => ['A', 'B', 'C', 'D', 'E'][num - 1] || num;
 
 export default function BancoPreguntas({ initialFiltros = null, onFiltrosConsumed = null }) {
   const [quizFinished, setQuizFinished] = useState(false);
+  const [syncState, setSyncState] = useState(null);
   const { stats, registrarRespuesta, getStatsPregunta, guardarNota, archivarPregunta, isArchivada } = usePreguntasStats();
 
   const asignaturasDisponibles = useMemo(() => {
@@ -279,6 +282,55 @@ export default function BancoPreguntas({ initialFiltros = null, onFiltrosConsume
     setQuizFinished(true);
   };
 
+  const runSync = React.useCallback(async () => {
+    setSyncState({ status: 'syncing' });
+
+    const contestadas = cola.filter(q => respuestasDesglose[q.id] && !respuestasDesglose[q.id].skipped);
+    if (contestadas.length > 0) {
+      const userId = getOrCreateAnonUserId();
+      const correctCount = contestadas.filter(q => respuestasDesglose[q.id]?.isCorrect).length;
+      createQuizResult(userId, {
+        subject: filtros.asignaturas?.length > 0 ? filtros.asignaturas.join(', ') : 'Banco de Preguntas',
+        question_count: contestadas.length,
+        answers: contestadas.map(q => ({
+          question_id: q.id,
+          selected: respuestasDesglose[q.id]?.selectedLetter,
+          is_correct: !!respuestasDesglose[q.id]?.isCorrect
+        })),
+        total_score: correctCount,
+        duration_seconds: 0
+      });
+    }
+
+    const res = await flushOfflineSyncQueue();
+    if (res.success) {
+      setSyncState({
+        status: 'synced',
+        syncedCount: res.syncedStats || contestadas.length,
+        lastSyncTime: res.lastSyncTime
+      });
+    } else if (!res.isOnline) {
+      setSyncState({
+        status: 'offline',
+        pendingCount: res.pendingStats || contestadas.length
+      });
+    } else {
+      setSyncState({
+        status: 'error',
+        errorMsg: res.error,
+        pendingCount: res.pendingStats || contestadas.length
+      });
+    }
+  }, [cola, respuestasDesglose, filtros.asignaturas]);
+
+  useEffect(() => {
+    if (!quizFinished) return;
+    runSync();
+    const handleOnline = () => runSync();
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, [quizFinished, runSync]);
+
   if (quizFinished) {
     const contestadas = cola.filter(q => respuestasDesglose[q.id] && !respuestasDesglose[q.id].skipped);
     const correctCount = contestadas.filter(q => respuestasDesglose[q.id]?.isCorrect).length;
@@ -319,6 +371,9 @@ export default function BancoPreguntas({ initialFiltros = null, onFiltrosConsume
               </div>
             </div>
           </div>
+
+          {/* Banner de Sincronización con Supabase (Offline / Online) */}
+          <SyncStatusBanner syncState={syncState} onRetry={runSync} className="mb-6 max-w-xl mx-auto" />
 
           <button 
             onClick={() => {
