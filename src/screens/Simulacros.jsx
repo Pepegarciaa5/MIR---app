@@ -29,7 +29,7 @@ import {
 
 import { getEspecialidadColor } from '../data/especialidadesMIR'
 
-import { simulacrosMeta, simulacrosOrdenCronologico } from '../data/simulacrosMeta'
+import { simulacrosMeta, simulacrosOrdenCronologico, simulacrosProgresion } from '../data/simulacrosMeta'
 import { usePreguntasStats } from '../hooks/usePreguntasStats'
 import NotaPersonal from '../components/quiz/NotaPersonal'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine, ComposedChart, Bar, Line, Legend, Cell } from 'recharts'
@@ -1414,7 +1414,7 @@ function VistaDetalleAsignaturaFullScreen({ data, onBack }) {
 // ─── Componentes del Dashboard ───────────────────────────────────────────────
 
 function EvolucionStrip({ statsSim, richSims, numActual, onSelect, selectedNum }) {
-  const items = simulacrosOrdenCronologico.map(num => {
+  const items = simulacrosProgresion.map(num => {
     const stats = statsSim.find(s => s.simulacro === num) || {}
     const meta  = simulacrosMeta.find(m => m.numero === num) || {}
     const rich  = richSims?.find(r => r.numero === num) || null
@@ -1721,7 +1721,7 @@ function AsignaturaDivergenciaRow({ data, onClick }) {
       {/* Tira de simulacros cronológicos (lo que ha pasado en cada examen) */}
       <div className="mt-2.5">
         <div className="flex items-center justify-between text-[9.5px] text-slate-400 font-bold mb-1">
-          <span>SIMULACROS (S1 - S17):</span>
+          <span>SIMULACROS (FASE INTENSIVA):</span>
           {hoveredSim ? (
             <span className="text-slate-800 font-black truncate max-w-[200px]">
               S{hoveredSim.simulacro}: {hoveredSim.acertadas}/{hoveredSim.total} ({hoveredSim.myPct}%) • {hoveredSim.diffVsMean > 0 ? '+' : ''}{hoveredSim.diffVsMean}% vs cohorte

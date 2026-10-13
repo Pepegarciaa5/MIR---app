@@ -104,6 +104,11 @@ if (simulacrosMeta.length === 0) {
 // Chronological order for historical: 1, 2, 3, 4, 6, 5, 7
 const chronologicalHistorical = [1, 2, 3, 4, 6, 5, 7]
 
+// Simulacros pertenecientes a la fase de estudio intensiva (progresión activa).
+// Los simulacros del 1 al 8 quedan fuera de la progresión y análisis por asignatura,
+// pero sus preguntas siguen existiendo en el banco de preguntas y autopsias individuales.
+export const SIMULACRO_MIN_PROGRESION = 9
+
 export const simulacrosOrdenCronologico = [...simulacrosMeta]
   .sort((a, b) => {
     const idxA = chronologicalHistorical.indexOf(a.numero)
@@ -117,6 +122,10 @@ export const simulacrosOrdenCronologico = [...simulacrosMeta]
     return a.numero - b.numero
   })
   .map(s => s.numero)
+
+// Simulacros activos en progresión (S9 en adelante)
+export const simulacrosProgresion = simulacrosOrdenCronologico.filter(num => num >= SIMULACRO_MIN_PROGRESION)
+export const simulacrosMetaProgresion = simulacrosMeta.filter(s => s.numero >= SIMULACRO_MIN_PROGRESION)
 
 export function getMetaSimulacro(numero) {
   return simulacrosMeta.find(s => s.numero === numero) || null

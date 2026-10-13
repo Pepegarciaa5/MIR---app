@@ -19,7 +19,7 @@
  */
 
 import rawData from '../data/simulacrosCTO.json'
-import { simulacrosMeta, simulacrosOrdenCronologico } from '../data/simulacrosMeta'
+import { simulacrosMeta, simulacrosOrdenCronologico, SIMULACRO_MIN_PROGRESION, simulacrosProgresion } from '../data/simulacrosMeta'
 import textosSimulacros from '../data/simulacros_textos.json'
 
 // Construir un mapa rápido de textos: "simulacro-numero" -> datos de texto
@@ -111,11 +111,11 @@ export function getPreguntasByAsignatura(codigo) {
 // ─── Estadísticas globales ───────────────────────────────────────────────────
 
 /**
- * Devuelve stats globales sobre todos los simulacros.
- * Excluye preguntas con ignorar=true.
+ * Devuelve stats globales sobre los simulacros activos en la fase intensiva (S9 en adelante).
+ * Excluye preguntas con ignorar=true y simulacros anteriores a la fase intensiva.
  */
 export function getStatsGlobales() {
-  const validas = preguntas.filter(p => !p.ignorar)
+  const validas = preguntas.filter(p => !p.ignorar && p.simulacro >= SIMULACRO_MIN_PROGRESION)
   return calcStats(validas)
 }
 
@@ -274,9 +274,10 @@ export function getFallosGraves(limit = 15) {
 
 /**
  * Devuelve la evolución del rendimiento cruzado con la dificultad media del examen.
+ * Incluye solo los simulacros activos en la fase intensiva (S9 en adelante).
  */
 export function getAnalisisDificultad() {
-  return simulacrosOrdenCronologico.map(num => {
+  return simulacrosProgresion.map(num => {
     const ps = preguntas.filter(p => p.simulacro === num && !p.ignorar)
     const validasDif = ps.filter(p => p.dificultad > 0)
     const difMedia = validasDif.reduce((s, p) => s + p.dificultad, 0) / (validasDif.length || 1)
@@ -343,11 +344,11 @@ export const GRUPOS_ASIGNATURAS = {
  * Ideal para construir UIs complejas y gráficos sin reprocesar el raw data múltiples veces.
  */
 export function getAnalisisGlobalPorAsignatura() {
-  const recentSims = simulacrosOrdenCronologico.slice(-4)
+  const recentSims = simulacrosProgresion.slice(-4)
   const map = {}
 
   preguntas.forEach(p => {
-    if (p.ignorar) return
+    if (p.ignorar || p.simulacro < SIMULACRO_MIN_PROGRESION) return
 
     let asig = p.asignatura
     let isGroup = false;
@@ -650,7 +651,7 @@ export function getAnalisisPorTema(codigoAsigFiltro = null) {
   const map = {}
 
   preguntas.forEach(p => {
-    if (p.ignorar) return
+    if (p.ignorar || p.simulacro < SIMULACRO_MIN_PROGRESION) return
     if (codigoAsigFiltro && p.asignatura !== codigoAsigFiltro) return
 
     const tema = (p.clasificaciones && p.clasificaciones.length > 0)
@@ -856,7 +857,7 @@ export function getAnalisisBigotesPorAsignatura(minAvgPreguntas = 3) {
   const byAsig = {}
 
   preguntas.forEach(p => {
-    if (p.ignorar) return
+    if (p.ignorar || p.simulacro < SIMULACRO_MIN_PROGRESION) return
     const asig = p.asignatura
     if (!byAsig[asig]) {
       byAsig[asig] = {
