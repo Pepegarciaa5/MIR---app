@@ -195,7 +195,8 @@ function DualSVGLineChart({ data }) {
   const maxDif = 4.5
 
   const pointsNeta = data.map((d, i) => {
-    const t = d.fechaTimestamp || (d.fechaFull ? new Date(d.fechaFull).getTime() : 0)
+    const rawT = d.fechaTimestamp || (d.fechaFull ? new Date(d.fechaFull).getTime() : 0)
+    const t = Number.isFinite(rawT) && rawT > 0 ? rawT : null
     const ratio = (t && timeSpan > 0) ? (t - minTime) / timeSpan : (i / Math.max(1, data.length - 1))
     const x = padding.left + ratio * innerW
     const y = padding.top + innerH - ((d.neta - minNeta) / (maxNeta - minNeta)) * innerH
@@ -205,7 +206,8 @@ function DualSVGLineChart({ data }) {
 
   const pointsAjustada = data.map((d, i) => {
     if (d.netaAjustada == null) return null
-    const t = d.fechaTimestamp || (d.fechaFull ? new Date(d.fechaFull).getTime() : 0)
+    const rawT = d.fechaTimestamp || (d.fechaFull ? new Date(d.fechaFull).getTime() : 0)
+    const t = Number.isFinite(rawT) && rawT > 0 ? rawT : null
     const ratio = (t && timeSpan > 0) ? (t - minTime) / timeSpan : (i / Math.max(1, data.length - 1))
     const x = padding.left + ratio * innerW
     const y = padding.top + innerH - ((d.netaAjustada - minNeta) / (maxNeta - minNeta)) * innerH
@@ -214,7 +216,8 @@ function DualSVGLineChart({ data }) {
   const pathAjustada = pointsAjustada.length > 0 ? `M ${pointsAjustada.map(p => `${p.x},${p.y}`).join(' L ')}` : ''
 
   const pointsDif = data.map((d, i) => {
-    const t = d.fechaTimestamp || (d.fechaFull ? new Date(d.fechaFull).getTime() : 0)
+    const rawT = d.fechaTimestamp || (d.fechaFull ? new Date(d.fechaFull).getTime() : 0)
+    const t = Number.isFinite(rawT) && rawT > 0 ? rawT : null
     const ratio = (t && timeSpan > 0) ? (t - minTime) / timeSpan : (i / Math.max(1, data.length - 1))
     const x = padding.left + ratio * innerW
     const y = padding.top + innerH - ((d.dificultadMedia - minDif) / (maxDif - minDif)) * innerH
@@ -1755,10 +1758,10 @@ function AsignaturaDivergenciaRow({ data, onClick }) {
 }
 
 function TablaAnalisisIntegral({ onSelectAsignatura }) {
-  const [tabModo, setTabModo] = useState('divergencia')
+  const [tabModo, setTabModo] = useState('prioridades')
   const analisis = useMemo(() => getAnalisisGlobalPorAsignatura(), [])
   const analisisDivergencia = useMemo(() => getAnalisisBigotesPorAsignatura(3), [])
-  const datosFiltrados = analisis.filter(a => a.global.total > 10)
+  const datosFiltrados = useMemo(() => analisis.filter(a => a.global.total > 10), [analisis])
 
   const handleSelectFromDivergencia = (item) => {
     const full = analisis.find(a => a.codigo === item.codigo || a.nombre === item.nombre) || item
