@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { usePreguntasStats } from '../hooks/usePreguntasStats';
+import { getOrCreateAnonUserId, createQuizResult, enqueueQuestionStat, flushOfflineSyncQueue } from '../utils/quizSync';
 import desglosesData from '../data/desgloses_filtrables.json';
 import QuestionCard from '../components/quiz/QuestionCard';
 import NotaPersonal from '../components/quiz/NotaPersonal';
+import SyncStatusBanner from '../components/quiz/SyncStatusBanner';
 
 const getSessionData = (key, defaultVal) => {
   try {
@@ -15,7 +17,20 @@ const getSessionData = (key, defaultVal) => {
 
 export default function Desgloses() {
   const [quizFinished, setQuizFinished] = useState(false);
-  const { registrarRespuesta, getStatsPregunta, guardarNota, archivarPregunta, isArchivada } = usePreguntasStats();
+  const [syncState, setSyncState] = useState(null);
+  const [isOffline, setIsOffline] = useState(() => typeof navigator !== 'undefined' ? !navigator.onLine : false);
+  const { stats, isSyncing, registrarRespuesta, getStatsPregunta, guardarNota, archivarPregunta, isArchivada } = usePreguntasStats();
+
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   // Extract distinct subjects and topics
   const asignaturas = useMemo(() => {
@@ -69,31 +84,45 @@ export default function Desgloses() {
   // Determine if current question was already answered in this session
   const currentAnswer = currentQuestionData ? respuestasDesglose[currentQuestionData.id] : null;
 
-  const handleFiltrar = () => {
+  // Comprobar de forma exhaustiva si una pregunta ya fue contestada o archivada
+  const isPreguntaHecha = useCallback((qId) => {
+    const pStats = getStatsPregunta(qId);
+    if (!pStats) return false;
+    return (
+      (pStats.vecesVistas > 0) ||
+      (pStats.aciertos > 0) ||
+      (pStats.fallos > 0) ||
+      pStats.status === 'mastered' ||
+      pStats.status === 'needs_review' ||
+      pStats.status === 'corrected' ||
+      pStats.status === 'archived' ||
+      !!pStats.archivada ||
+      !!pStats.ultimaFecha
+    );
+  }, [getStatsPregunta]);
+
+  const aplicarFiltrosCon = useCallback((filtrosActuales) => {
     let filtradas = desglosesData;
     
     // Excluir preguntas archivadas
     filtradas = filtradas.filter(q => !isArchivada(q.id));
     
-    if (filtros.asignatura) {
-      filtradas = filtradas.filter(q => q.asignatura === filtros.asignatura);
+    if (filtrosActuales.asignatura) {
+      filtradas = filtradas.filter(q => q.asignatura === filtrosActuales.asignatura);
     }
-    if (filtros.temas && filtros.temas.length > 0) {
-      filtradas = filtradas.filter(q => filtros.temas.includes(q.tema));
+    if (filtrosActuales.temas && filtrosActuales.temas.length > 0) {
+      filtradas = filtradas.filter(q => filtrosActuales.temas.includes(q.tema));
     }
-    if (filtros.dificultad.length > 0) {
-      filtradas = filtradas.filter(q => filtros.dificultad.includes(q.dificultad));
+    if (filtrosActuales.dificultad.length > 0) {
+      filtradas = filtradas.filter(q => filtrosActuales.dificultad.includes(q.dificultad));
     }
-    if (filtros.minYear) {
-      filtradas = filtradas.filter(q => q.anualidad >= filtros.minYear);
+    if (filtrosActuales.minYear) {
+      filtradas = filtradas.filter(q => q.anualidad >= filtrosActuales.minYear);
     }
-    if (filtros.soloNoHechas) {
-      filtradas = filtradas.filter(q => {
-        const pStats = getStatsPregunta(q.id) || {};
-        return !pStats.vecesVistas || pStats.vecesVistas === 0;
-      });
+    if (filtrosActuales.soloNoHechas) {
+      filtradas = filtradas.filter(q => !isPreguntaHecha(q.id));
     }
-    if (filtros.soloFalladas) {
+    if (filtrosActuales.soloFalladas) {
       filtradas = filtradas.filter(q => {
         const pStats = getStatsPregunta(q.id) || {};
         return pStats.fallos > 0;
@@ -103,6 +132,26 @@ export default function Desgloses() {
     setCola(filtradas);
     setCurrentIndex(0);
     setRespuestasDesglose({});
+  }, [isArchivada, isPreguntaHecha, getStatsPregunta]);
+
+  const handleFiltrar = () => {
+    aplicarFiltrosCon(filtros);
+  };
+
+  const handleToggleSoloNoHechas = (checked) => {
+    const nuevosFiltros = { ...filtros, soloNoHechas: checked, soloFalladas: false };
+    setFiltros(nuevosFiltros);
+    if (cola.length > 0 && Object.keys(respuestasDesglose).length === 0) {
+      aplicarFiltrosCon(nuevosFiltros);
+    }
+  };
+
+  const handleToggleSoloFalladas = (checked) => {
+    const nuevosFiltros = { ...filtros, soloFalladas: checked, soloNoHechas: false };
+    setFiltros(nuevosFiltros);
+    if (cola.length > 0 && Object.keys(respuestasDesglose).length === 0) {
+      aplicarFiltrosCon(nuevosFiltros);
+    }
   };
 
   const handleNext = () => {
@@ -113,8 +162,48 @@ export default function Desgloses() {
     }
   };
 
-  const terminarDesglose = () => {
-    if (window.confirm("¿Seguro que quieres terminar y salir de este desglose?")) {
+  const terminarDesglose = async () => {
+    const contestadas = cola.filter(q => respuestasDesglose[q.id] && !respuestasDesglose[q.id].skipped);
+    
+    if (contestadas.length === 0) {
+      if (window.confirm("¿Seguro que quieres cerrar este desglose?")) {
+        setCola([]);
+        setCurrentIndex(0);
+        setRespuestasDesglose({});
+        sessionStorage.removeItem('mir_desgloses_cola');
+        sessionStorage.removeItem('mir_desgloses_respuestas');
+        sessionStorage.removeItem('mir_desgloses_currentIndex');
+      }
+      return;
+    }
+
+    // Blindar que todas las preguntas contestadas en esta sesión queden en la cola offline
+    const userId = getOrCreateAnonUserId();
+    contestadas.forEach(q => {
+      const pStats = getStatsPregunta(q.id);
+      if (pStats) {
+        enqueueQuestionStat(userId, q.id, {
+          subject: q.asignatura || filtros.asignatura || 'Desgloses MIR',
+          status: pStats.status || (pStats.fallos > 0 ? 'needs_review' : 'mastered'),
+          note: pStats.nota || '',
+          confidence_history: pStats.confidence_history || [],
+          racha_verde: pStats.rachaVerde || 0,
+          latencia_hasta: pStats.latenciaHasta || null,
+          puntuacion_prioridad: pStats.puntuacionPrioridad || 7
+        });
+      }
+    });
+
+    // Subir inmediatamente a Supabase si hay conexión
+    await flushOfflineSyncQueue().catch(err => console.warn('Flush error en terminarDesglose:', err));
+
+    const isOnlineNow = typeof navigator !== 'undefined' ? navigator.onLine : true;
+    const msg = `Has contestado ${contestadas.length} preguntas (${isOnlineNow ? 'sincronizadas en la nube' : 'guardadas localmente en tu dispositivo offline'}).\n\n¿Quieres ver el resumen de tu sesión? Pulsa Aceptar para ver tus resultados o Cancelar para salir directamente.`;
+
+    if (window.confirm(msg)) {
+      setCola(contestadas);
+      setQuizFinished(true);
+    } else {
       setCola([]);
       setCurrentIndex(0);
       setRespuestasDesglose({});
@@ -122,6 +211,16 @@ export default function Desgloses() {
       sessionStorage.removeItem('mir_desgloses_respuestas');
       sessionStorage.removeItem('mir_desgloses_currentIndex');
     }
+  };
+
+  const handleFinalizarSesion = () => {
+    const contestadas = cola.filter(q => respuestasDesglose[q.id] && !respuestasDesglose[q.id].skipped);
+    if (contestadas.length === 0) {
+      terminarDesglose();
+      return;
+    }
+    setCola(contestadas);
+    setQuizFinished(true);
   };
 
   const toggleDificultad = (dif) => {
@@ -162,8 +261,11 @@ export default function Desgloses() {
 
     const discardedCorrect = answerData.discardedOptions.includes(questionForCard.correctOption);
     
-    // Registrar en estadísticas reales
-    registrarRespuesta(questionForCard.id, answerData.isCorrect, answerData.selectedOption);
+    // Registrar en estadísticas reales con nivel de confianza y asignatura
+    registrarRespuesta(questionForCard.id, answerData.isCorrect, answerData.selectedOption, {
+      confidence: answerData.confidence,
+      subject: currentQuestionData.asignatura
+    });
 
     setRespuestasDesglose(prev => ({
       ...prev,
@@ -175,6 +277,78 @@ export default function Desgloses() {
       }
     }));
   };
+
+  const runSync = useCallback(async () => {
+    setSyncState({ status: 'syncing' });
+
+    const contestadas = cola.filter(q => respuestasDesglose[q.id] && !respuestasDesglose[q.id].skipped);
+    if (contestadas.length > 0) {
+      const userId = getOrCreateAnonUserId();
+      const correctCount = contestadas.filter(q => respuestasDesglose[q.id]?.isCorrect).length;
+
+      contestadas.forEach(q => {
+        const pStats = getStatsPregunta(q.id);
+        if (pStats) {
+          enqueueQuestionStat(userId, q.id, {
+            subject: q.asignatura || filtros.asignatura || 'Desgloses MIR',
+            status: pStats.status || (pStats.fallos > 0 ? 'needs_review' : 'mastered'),
+            note: pStats.nota || '',
+            confidence_history: pStats.confidence_history || [],
+            racha_verde: pStats.rachaVerde || 0,
+            latencia_hasta: pStats.latenciaHasta || null,
+            puntuacion_prioridad: pStats.puntuacionPrioridad || 7
+          });
+        }
+      });
+
+      createQuizResult(userId, {
+        subject: filtros.asignatura ? `Desglose: ${filtros.asignatura}` : 'Desgloses MIR',
+        question_count: contestadas.length,
+        answers: contestadas.map(q => ({
+          question_id: q.id,
+          selected: respuestasDesglose[q.id]?.selectedLetter,
+          is_correct: !!respuestasDesglose[q.id]?.isCorrect
+        })),
+        total_score: correctCount,
+        duration_seconds: 0
+      });
+    }
+
+    const res = await flushOfflineSyncQueue();
+    if (res.success) {
+      setSyncState({
+        status: 'synced',
+        syncedCount: res.syncedStats || contestadas.length,
+        lastSyncTime: res.lastSyncTime
+      });
+    } else if (!res.isOnline) {
+      setSyncState({
+        status: 'offline',
+        pendingCount: res.pendingStats || contestadas.length
+      });
+    } else {
+      setSyncState({
+        status: 'error',
+        errorMsg: res.error,
+        pendingCount: res.pendingStats || contestadas.length
+      });
+    }
+  }, [cola, respuestasDesglose, filtros.asignatura, getStatsPregunta]);
+
+  useEffect(() => {
+    if (!quizFinished) return;
+    runSync();
+    const handleOnline = () => runSync();
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, [quizFinished, runSync]);
+
+  // Si las estadísticas de la nube terminan de cargar y tenemos cola con 'soloNoHechas' pero aún no se ha respondido nada, re-filtrar
+  useEffect(() => {
+    if (!isSyncing && cola.length > 0 && Object.keys(respuestasDesglose).length === 0 && filtros.soloNoHechas) {
+      aplicarFiltrosCon(filtros);
+    }
+  }, [isSyncing, stats, filtros, cola.length, respuestasDesglose, aplicarFiltrosCon]);
 
   if (questionForCard) {
     questionForCard.options = currentQuestionData.respuestas.map((r, idx) => ({
@@ -198,6 +372,7 @@ export default function Desgloses() {
       setCurrentIndex(0);
       setRespuestasDesglose({});
       setQuizFinished(false);
+      setSyncState(null);
     };
 
     return (
@@ -205,8 +380,11 @@ export default function Desgloses() {
         <div className="max-w-2xl w-full p-10 bg-white rounded-3xl shadow-lg border border-slate-100 text-center animate-in slide-in-from-bottom-8 fade-in duration-500">
           <div className="text-6xl mb-6">🎯</div>
           <h2 className="text-3xl font-black text-slate-900 mb-2">Desgloses Finalizados</h2>
-          <p className="text-slate-500 mb-8 font-medium">¡Buen trabajo! Este ha sido tu rendimiento en la sesión.</p>
+          <p className="text-slate-500 mb-6 font-medium">¡Buen trabajo! Este ha sido tu rendimiento en la sesión.</p>
           
+          {/* BANNER DE SINCRONIZACIÓN CON SUPABASE / OFFLINE */}
+          <SyncStatusBanner syncState={syncState} onRetry={runSync} className="mb-8" />
+
           <div className="bg-slate-50 rounded-2xl p-8 inline-block mb-10 border border-slate-100 shadow-inner">
             <div className="text-7xl font-black text-cyan-500 mb-2 tracking-tighter">
               {correctCount} <span className="text-4xl text-slate-300 font-bold mx-1">/</span> {cola.length}
@@ -251,6 +429,7 @@ export default function Desgloses() {
                 setCola([]);
                 setCurrentIndex(0);
                 setRespuestasDesglose({});
+                setSyncState(null);
                 sessionStorage.removeItem('mir_desgloses_cola');
                 sessionStorage.removeItem('mir_desgloses_respuestas');
                 sessionStorage.removeItem('mir_desgloses_currentIndex');
@@ -265,6 +444,8 @@ export default function Desgloses() {
     );
   }
 
+  const contestadasCount = Object.keys(respuestasDesglose).filter(qId => respuestasDesglose[qId] && !respuestasDesglose[qId].skipped).length;
+
   return (
     <div className="min-h-screen bg-slate-50 py-8 px-4">
       <div className="max-w-5xl mx-auto space-y-6">
@@ -272,14 +453,35 @@ export default function Desgloses() {
         {/* PANEL SUPERIOR DE FILTROS */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold text-slate-900">Desgloses Oficiales MIR</h2>
+            <div className="flex items-center gap-3">
+              <h2 className="text-xl font-bold text-slate-900">Desgloses Oficiales MIR</h2>
+              {isSyncing ? (
+                <span className="text-xs bg-cyan-50 text-cyan-700 px-2.5 py-1 rounded-full border border-cyan-200 flex items-center gap-1.5 animate-pulse font-medium">
+                  <span className="inline-block animate-spin">🔄</span> Sincronizando con la nube...
+                </span>
+              ) : isOffline ? (
+                <span className="text-xs bg-amber-50 text-amber-800 px-2.5 py-1 rounded-full border border-amber-200 flex items-center gap-1.5 font-medium">
+                  <span>📡</span> Modo offline (guardado local)
+                </span>
+              ) : null}
+            </div>
             {cola.length > 0 && (
-              <button 
-                onClick={terminarDesglose}
-                className="text-sm text-red-600 font-bold hover:bg-red-50 px-3 py-1.5 rounded-lg border border-transparent hover:border-red-200 transition-colors"
-              >
-                Cerrar Desglose ✕
-              </button>
+              <div className="flex items-center gap-2">
+                {contestadasCount > 0 && (
+                  <button 
+                    onClick={handleFinalizarSesion}
+                    className="text-xs sm:text-sm bg-slate-900 hover:bg-slate-800 text-white font-bold px-3 py-1.5 rounded-lg shadow-sm transition-all hover:scale-105 active:scale-95"
+                  >
+                    Finalizar sesión ({contestadasCount})
+                  </button>
+                )}
+                <button 
+                  onClick={terminarDesglose}
+                  className="text-sm text-red-600 font-bold hover:bg-red-50 px-3 py-1.5 rounded-lg border border-transparent hover:border-red-200 transition-colors"
+                >
+                  Cerrar Desglose ✕
+                </button>
+              </div>
             )}
           </div>
           
@@ -370,7 +572,7 @@ export default function Desgloses() {
               <input 
                 type="checkbox" 
                 checked={filtros.soloNoHechas}
-                onChange={e => setFiltros({...filtros, soloNoHechas: e.target.checked, soloFalladas: false})}
+                onChange={e => handleToggleSoloNoHechas(e.target.checked)}
                 className="rounded border-slate-300 text-emerald-500 focus:ring-emerald-500"
               />
               Ocultar ya hechas
@@ -382,7 +584,7 @@ export default function Desgloses() {
               <input 
                 type="checkbox" 
                 checked={filtros.soloFalladas}
-                onChange={e => setFiltros({...filtros, soloFalladas: e.target.checked, soloNoHechas: false})}
+                onChange={e => handleToggleSoloFalladas(e.target.checked)}
                 className="rounded border-slate-300 text-red-500 focus:ring-red-500"
               />
               Solo mis falladas

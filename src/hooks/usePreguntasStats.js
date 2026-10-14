@@ -126,22 +126,47 @@ export function isEnLatencia(preguntaId, statsMap) {
  */
 export function usePreguntasStats() {
   const [stats, setStats] = useState(getGlobalStatsData);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const sincronizarDesdeNube = useCallback(async (silent = true) => {
     try {
       const userId = getOrCreateAnonUserId();
-      const { data, error } = await supabase.from('user_question_stats').select('*').eq('user_id', userId);
-      if (error) {
-        console.warn('Sincronización Supabase omitida o con error:', error.message);
-        if (!silent) alert(`Error de conexión con Supabase: ${error.message || 'No se pudo leer la nube'}`);
-        return 0;
+      let allData = [];
+      let from = 0;
+      const PAGE_SIZE = 1000;
+      let hasMore = true;
+
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from('user_question_stats')
+          .select('*')
+          .eq('user_id', userId)
+          .range(from, from + PAGE_SIZE - 1);
+
+        if (error) {
+          console.warn('Sincronización Supabase omitida o con error:', error.message);
+          if (!silent) alert(`Error de conexión con Supabase: ${error.message || 'No se pudo leer la nube'}`);
+          return 0;
+        }
+
+        if (data && data.length > 0) {
+          allData = allData.concat(data);
+          if (data.length < PAGE_SIZE) {
+            hasMore = false;
+          } else {
+            from += PAGE_SIZE;
+          }
+        } else {
+          hasMore = false;
+        }
       }
-      if (data && data.length > 0) {
+
+      if (allData.length > 0) {
         const currentStats = getGlobalStatsData();
         const merged = { ...currentStats };
         let updatedCount = 0;
 
-        data.forEach(item => {
+        allData.forEach(item => {
           if (item.question_id) {
             const prev = merged[item.question_id] || {};
             const confHist = Array.isArray(item.confidence_history) ? item.confidence_history : [];
@@ -189,8 +214,8 @@ export function usePreguntasStats() {
           }
         });
         setGlobalStatsData(merged);
-        if (!silent) alert(`¡Sincronización completada! Se han descargado ${data.length} preguntas de la nube.`);
-        return data.length;
+        if (!silent) alert(`¡Sincronización completada! Se han descargado ${allData.length} preguntas de la nube.`);
+        return allData.length;
       } else {
         if (!silent) alert('No se encontraron registros de preguntas en la nube de Supabase.');
         return 0;
@@ -274,19 +299,22 @@ export function usePreguntasStats() {
   useEffect(() => {
     listeners.add(setStats);
     
-    // Auto two-way sync on mount: upload local localStorage history to cloud, then fetch combined cloud stats
+    // Auto two-way sync on mount: flush pending offline queue, then fetch combined cloud stats
     const autoSync = async () => {
       try {
-        await subirProgresoLocalANube();
+        setIsSyncing(true);
+        await flushOfflineSyncQueue();
         await sincronizarDesdeNube(true);
       } catch (err) {
         console.warn('Auto cloud sync error:', err);
+      } finally {
+        setIsSyncing(false);
       }
     };
     autoSync();
 
     return () => listeners.delete(setStats);
-  }, [sincronizarDesdeNube, subirProgresoLocalANube]);
+  }, [sincronizarDesdeNube]);
 
   const syncToCloud = (preguntaId, updatedQuestionStats) => {
     const userId = getOrCreateAnonUserId();
@@ -484,6 +512,7 @@ export function usePreguntasStats() {
 
   return {
     stats,
+    isSyncing,
     registrarRespuesta,
     marcarEstado,
     marcarCorregida,
