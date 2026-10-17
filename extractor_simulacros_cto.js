@@ -15,8 +15,8 @@
 
   // PREGUNTA AL USUARIO PARA OPTIMIZAR
   const textoSimulacroStartStr = prompt(
-    "¿Desde qué número de simulacro quieres descargar los textos largos?\n(Ej: Pon '17' para descargar solo los textos del simulacro 17. Pon '0' para descargar todos de nuevo).", 
-    "17"
+    "¿Desde qué número de simulacro quieres descargar los textos largos?\n(Ej: Pon '18' para descargar solo los textos del simulacro 18. Pon '0' para descargar todos de nuevo).", 
+    "18"
   );
   const textoSimulacroStart = parseInt(textoSimulacroStartStr || "0", 10);
 
