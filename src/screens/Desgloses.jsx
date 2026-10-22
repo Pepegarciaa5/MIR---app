@@ -4,6 +4,7 @@ import { getOrCreateAnonUserId, createQuizResult, enqueueQuestionStat, flushOffl
 import desglosesData from '../data/desgloses_filtrables.json';
 import QuestionCard from '../components/quiz/QuestionCard';
 import NotaPersonal from '../components/quiz/NotaPersonal';
+import TutorGemini from '../components/quiz/TutorGemini';
 import SyncStatusBanner from '../components/quiz/SyncStatusBanner';
 
 const getSessionData = (key, defaultVal) => {
@@ -278,11 +279,19 @@ export default function Desgloses() {
     }));
   };
 
+  const sessionEnqueuedRef = React.useRef(false);
+  useEffect(() => {
+    if (!quizFinished) {
+      sessionEnqueuedRef.current = false;
+    }
+  }, [quizFinished]);
+
   const runSync = useCallback(async () => {
     setSyncState({ status: 'syncing' });
 
     const contestadas = cola.filter(q => respuestasDesglose[q.id] && !respuestasDesglose[q.id].skipped);
-    if (contestadas.length > 0) {
+    if (contestadas.length > 0 && !sessionEnqueuedRef.current) {
+      sessionEnqueuedRef.current = true;
       const userId = getOrCreateAnonUserId();
       const correctCount = contestadas.filter(q => respuestasDesglose[q.id]?.isCorrect).length;
 
@@ -684,6 +693,17 @@ export default function Desgloses() {
                     preguntaId={currentQuestionData.id}
                     nota={getStatsPregunta(currentQuestionData.id)?.nota || ''}
                     onGuardar={guardarNota}
+                  />
+
+                  <TutorGemini
+                    question={currentQuestionData}
+                    userAnswer={currentAnswer.selectedLetter}
+                    isCorrect={currentAnswer.isCorrect}
+                    confidence={currentAnswer.confidence}
+                    discardedOptions={currentAnswer.discardedOptions || []}
+                    commentary={currentQuestionData.comentario}
+                    onGuardarNota={guardarNota}
+                    currentNota={getStatsPregunta(currentQuestionData.id)?.nota || ''}
                   />
 
                   {currentQuestionData.comentario && (

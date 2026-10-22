@@ -8,6 +8,7 @@ import { usePreguntasStats } from '../hooks/usePreguntasStats';
 import { generarColaPreguntas } from '../lib/recommendations';
 import QuestionCard from '../components/quiz/QuestionCard';
 import NotaPersonal from '../components/quiz/NotaPersonal';
+import TutorGemini from '../components/quiz/TutorGemini';
 import SyncStatusBanner from '../components/quiz/SyncStatusBanner';
 import { getOrCreateAnonUserId, createQuizResult, flushOfflineSyncQueue } from '../utils/quizSync';
 
@@ -282,11 +283,19 @@ export default function BancoPreguntas({ initialFiltros = null, onFiltrosConsume
     setQuizFinished(true);
   };
 
+  const sessionEnqueuedRef = React.useRef(false);
+  useEffect(() => {
+    if (!quizFinished) {
+      sessionEnqueuedRef.current = false;
+    }
+  }, [quizFinished]);
+
   const runSync = React.useCallback(async () => {
     setSyncState({ status: 'syncing' });
 
     const contestadas = cola.filter(q => respuestasDesglose[q.id] && !respuestasDesglose[q.id].skipped);
-    if (contestadas.length > 0) {
+    if (contestadas.length > 0 && !sessionEnqueuedRef.current) {
+      sessionEnqueuedRef.current = true;
       const userId = getOrCreateAnonUserId();
       const correctCount = contestadas.filter(q => respuestasDesglose[q.id]?.isCorrect).length;
       createQuizResult(userId, {
@@ -442,6 +451,17 @@ export default function BancoPreguntas({ initialFiltros = null, onFiltrosConsume
                   preguntaId={q.id}
                   nota={getStatsPregunta(q.id)?.nota || ''}
                   onGuardar={guardarNota}
+                />
+
+                <TutorGemini
+                  question={q}
+                  userAnswer={ans?.selectedLetter}
+                  isCorrect={isCorrect}
+                  confidence={null}
+                  discardedOptions={[]}
+                  commentary={q.comentario}
+                  onGuardarNota={guardarNota}
+                  currentNota={getStatsPregunta(q.id)?.nota || ''}
                 />
               </div>
             );
@@ -635,6 +655,17 @@ export default function BancoPreguntas({ initialFiltros = null, onFiltrosConsume
                     preguntaId={currentQuestionData.id}
                     nota={getStatsPregunta(currentQuestionData.id)?.nota || ''}
                     onGuardar={guardarNota}
+                  />
+
+                  <TutorGemini
+                    question={currentQuestionData}
+                    userAnswer={currentAnswer.selectedLetter}
+                    isCorrect={currentAnswer.isCorrect}
+                    confidence={currentAnswer.confidence}
+                    discardedOptions={currentAnswer.discardedOptions || []}
+                    commentary={currentQuestionData.comentario}
+                    onGuardarNota={guardarNota}
+                    currentNota={getStatsPregunta(currentQuestionData.id)?.nota || ''}
                   />
 
                   {currentQuestionData.comentario && (

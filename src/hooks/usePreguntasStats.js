@@ -26,6 +26,14 @@ try {
 let globalStatsCache = null;
 const listeners = new Set();
 let isInitialFetched = false;
+let initialFetchPromise = null;
+let globalIsSyncing = false;
+const syncListeners = new Set();
+
+function setGlobalSyncing(val) {
+  globalIsSyncing = val;
+  syncListeners.forEach(fn => fn(val));
+}
 
 function getGlobalStatsData() {
   if (globalStatsCache) return globalStatsCache;
@@ -126,105 +134,118 @@ export function isEnLatencia(preguntaId, statsMap) {
  */
 export function usePreguntasStats() {
   const [stats, setStats] = useState(getGlobalStatsData);
-  const [isSyncing, setIsSyncing] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(globalIsSyncing);
 
-  const sincronizarDesdeNube = useCallback(async (silent = true) => {
-    try {
-      const userId = getOrCreateAnonUserId();
-      let allData = [];
-      let from = 0;
-      const PAGE_SIZE = 1000;
-      let hasMore = true;
+  const sincronizarDesdeNube = useCallback(async (silent = true, force = false) => {
+    if (!force && isInitialFetched && silent) {
+      return Object.keys(getGlobalStatsData()).length;
+    }
+    if (initialFetchPromise && !force) {
+      return initialFetchPromise;
+    }
 
-      while (hasMore) {
-        const { data, error } = await supabase
-          .from('user_question_stats')
-          .select('*')
-          .eq('user_id', userId)
-          .range(from, from + PAGE_SIZE - 1);
+    const doFetch = async () => {
+      try {
+        const userId = getOrCreateAnonUserId();
+        let allData = [];
+        let from = 0;
+        const PAGE_SIZE = 1000;
+        let hasMore = true;
 
-        if (error) {
-          console.warn('Sincronización Supabase omitida o con error:', error.message);
-          if (!silent) alert(`Error de conexión con Supabase: ${error.message || 'No se pudo leer la nube'}`);
+        while (hasMore) {
+          const { data, error } = await supabase
+            .from('user_question_stats')
+            .select('question_id,status,confidence_history,note,racha_verde,latencia_hasta,puntuacion_prioridad,updated_at,created_at')
+            .eq('user_id', userId)
+            .range(from, from + PAGE_SIZE - 1);
+
+          if (error) {
+            console.warn('Sincronización Supabase omitida o con error:', error.message);
+            if (!silent) alert(`Error de conexión con Supabase: ${error.message || 'No se pudo leer la nube'}`);
+            return 0;
+          }
+
+          if (data && data.length > 0) {
+            allData = allData.concat(data);
+            if (data.length < PAGE_SIZE) {
+              hasMore = false;
+            } else {
+              from += PAGE_SIZE;
+            }
+          } else {
+            hasMore = false;
+          }
+        }
+
+        isInitialFetched = true;
+
+        if (allData.length > 0) {
+          const currentStats = getGlobalStatsData();
+          const merged = { ...currentStats };
+
+          allData.forEach(item => {
+            if (item.question_id) {
+              const prev = merged[item.question_id] || {};
+              const confHist = Array.isArray(item.confidence_history) ? item.confidence_history : [];
+              const aciertosCloud = confHist.filter(c => (typeof c === 'string' ? c === 'green' : c?.c === 'green')).length;
+              const fallosCloud = confHist.filter(c => {
+                const val = typeof c === 'string' ? c : c?.c;
+                return val === 'red' || val === 'orange' || val === 'yellow';
+              }).length;
+              const vistasCloud = confHist.length;
+
+              const finalAciertos = vistasCloud > 0 ? aciertosCloud : (prev.aciertos || 0);
+              const finalFallos = vistasCloud > 0 ? fallosCloud : (prev.fallos || 0);
+              const finalVistas = vistasCloud > 0 ? vistasCloud : Math.max(prev.vecesVistas || 0, finalAciertos + finalFallos);
+
+              const isCorregida = item.status === 'corrected' || (item.note && item.note.includes('[CORREGIDA]')) || prev.corregida || false;
+              const cleanNote = item.note ? item.note.replace(/\[CORREGIDA\]\s*/g, '') : (prev.nota || '');
+
+              const qStatObj = {
+                ...prev,
+                status: item.status,
+                archivada: item.status === 'archived' || prev.archivada || false,
+                dudosa: item.status === 'needs_review' && item.confidence === 'yellow',
+                dominada: item.status === 'mastered',
+                corregida: isCorregida,
+                nota: cleanNote,
+                confidence_history: confHist.length > 0 ? confHist : (prev.confidence_history || []),
+                rachaVerde: item.racha_verde ?? prev.rachaVerde ?? 0,
+                latenciaHasta: item.latencia_hasta || prev.latenciaHasta || null,
+                puntuacionPrioridad: item.puntuacion_prioridad ?? prev.puntuacionPrioridad ?? null,
+                ultimaFecha: item.updated_at || item.created_at || prev.ultimaFecha,
+                vecesVistas: finalVistas,
+                aciertos: finalAciertos,
+                fallos: finalFallos
+              };
+
+              merged[item.question_id] = qStatObj;
+              if (uuidToSimNumMap[item.question_id]) {
+                merged[uuidToSimNumMap[item.question_id]] = qStatObj;
+              }
+              if (simNumToUuidMap[item.question_id]) {
+                merged[simNumToUuidMap[item.question_id]] = qStatObj;
+              }
+            }
+          });
+          setGlobalStatsData(merged);
+          if (!silent) alert(`¡Sincronización completada! Se han descargado ${allData.length} preguntas de la nube.`);
+          return allData.length;
+        } else {
+          if (!silent) alert('No se encontraron registros de preguntas en la nube de Supabase.');
           return 0;
         }
-
-        if (data && data.length > 0) {
-          allData = allData.concat(data);
-          if (data.length < PAGE_SIZE) {
-            hasMore = false;
-          } else {
-            from += PAGE_SIZE;
-          }
-        } else {
-          hasMore = false;
-        }
-      }
-
-      if (allData.length > 0) {
-        const currentStats = getGlobalStatsData();
-        const merged = { ...currentStats };
-        let updatedCount = 0;
-
-        allData.forEach(item => {
-          if (item.question_id) {
-            const prev = merged[item.question_id] || {};
-            const confHist = Array.isArray(item.confidence_history) ? item.confidence_history : [];
-            const aciertosCloud = confHist.filter(c => (typeof c === 'string' ? c === 'green' : c?.c === 'green')).length;
-            const fallosCloud = confHist.filter(c => {
-              const val = typeof c === 'string' ? c : c?.c;
-              return val === 'red' || val === 'orange' || val === 'yellow';
-            }).length;
-            const vistasCloud = confHist.length;
-
-            const finalAciertos = vistasCloud > 0 ? aciertosCloud : (prev.aciertos || 0);
-            const finalFallos = vistasCloud > 0 ? fallosCloud : (prev.fallos || 0);
-            const finalVistas = vistasCloud > 0 ? vistasCloud : Math.max(prev.vecesVistas || 0, finalAciertos + finalFallos);
-
-            const isCorregida = item.status === 'corrected' || (item.note && item.note.includes('[CORREGIDA]')) || prev.corregida || false;
-            const cleanNote = item.note ? item.note.replace(/\[CORREGIDA\]\s*/g, '') : (prev.nota || '');
-
-            const qStatObj = {
-              ...prev,
-              status: item.status,
-              archivada: item.status === 'archived' || prev.archivada || false,
-              dudosa: item.status === 'needs_review' && item.confidence === 'yellow',
-              dominada: item.status === 'mastered',
-              corregida: isCorregida,
-              nota: cleanNote,
-              confidence_history: confHist.length > 0 ? confHist : (prev.confidence_history || []),
-              rachaVerde: item.racha_verde ?? prev.rachaVerde ?? 0,
-              latenciaHasta: item.latencia_hasta || prev.latenciaHasta || null,
-              puntuacionPrioridad: item.puntuacion_prioridad ?? prev.puntuacionPrioridad ?? null,
-              ultimaFecha: item.updated_at || item.created_at || prev.ultimaFecha,
-              vecesVistas: finalVistas,
-              aciertos: finalAciertos,
-              fallos: finalFallos
-            };
-
-            merged[item.question_id] = qStatObj;
-            if (uuidToSimNumMap[item.question_id]) {
-              merged[uuidToSimNumMap[item.question_id]] = qStatObj;
-            }
-            if (simNumToUuidMap[item.question_id]) {
-              merged[simNumToUuidMap[item.question_id]] = qStatObj;
-            }
-
-            updatedCount++;
-          }
-        });
-        setGlobalStatsData(merged);
-        if (!silent) alert(`¡Sincronización completada! Se han descargado ${allData.length} preguntas de la nube.`);
-        return allData.length;
-      } else {
-        if (!silent) alert('No se encontraron registros de preguntas en la nube de Supabase.');
+      } catch (err) {
+        console.warn('Excepción al consultar Supabase:', err.message);
+        if (!silent) alert(`Excepción al sincronizar: ${err.message}`);
         return 0;
+      } finally {
+        initialFetchPromise = null;
       }
-    } catch (err) {
-      console.warn('Excepción al consultar Supabase:', err.message);
-      if (!silent) alert(`Excepción al sincronizar: ${err.message}`);
-      return 0;
-    }
+    };
+
+    initialFetchPromise = doFetch();
+    return initialFetchPromise;
   }, []);
 
   const subirProgresoLocalANube = useCallback(async () => {
@@ -298,22 +319,28 @@ export function usePreguntasStats() {
 
   useEffect(() => {
     listeners.add(setStats);
-    
-    // Auto two-way sync on mount: flush pending offline queue, then fetch combined cloud stats
-    const autoSync = async () => {
-      try {
-        setIsSyncing(true);
-        await flushOfflineSyncQueue();
-        await sincronizarDesdeNube(true);
-      } catch (err) {
-        console.warn('Auto cloud sync error:', err);
-      } finally {
-        setIsSyncing(false);
-      }
-    };
-    autoSync();
+    syncListeners.add(setIsSyncing);
 
-    return () => listeners.delete(setStats);
+    // Auto two-way sync ONLY ONCE per app session (even if 200 QuestionRows mount)
+    if (!isInitialFetched && !initialFetchPromise) {
+      const autoSync = async () => {
+        try {
+          setGlobalSyncing(true);
+          await flushOfflineSyncQueue();
+          await sincronizarDesdeNube(true, false);
+        } catch (err) {
+          console.warn('Auto cloud sync error:', err);
+        } finally {
+          setGlobalSyncing(false);
+        }
+      };
+      autoSync();
+    }
+
+    return () => {
+      listeners.delete(setStats);
+      syncListeners.delete(setIsSyncing);
+    };
   }, [sincronizarDesdeNube]);
 
   const syncToCloud = (preguntaId, updatedQuestionStats) => {
@@ -339,11 +366,9 @@ export function usePreguntasStats() {
       puntuacion_prioridad: updatedQuestionStats.puntuacionPrioridad || 7
     };
 
-    upsertQuestionStat(userId, preguntaId, payload);
-    const alias1 = uuidToSimNumMap[preguntaId];
-    if (alias1) upsertQuestionStat(userId, alias1, payload);
-    const alias2 = simNumToUuidMap[preguntaId];
-    if (alias2) upsertQuestionStat(userId, alias2, payload);
+    // Guardar una sola fila canónica en la nube (los alias locales ya se resuelven en memoria)
+    const canonicalId = simNumToUuidMap[preguntaId] || preguntaId;
+    upsertQuestionStat(userId, canonicalId, payload);
   };
 
   const registrarRespuesta = useCallback((preguntaId, esCorrecta, respuestaSeleccionada, extraData = {}) => {
