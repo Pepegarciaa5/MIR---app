@@ -33,19 +33,36 @@ if (Array.isArray(textosSimulacros)) {
 export const CTO_IMAGES_BASE_URL = 'https://materiales.s3.gra.io.cloud.ovh.net/campus/images/preguntas';
 
 /**
- * Obtiene la URL completa del CDN de una imagen de simulacro o desglose CTO.
- * Si imagen_nombre ya es una URL absoluta o relativa, la respeta.
- * Si es un UUID (ej: "dd54e823-8f64-4932-8059-65f9d1ef43f1.jpg"), construye la URL del bucket OVH S3.
+ * Obtiene la URL de una imagen de simulacro o desglose CTO.
+ * Prioriza la copia local en `/img/preguntas/` para máxima privacidad, velocidad y modo offline.
  */
 export function getSimulacroImageUrl(imagen_nombre) {
   if (!imagen_nombre) return null;
   if (typeof imagen_nombre !== 'string') return null;
   const trimmed = imagen_nombre.trim();
   if (!trimmed) return null;
-  if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('/')) {
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
     return trimmed;
   }
-  return `${CTO_IMAGES_BASE_URL}/${trimmed}`;
+  if (trimmed.startsWith('/')) {
+    return trimmed;
+  }
+  return `/img/preguntas/${trimmed}`;
+}
+
+/**
+ * Obtiene la URL de respaldo del CDN de OVH S3.
+ */
+export function getSimulacroCdnUrl(imagen_nombre) {
+  if (!imagen_nombre) return null;
+  if (typeof imagen_nombre !== 'string') return null;
+  const trimmed = imagen_nombre.trim();
+  if (!trimmed) return null;
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return trimmed;
+  }
+  const clean = trimmed.startsWith('/') ? trimmed.replace(/^\/img\/preguntas\//, '') : trimmed;
+  return `${CTO_IMAGES_BASE_URL}/${clean}`;
 }
 
 /**

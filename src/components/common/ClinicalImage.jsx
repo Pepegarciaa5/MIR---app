@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getSimulacroImageUrl } from '../../lib/simulacros';
+import { getSimulacroImageUrl, getSimulacroCdnUrl } from '../../lib/simulacros';
 
 /**
  * Componente para renderizar imágenes clínicas (radiología, dermatología, histología, ECG...)
  * de simulacros y desgloses CTO con visor ampliable (Lightbox) y controles de zoom.
+ * Prioriza la copia local offline y cuenta con fallback seguro sin referer.
  */
 export default function ClinicalImage({
   src,
@@ -14,12 +15,31 @@ export default function ClinicalImage({
   maxHeight = 'max-h-80 md:max-h-96'
 }) {
   const rawTarget = src || imagen_nombre;
-  const imageUrl = getSimulacroImageUrl(rawTarget);
+  const localUrl = getSimulacroImageUrl(rawTarget);
+  const cdnUrl = getSimulacroCdnUrl(rawTarget);
 
+  const [currentSrc, setCurrentSrc] = useState(localUrl);
   const [isOpen, setIsOpen] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [hasError, setHasError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Sincronizar fuente si cambia la pregunta
+  useEffect(() => {
+    setCurrentSrc(localUrl);
+    setHasError(false);
+    setIsLoading(true);
+  }, [localUrl]);
+
+  const handleImageError = () => {
+    // Si falló la ruta local, intentar el CDN de OVH como respaldo seguro
+    if (currentSrc !== cdnUrl && cdnUrl) {
+      setCurrentSrc(cdnUrl);
+    } else {
+      setIsLoading(false);
+      setHasError(true);
+    }
+  };
 
   // Manejar cierre con la tecla Escape y atajos
   useEffect(() => {
@@ -100,14 +120,12 @@ export default function ClinicalImage({
           )}
 
           <img
-            src={imageUrl}
+            src={currentSrc}
             alt={alt}
             loading="lazy"
+            referrerPolicy="no-referrer"
             onLoad={() => setIsLoading(false)}
-            onError={() => {
-              setIsLoading(false);
-              setHasError(true);
-            }}
+            onError={handleImageError}
             className={`${maxHeight} w-auto object-contain transition-transform duration-300 group-hover:scale-[1.015]`}
           />
 
@@ -172,8 +190,10 @@ export default function ClinicalImage({
             title="Doble clic o clic para alternar zoom 1x / 2x"
           >
             <img
-              src={imageUrl}
+              src={currentSrc}
               alt={alt}
+              referrerPolicy="no-referrer"
+              onError={handleImageError}
               style={{
                 transform: `scale(${zoomLevel})`,
                 transformOrigin: 'center center',
