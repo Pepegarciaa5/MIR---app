@@ -21,9 +21,11 @@ import {
   getTrampasConceptuales,
   ASIGNATURA_NOMBRE,
   attachTextoToPregunta,
+  hasPreguntaImagen,
   getAnalisisBigotesPorAsignatura,
   getDetalleBigotesAsignatura
 } from '../lib/simulacros'
+import ClinicalImage from '../components/common/ClinicalImage'
 
 
 
@@ -790,6 +792,7 @@ function QuestionRow({ q, highlightColor }) {
     return null
   })()
   const difLabel = q.dificultad ? `Dif. ${q.dificultad}` : ''
+  const tieneImagen = hasPreguntaImagen(q)
   
   return (
     <div className={`border-b border-slate-100 transition-colors ${isCorregida ? 'bg-emerald-50' : 'bg-white'}`}>
@@ -806,7 +809,14 @@ function QuestionRow({ q, highlightColor }) {
         </div>
         <div className="flex-none w-8 text-center text-lg">{q.acertada ? '✅' : q.fallada ? '❌' : '➖'}</div>
         <div className="flex-1 min-w-0">
-          <div className="text-xs font-black uppercase tracking-wider truncate" style={{ color: highlightColor }}>{ASIGNATURA_NOMBRE[q.asignatura] || q.asignatura}</div>
+          <div className="text-xs font-black uppercase tracking-wider truncate flex items-center gap-1.5" style={{ color: highlightColor }}>
+            <span>{ASIGNATURA_NOMBRE[q.asignatura] || q.asignatura}</span>
+            {tieneImagen && (
+              <span className="text-[9px] bg-cyan-100 text-cyan-800 border border-cyan-200 px-1.5 py-0.5 rounded font-black tracking-normal uppercase">
+                🖼️ Imagen
+              </span>
+            )}
+          </div>
           <div className="text-[11px] font-semibold text-slate-500 mt-0.5 truncate">{q.clasificaciones?.join(' › ') || 'Sin clasificar'}</div>
         </div>
         <div className="text-right flex-none flex flex-col items-end gap-1">
@@ -823,6 +833,14 @@ function QuestionRow({ q, highlightColor }) {
       {open && fullQ.texto && (
         <div className="p-5 bg-slate-50/50 border-t border-slate-100 text-sm animate-fade-in shadow-inner">
           <p className="font-medium text-slate-800 mb-4 whitespace-pre-wrap leading-relaxed">{fullQ.texto.enunciado}</p>
+
+          {fullQ.texto.imagen_nombre && (
+            <ClinicalImage
+              src={fullQ.texto.imagen_nombre}
+              alt={`Simulacro ${q.simulacro} · Pregunta ${q.numero}`}
+              className="my-4"
+            />
+          )}
 
           {/* Porcentaje de acierto de la comunidad */}
           {pctNum !== null && (() => {

@@ -6,6 +6,7 @@ import desglosesData from '../../data/desgloses_filtrables.json';
 import { usePreguntasStats } from '../../hooks/usePreguntasStats';
 import { useTracker } from '../../context/TrackerContext';
 import NotaPersonal from './NotaPersonal';
+import TutorGemini from './TutorGemini';
 import SyncStatusBanner from './SyncStatusBanner';
 import { getOrCreateAnonUserId, createQuizResult, flushOfflineSyncQueue } from '../../utils/quizSync';
 
@@ -26,10 +27,10 @@ const AdaptiveQuizEngine = ({ subject = 'Oftalmología', modoExamen = false, set
       .map(([id]) => id);
 
     const bancoSimulacros = bancoPreguntas.filter(q =>
-      q.origen?.startsWith('Simulacro') && !q.image && !q.imagen && !q.imagen_nombre && !archivedIds.includes(q.id)
+      q.origen?.startsWith('Simulacro') && !archivedIds.includes(q.id)
     );
     const bancoDesgloses = desglosesData
-      .filter(q => !q.imagen_nombre && !archivedIds.includes(q.id))
+      .filter(q => !archivedIds.includes(q.id))
       .map(d => ({
         id: d.id,
         origen: `Desgloses ${d.anualidad}`,
@@ -37,6 +38,7 @@ const AdaptiveQuizEngine = ({ subject = 'Oftalmología', modoExamen = false, set
         tema: d.tema,
         dificultad: d.dificultad,
         text: d.enunciado,
+        image: d.imagen_nombre,
         options: d.respuestas?.map(r => r.enunciado) || [],
         answer: d.respuestas?.find(r => r.correcta)?.numero,
         comentario: d.comentario
@@ -76,6 +78,7 @@ const AdaptiveQuizEngine = ({ subject = 'Oftalmología', modoExamen = false, set
   const questionForCard = currentQuestion ? {
     id: currentQuestion.id,
     text: currentQuestion.text,
+    image: currentQuestion.image || currentQuestion.imagen_nombre || currentQuestion.imagen,
     options: (currentQuestion.options || []).map((optText, idx) => ({
       id: numToLetter(idx + 1),
       text: optText
@@ -299,6 +302,7 @@ const AdaptiveQuizEngine = ({ subject = 'Oftalmología', modoExamen = false, set
               key={currentQuestion.id} 
               question={questionForCard} 
               onAnswer={handleAnswerSubmit} 
+              onNext={handleNextQuestion}
             />
           </div>
 
@@ -341,6 +345,17 @@ const AdaptiveQuizEngine = ({ subject = 'Oftalmología', modoExamen = false, set
                   onGuardar={guardarNota}
                 />
 
+                <TutorGemini
+                  question={currentQuestion}
+                  userAnswer={currentFeedback.selectedOption}
+                  isCorrect={currentFeedback.isCorrect}
+                  confidence={currentFeedback.confidence}
+                  discardedOptions={currentFeedback.discardedOptions || []}
+                  commentary={currentFeedback.explanation}
+                  onGuardarNota={guardarNota}
+                  currentNota={getStatsPregunta(currentQuestion.id)?.nota || ''}
+                />
+
                 {currentFeedback.explanation && (
                   <div className="prose prose-lg max-w-none prose-slate mt-4">
                     <div className="font-bold uppercase tracking-wider text-[11px] text-slate-500 mb-2 flex items-center gap-2">
@@ -353,10 +368,14 @@ const AdaptiveQuizEngine = ({ subject = 'Oftalmología', modoExamen = false, set
 
               <div className="mt-6 flex justify-end">
                 <button
+                  type="button"
                   onClick={handleNextQuestion}
-                  className="bg-slate-900 text-white py-3 px-8 rounded-xl font-bold text-lg hover:bg-slate-800 transition-colors shadow-sm"
+                  className="bg-slate-900 text-white py-3 px-8 rounded-xl font-bold text-lg hover:bg-slate-800 transition-colors shadow-sm flex items-center gap-2.5"
                 >
-                  Siguiente Pregunta →
+                  <span>Siguiente Pregunta →</span>
+                  <kbd className="hidden sm:inline-block font-mono text-xs px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300">
+                    Enter ↵
+                  </kbd>
                 </button>
               </div>
             </div>

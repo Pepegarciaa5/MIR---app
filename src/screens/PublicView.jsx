@@ -778,6 +778,7 @@ const ALL_QUESTIONS = [
       options: [...(t.respuestas || [])].sort((a, b) => a.numero - b.numero).map(r => r.enunciado),
       answer: t.respuestas?.find(r => r.correcta)?.numero || 1,
       asignatura: ASIGNATURA_NOMBRE[stats_cto.asignatura] || stats_cto.asignatura || 'Simulacros',
+      image: t.imagen_nombre,
       origen: `Simulacro ${t.simulacro}`,
       comentario: t.comentario,
       cto_fallada: stats_cto.fallada === 1,
@@ -790,6 +791,7 @@ const ALL_QUESTIONS = [
     options: [...(d.respuestas || [])].sort((a, b) => a.numero - b.numero).map(r => r.enunciado),
     answer: d.respuestas?.find(r => r.correcta)?.numero || 1,
     asignatura: d.asignatura || 'Desgloses',
+    image: d.imagen_nombre,
     origen: d.convocatoria || 'Desglose MIR',
     comentario: d.comentario,
     cto_fallada: false,
@@ -863,6 +865,7 @@ function QuizPublico() {
   const questionForCard = currentQ ? {
     id: currentQ.id,
     text: currentQ.text,
+    image: currentQ.image || currentQ.imagen_nombre,
     options: currentQ.options.map((opt, idx) => ({ id: numToLetter(idx + 1), text: opt })),
     correctOption: numToLetter(currentQ.answer)
   } : null
@@ -1129,7 +1132,7 @@ function QuizPublico() {
 
       {/* Tarjeta de pregunta */}
       <div style={{ opacity: currentAnswer ? 0.55 : 1, pointerEvents: currentAnswer ? 'none' : 'auto', transition: 'opacity 0.2s' }}>
-        <QuestionCard key={currentQ.id} question={questionForCard} onAnswer={handleAnswer} />
+        <QuestionCard key={currentQ.id} question={questionForCard} onAnswer={handleAnswer} onNext={handleNext} />
       </div>
 
       {/* Resultado y botón siguiente */}
@@ -1180,9 +1183,12 @@ function QuizPublico() {
             <button onClick={handleNext} style={{
               padding: '10px 20px', borderRadius: 10, border: 'none',
               background: '#1a1a1a', color: '#fff', fontWeight: 800, fontSize: 13,
-              cursor: 'pointer',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
             }}>
-              {currentIndex >= cola.length - 1 ? 'Finalizar 🎉' : 'Siguiente →'}
+              <span>{currentIndex >= cola.length - 1 ? 'Finalizar 🎉' : 'Siguiente →'}</span>
+              <kbd style={{ fontFamily: 'monospace', fontSize: '11px', padding: '2px 6px', borderRadius: '4px', background: '#333', border: '1px solid #555', color: '#ccc' }}>
+                Enter ↵
+              </kbd>
             </button>
           </div>
         </div>

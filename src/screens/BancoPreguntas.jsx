@@ -37,6 +37,7 @@ const QUESTIONS = [
     options: [...(d.respuestas || [])].sort((a, b) => a.numero - b.numero).map(r => r.enunciado),
     answer: d.respuestas?.find(r => r.correcta)?.numero || 1,
     asignatura: d.asignatura || 'Desgloses',
+    image: d.imagen_nombre,
     origen: d.convocatoria || 'Desglose MIR',
     comentario: d.comentario,
     cto_fallada: false, 
@@ -219,6 +220,7 @@ export default function BancoPreguntas({ initialFiltros = null, onFiltrosConsume
   const questionForCard = currentQuestionData ? {
     id: currentQuestionData.id,
     text: currentQuestionData.text,
+    image: currentQuestionData.image || currentQuestionData.imagen_nombre,
     options: currentQuestionData.options.map((opt, idx) => ({
       id: numToLetter(idx + 1),
       text: opt
@@ -629,6 +631,7 @@ export default function BancoPreguntas({ initialFiltros = null, onFiltrosConsume
                 key={currentQuestionData.id} 
                 question={questionForCard} 
                 onAnswer={handleAnswerSubmit} 
+                onNext={handleNext}
               />
             </div>
 
@@ -677,10 +680,14 @@ export default function BancoPreguntas({ initialFiltros = null, onFiltrosConsume
 
                 <div className="mt-4 flex justify-end">
                   <button 
+                    type="button"
                     onClick={handleNext}
-                    className="bg-slate-900 text-white font-bold py-2 px-6 rounded-lg hover:bg-slate-800 transition-colors"
+                    className="bg-slate-900 text-white font-bold py-2.5 px-6 rounded-xl hover:bg-slate-800 transition-colors flex items-center gap-2"
                   >
-                    {currentIndex >= cola.length - 1 ? 'Finalizar Sesión 🎉' : 'Siguiente Pregunta →'}
+                    <span>{currentIndex >= cola.length - 1 ? 'Finalizar Sesión 🎉' : 'Siguiente Pregunta →'}</span>
+                    <kbd className="hidden sm:inline-block font-mono text-xs px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300">
+                      Enter ↵
+                    </kbd>
                   </button>
                 </div>
               </div>

@@ -30,6 +30,34 @@ if (Array.isArray(textosSimulacros)) {
   })
 }
 
+export const CTO_IMAGES_BASE_URL = 'https://materiales.s3.gra.io.cloud.ovh.net/campus/images/preguntas';
+
+/**
+ * Obtiene la URL completa del CDN de una imagen de simulacro o desglose CTO.
+ * Si imagen_nombre ya es una URL absoluta o relativa, la respeta.
+ * Si es un UUID (ej: "dd54e823-8f64-4932-8059-65f9d1ef43f1.jpg"), construye la URL del bucket OVH S3.
+ */
+export function getSimulacroImageUrl(imagen_nombre) {
+  if (!imagen_nombre) return null;
+  if (typeof imagen_nombre !== 'string') return null;
+  const trimmed = imagen_nombre.trim();
+  if (!trimmed) return null;
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('/')) {
+    return trimmed;
+  }
+  return `${CTO_IMAGES_BASE_URL}/${trimmed}`;
+}
+
+/**
+ * Comprueba de forma rápida si una pregunta de simulacro tiene imagen asociada.
+ */
+export function hasPreguntaImagen(p) {
+  if (!p) return false;
+  if (p.texto?.imagen_nombre || p.imagen_nombre || p.image || p.imagen) return true;
+  const textInfo = mapaTextos.get(`${p.simulacro}-${p.numero}`);
+  return Boolean(textInfo?.imagen_nombre);
+}
+
 /**
  * Adjunta el texto (enunciado, respuestas, comentario) a una pregunta dada.
  */
