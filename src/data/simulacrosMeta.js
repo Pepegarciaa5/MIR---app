@@ -44,6 +44,7 @@ export const SIMULACROS_FECHAS = {
   16: '2026-10-03',
   17: '2026-10-10',
   18: '2026-10-17',
+  19: '2026-10-24',
 }
 
 // Default/historical metadata for v1/fallback
