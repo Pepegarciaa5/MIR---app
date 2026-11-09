@@ -1,6 +1,180 @@
 [
   {
     "tipo": "mir_tirada",
+    "id": "tirada_1794245226214",
+    "timestamp": "2026-11-09T17:27:06.214Z",
+    "fecha_humana": "9/11/26, 18:27",
+    "origen": "TiradorMaestro",
+    "asignatura": "Endocrinología y Metabolismo",
+    "temas": [],
+    "resumen_cola": {
+      "modo": "🛠️ Tirada Personalizada (50p · Prioridad Pedagógica)",
+      "total": 50,
+      "deTema": 50,
+      "simulacrosAsig": 0,
+      "rellenoAsig": 0,
+      "rellenoGlobal": 0,
+      "conteoTiers": {
+        "tier1_desgloses_25_15": 50,
+        "tier2_simulacros": 0,
+        "tier3_desgloses_15_10": 0,
+        "tier4_evaluaciones": 0,
+        "tier5_segunda_vuelta": 0
+      },
+      "ordenPreguntas": "prioridad"
+    },
+    "metricas": {
+      "total": 3,
+      "contestadas": 3,
+      "aciertos": 3,
+      "fallos": 0,
+      "blancas": 0,
+      "netas": 3,
+      "pct_acierto": 100
+    },
+    "preguntas": [
+      {
+        "orden": 1,
+        "id": "4f69386b-20ad-41ab-bd44-39b176067bd7",
+        "canonical_id": "4f69386b-20ad-41ab-bd44-39b176067bd7",
+        "aliasIds": [
+          "4f69386b-20ad-41ab-bd44-39b176067bd7",
+          "8-112",
+          "cto_sim_8_112"
+        ],
+        "asignatura": "Endocrinología y Metabolismo",
+        "tema": "Diabetes mellitus",
+        "subtema": "Tratamiento",
+        "dificultad": 2,
+        "anualidad": 2025,
+        "convocatoria": "MIR 2025 - 2026",
+        "origen_tirada": "tema_estudiado",
+        "contestada": true,
+        "skipped": false,
+        "isCorrect": true,
+        "selectedLetter": "C",
+        "correctLetter": "C",
+        "confidence": "green",
+        "discardedOptions": [],
+        "discardedCorrect": false,
+        "seconds": 26,
+        "enunciado": "En el tratamiento de la diabetes, sobre los beneficios y complicaciones de los fármacos, ¿cuál de las siguientes afirmaciones es INCORRECTA?",
+        "comentario": "Pregunta sobre generalidades de fármacos de la diabetes tipo 2. Es conocido que la metformina puede alterar los niveles de vitamina B12, por lo que se recomienda su monitorización (respuesta 1 verdadera). Los ISGLT2 pueden hacer bajar de peso porque excretan glucosa por orina y además han demostrado benieficios en la ERC (respuesta 2 verdadera). Los IDDP4 tienen un efecto neutro sobre el peso y una seguridad elevada, por lo que los hacen de elección en población anciana y frágil (respuesta 3 falsa). Finalmente, tirzepatida (análogo dual GLP1 y GIP), aunque aún no financiado en España para el tratamiento de la diabetes, ha demostrado bajadas significativas de peso, junto con otros beneficios como la mejoría de la esteatohepatitis (respuesta 4 verdadera)",
+        "options": [
+          "La metformina es el fármaco más usado; puede disminuir los niveles de vitamina B<sub>12</sub> y hay que vigilar el filtrado glomerular, si desciende por debajo de 30 mL/min hay que suspenderla.",
+          "Los iSGLT2 bajan peso y minimizan la progresión de la enfermedad renal crónica y la albuminuria.",
+          "Los iDPP4 pueden disminuir la glicada entre 0,6-0,9%, tienen un efecto neutro sobre el peso, pero son mal toleradas y se desaconsejan en los pacientes mayores.",
+          "La tirzepatida (agonista dual GIP + aGLP-1) ha demostrado bajadas de peso importante y presenta beneficios en la esteatosis hepática asociada a disfunción metabólica (MASH)."
+        ],
+        "imagen_nombre": null,
+        "justificacion": "",
+        "pct_pob": 70,
+        "horquilla_p80": "B1",
+        "bloque_p80": 1,
+        "fuentes": [
+          "mir",
+          "desgloses",
+          "simulacro",
+          "simulacros"
+        ],
+        "fallada_cto": false
+      },
+      {
+        "orden": 2,
+        "id": "1a86d26a-65cf-4538-9a7b-f6dcc1e51c82",
+        "canonical_id": "1a86d26a-65cf-4538-9a7b-f6dcc1e51c82",
+        "aliasIds": [
+          "1a86d26a-65cf-4538-9a7b-f6dcc1e51c82",
+          "8-142",
+          "cto_sim_8_142"
+        ],
+        "asignatura": "Endocrinología y Metabolismo",
+        "tema": "Enfermedades de la glándula tiroides",
+        "subtema": "Hipertiroidismo",
+        "dificultad": 3,
+        "anualidad": 2025,
+        "convocatoria": "MIR 2025 - 2026",
+        "origen_tirada": "tema_estudiado",
+        "contestada": true,
+        "skipped": false,
+        "isCorrect": true,
+        "selectedLetter": "A",
+        "correctLetter": "A",
+        "confidence": "orange",
+        "discardedOptions": [],
+        "discardedCorrect": false,
+        "seconds": 16,
+        "enunciado": "Valora en la consulta a una paciente de 56 años por un cuadro de unos 10 días de febrícula, bocio de pequeño tamaño, levemente doloroso a la presión y que muestra un aumento de la vascularización tiroidea en la ecografía. Está ansiosa, levemente sudorosa. Su frecuencia cardíaca es de 100 latidos por minuto y su presión arterial de 145/75 mmHg ¿Cuál de las siguientes combinaciones de hallazgos complementarios esperaría según su sospecha diagnóstica?:",
+        "comentario": "ANULADA. Pensamos que esta pregunta es impugnable porque La opción 1 no es compatible con el hallazgo ecográfico descrito. En el enunciado se especifica “aumento de la vascularización tiroidea en la ecografía”, hallazgo característico de hipertiroidismo por hiperfunción tiroidea, especialmente de enfermedad de Graves, donde es típica la hipervascularización difusa en Doppler (“thyroid inferno”).\nEn cambio, la tirotoxicosis por tiroiditis destructiva (como la tiroiditis subaguda o la tiroiditis silente) se asocia habitualmente a flujo Doppler bajo o no aumentado durante la fase tiro­tóxica, con hipocaptación en gammagrafía. Por tanto, la combinación de la opción 1 (TRAb negativos e hipocaptación) contradice el dato de hipervascularización aportado, y la respuesta más congruente con el enunciado sería la opción 2. Esto, además, es reforzado por el enunciado, que sugiere un cuadro de 10 días, febrícula y bocio doloroso, lo que significa fase aguda del cuadro, en la cual el patrón Doppler esperado no es hipervascularidad marcada.",
+        "options": [
+          "TSH baja, T4 libre elevada, anticuerpos estimulantes del tiroides negativos e hipocaptación de iodo en la gammagrafía tiroidea.",
+          "TSH baja, T4 libre elevada, anticuerpos estimulantes del tiroides positivos e hipercaptación de iodo en la gammagrafía tiroidea.",
+          "TSH elevada, T4 libre elevada, anticuerpos estimulantes del tiroides negativos e hipercaptación de iodo en la gammagrafía tiroidea.",
+          "TSH baja, T4 libre elevada, anticuerpos estimulantes del tiroides positivos e hipocaptación de iodo en la gammagrafía tiroidea."
+        ],
+        "imagen_nombre": null,
+        "justificacion": "",
+        "pct_pob": 17,
+        "horquilla_p80": "B4",
+        "bloque_p80": 4,
+        "fuentes": [
+          "mir",
+          "desgloses",
+          "simulacro",
+          "simulacros"
+        ],
+        "fallada_cto": true
+      },
+      {
+        "orden": 3,
+        "id": "db19fcbc-2607-4d21-96c9-465a53d77c34",
+        "canonical_id": "db19fcbc-2607-4d21-96c9-465a53d77c34",
+        "aliasIds": [
+          "db19fcbc-2607-4d21-96c9-465a53d77c34",
+          "8-185",
+          "cto_sim_8_185"
+        ],
+        "asignatura": "Endocrinología y Metabolismo",
+        "tema": "Enfermedades de las glándulas suprarrenales",
+        "subtema": "Incidentaloma suprarrenal",
+        "dificultad": 4,
+        "anualidad": 2025,
+        "convocatoria": "MIR 2025 - 2026",
+        "origen_tirada": "tema_estudiado",
+        "contestada": true,
+        "skipped": false,
+        "isCorrect": true,
+        "selectedLetter": "B",
+        "correctLetter": "B",
+        "confidence": "green",
+        "discardedOptions": [],
+        "discardedCorrect": false,
+        "seconds": 16,
+        "enunciado": "Un paciente de 62 años acude para seguimiento tras un hallazgo incidental de una masa suprarrenal de 2,5 cm identificada en una ecografía realizada por dolor abdominal inespecífico. Está asintomático y sin antecedentes de cáncer. Según las guías actuales, ¿qué técnica de imagen sería la MÁS indicada para caracterizar inicialmente el incidentaloma adrenal?",
+        "comentario": "En el manejo del incidentaloma suprarrenal, la prueba inicial que va a establecer la naturaleza de la lesión y las determinaciones analiticas a realizar, es el TAC sin contraste.",
+        "options": [
+          "Resonancia magnética con secuencias en fase y fuera de fase.",
+          "Tomografía computarizada (TC) sin contraste.",
+          "PET-TC con fluorodesoxiglucosa (FDG).",
+          "Tomografía computarizada (TC) con contraste."
+        ],
+        "imagen_nombre": null,
+        "justificacion": "",
+        "pct_pob": 29,
+        "horquilla_p80": "B4",
+        "bloque_p80": 4,
+        "fuentes": [
+          "mir",
+          "desgloses",
+          "simulacro",
+          "simulacros"
+        ],
+        "fallada_cto": true
+      }
+    ]
+  },
+  {
+    "tipo": "mir_tirada",
     "id": "tirada_1794226952613",
     "timestamp": "2026-11-09T12:22:32.613Z",
     "fecha_humana": "9/11/26, 13:22",

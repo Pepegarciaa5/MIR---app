@@ -843,7 +843,9 @@ export default function TiradorMaestro({
 
     const { seleccion: resultado, conteoTiers } = seleccionarPorCupoPrioritario(candidatas, limit, {
       barajarResultado: esAleatorio,
-      barajarDentroDeTier: false
+      barajarDentroDeTier: false,
+      stats: stats || null,
+      excluirArchivadas: f.estadoPersonal !== 'archivadas'
     });
 
     const ordenLabel = esAleatorio ? 'Barajadas' : 'Prioridad Pedagógica';
@@ -858,7 +860,7 @@ export default function TiradorMaestro({
       conteoTiers,
       ordenPreguntas: f.ordenPreguntas || 'prioridad'
     });
-  }, [filtros, iniciarNuevaCola]);
+  }, [filtros, stats, iniciarNuevaCola]);
 
   // --------------------------------------------------------------------------
   // INGEST EXTERNAL FILTERS PROPS (from Simulacros handlePracticar, Inicio, EvaluacionP80)

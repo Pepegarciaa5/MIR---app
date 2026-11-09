@@ -1221,8 +1221,23 @@ export function ordenarPorPrioridadPedagogica(preguntas, { barajarDentroDeTier =
  * Selecciona un cupo de preguntas respetando estrictamente las prioridades pedagógicas:
  * llena primero con Tier 1 (Desgloses 25-15); si no alcanza, completa con Tier 2 (Simulacros),
  * luego Tier 3 (Desgloses 15-10), luego Tier 4 (Evaluaciones) y finalmente Tier 5 (Segunda Vuelta).
+ * 
+ * Incorpora además la ponderación de Repetición Espaciada y Latencia Metacognitiva:
+ * 1º Falladas y Latencias vencidas urgentes (prioridad 8-10).
+ * 2º Preguntas Vírgenes (no vistas).
+ * 3º Repasos espaciados de consolidación con latencia cumplida.
+ * 4º Preguntas en latencia activa (durmiendo en cooldown, solo entran si el cupo agota las despiertas).
  */
-export function seleccionarPorCupoPrioritario(preguntas, cupo = null, { barajarResultado = false, barajarDentroDeTier = false } = {}) {
+export function seleccionarPorCupoPrioritario(
+  preguntas,
+  cupo = null,
+  {
+    barajarResultado = false,
+    barajarDentroDeTier = false,
+    stats = null,
+    excluirArchivadas = true
+  } = {}
+) {
   if (!Array.isArray(preguntas) || preguntas.length === 0) {
     return {
       seleccion: [],
@@ -1236,14 +1251,51 @@ export function seleccionarPorCupoPrioritario(preguntas, cupo = null, { barajarR
     };
   }
 
+  const now = Date.now();
+
+  const getMetacognitiveInfo = (q) => {
+    if (!stats || Object.keys(stats).length === 0) {
+      return { group: 1, isArchived: false, isSleeping: false };
+    }
+    const canonId = getCanonicalId(q.id);
+    const s = stats[canonId] || stats[q.id] || (q.aliasIds ? q.aliasIds.map(a => stats[a]).find(Boolean) : null);
+    if (!s) return { group: 1, isArchived: false, isSleeping: false }; // Virgen
+
+    const isArchived = Boolean(s.archivada || s.status === 'archived');
+    if (isArchived) return { group: 5, isArchived: true, isSleeping: false };
+
+    const isSleeping = Boolean(s.latenciaHasta && new Date(s.latenciaHasta).getTime() > now);
+    if (isSleeping) {
+      return { group: 4, isArchived: false, isSleeping: true }; // Durmiendo en cooldown
+    }
+
+    // Despierta:
+    // Grupo 0: Fallo prioritario o latencia vencida urgente
+    if (s.puntuacionPrioridad >= 8 || s.fallos > 0 || s.status === 'needs_review' || q.fallada_cto) {
+      return { group: 0, isArchived: false, isSleeping: false };
+    }
+
+    // Grupo 1: Virgen (nunca vista)
+    if (!s.vecesVistas) {
+      return { group: 1, isArchived: false, isSleeping: false };
+    }
+
+    // Grupo 2: Repaso espaciado de consolidación (acertada con latencia ya cumplida)
+    return { group: 2, isArchived: false, isSleeping: false };
+  };
+
   const tiers = { 1: [], 2: [], 3: [], 4: [], 5: [] };
   for (const q of preguntas) {
+    const meta = getMetacognitiveInfo(q);
+    if (excluirArchivadas && meta.isArchived) continue;
+
     const info = getPrioridadPedagogica(q);
     const t = info.tier <= 5 ? info.tier : 5;
-    tiers[t].push({ q, info });
+    tiers[t].push({ q, info, meta });
   }
 
-  // Ordenar dentro de cada tier
+  // Ordenar dentro de cada tier: primero por grupo metacognitivo (fallos vencidos -> vírgenes -> repasos -> durmiendo),
+  // y dentro del mismo grupo, por sortWeight del tier (años más recientes primero)
   for (let t = 1; t <= 5; t++) {
     const items = tiers[t];
     if (items.length === 0) continue;
@@ -1253,19 +1305,41 @@ export function seleccionarPorCupoPrioritario(preguntas, cupo = null, { barajarR
         [items[i], items[j]] = [items[j], items[i]];
       }
     } else {
-      items.sort((a, b) => a.info.sortWeight - b.info.sortWeight);
+      items.sort((a, b) => {
+        if (a.meta.group !== b.meta.group) {
+          return a.meta.group - b.meta.group;
+        }
+        return a.info.sortWeight - b.info.sortWeight;
+      });
     }
   }
 
   const limit = cupo ? Number(cupo) : preguntas.length;
   const seleccion = [];
 
+  // FASE 1: Llenar el cupo prioritario con preguntas DESPIERTAS (grupos 0, 1, 2) de cada tier
   for (let t = 1; t <= 5; t++) {
     const needed = limit - seleccion.length;
     if (needed <= 0) break;
-    const batch = tiers[t].slice(0, needed);
+    const batch = tiers[t].filter(item => item.meta.group < 4).slice(0, needed);
     for (const item of batch) {
       seleccion.push(item.q);
+    }
+  }
+
+  // FASE 2: Si el cupo solicitado aún no se ha llenado, completar con las preguntas en latencia activa (durmiendo)
+  if (seleccion.length < limit) {
+    const yaSeleccionadas = new Set(seleccion.map(q => q.id));
+    for (let t = 1; t <= 5; t++) {
+      const needed = limit - seleccion.length;
+      if (needed <= 0) break;
+      const batchSleeping = tiers[t]
+        .filter(item => !yaSeleccionadas.has(item.q.id))
+        .slice(0, needed);
+      for (const item of batchSleeping) {
+        seleccion.push(item.q);
+        yaSeleccionadas.add(item.q.id);
+      }
     }
   }
 

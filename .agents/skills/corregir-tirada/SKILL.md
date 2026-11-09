@@ -31,6 +31,7 @@ En cuanto el usuario diga *«corrígeme la tirada»*, *«he hecho una tirada de 
 
 3. **Creación del Artefacto Interactivo de la Conversación:**
    Generar el documento interactivo en `<appDataDir>/brain/<conversation-id>/guia_tirada_<asignatura>_<fecha>.md` tomando como base el esqueleto de Python y enriqueciéndolo:
+   - **Fidelidad Absoluta a la Fuente Única (`tirada_audit.json`):** Prohibido utilizar diccionarios sintéticos o generar textos clínicos desconectados de la pregunta real. Las explicaciones deben fundamentarse directamente en `item['coment']` y las opciones literales de cada pregunta específica.
    - **Aplicar negritas clínicas:** Resalta sobre el texto literal los datos pivote que deciden el caso (edad, antecedentes, hallazgos guía y si piden *NO*, *FALSA*, *MÁS probable*).
    - **Desmontaje estructurado «Espejo Clínico» del razonamiento del alumno:** Si el alumno dejó una justificación escrita al responder, desglosar quirúrgicamente su proceso mental.
    - **Incluir siempre la propuesta `🃏 Anki sugerida`:** Redactar la tarjeta atómica de 3 segundos en cada pregunta revisada (funciona como micro-resumen de alto valor formativo).

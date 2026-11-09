@@ -47,6 +47,66 @@ def strip_html(text):
     return text
 
 
+def infer_subtema(asignatura, tema, enun, coment):
+    sub = ""
+    tema_l = (tema or "").lower()
+    t_full = (enun + " " + coment).lower()
+
+    # 1. TIROIDES
+    if "tiroides" in tema_l:
+        if any(w in t_full for w in ["feocromocitoma", "carcinoma medular", "men 2", "men2", "neoplasia endocrina múltiple", "protooncogen ret", "protooncogén ret"]):
+            return "Neoplasias endocrinas múltiples (MEN)"
+        if any(w in t_full for w in ["carcinoma papilar", "carcinoma folicular", "cáncer de tiroides", "tumor maligno", "nódulo", "paaf", "tiroglobulina", "células altas", "i-131", "i131", "radioyodo", "hemitiroidectomía"]):
+            return "Nódulo y cáncer de tiroides"
+        if any(w in t_full for w in ["de quervain", "tiroiditis subaguda", "hashimoto", "tiroiditis linfocitaria", "tiroiditis silente", "posparto", "hürthle", "oxifílicas"]):
+            return "Tiroiditis"
+        if any(w in t_full for w in ["graves", "plummer", "adenoma tóxico", "tirotoxicosis", "antitiroideos", "metimazol", "tiamazol", "propiltiouracilo", "tsi", "trab", "oftalmopatía"]):
+            return "Hipertiroidismo"
+        if any(w in t_full for w in ["eutiroideo enfermo"]):
+            return "Síndrome del eutiroideo enfermo"
+        if any(w in t_full for w in ["coma mixedematoso", "hipotiroidismo", "levotiroxina", "l-tiroxina", "anti-tpo"]):
+            return "Hipotiroidismo y tratamiento sustitutivo"
+        if any(w in t_full for w in ["bocio simple", "bocio multinodular", "bocio"]):
+            return "Bocio simple y multinodular"
+        return "Patología tiroidea general"
+
+    # 2. DIABETES
+    elif "diabetes" in tema_l:
+        if any(w in t_full for w in ["mody", "mitocondrial", "midd", "sordomudo", "gen leu-uur", "m.3243a>g", "herencia materna"]):
+            return "Formas monogénicas y genéticas de diabetes"
+        if any(w in t_full for w in ["cetoacidosis", "cad", "cuerpos cetónicos", "acetoacetato", "beta-hidroxibutirato", "kussmaul", "bicarbonato"]):
+            return "Complicaciones agudas (Cetoacidosis diabética)"
+        if any(w in t_full for w in ["somogyi", "fenómeno del alba", "monitorización continua", "tiempo en rango", "tir"]):
+            return "Monitorización y control glucémico"
+        if any(w in t_full for w in ["metformina", "sulfonilurea", "glibenclamida", "gliclazida", "glimepirida", "isglt2", "dapagliflozina", "empagliflozina", "glp-1", "dpp-4", "insulina"]):
+            return "Tratamiento farmacológico (antidiabéticos e insulinas)"
+        if any(w in t_full for w in ["nefropatía", "retinopatía", "neuropatía", "pie diabético", "microalbuminuria", "albuminuria"]):
+            return "Complicaciones crónicas de la diabetes"
+        if any(w in t_full for w in ["sobrecarga oral", "sog", "criterios diagnósticos", "glucemia basal alterada", "tolerancia alterada"]):
+            return "Diagnóstico y cribado de diabetes"
+        if any(w in t_full for w in ["niño", "pediátrica", "requerimientos nutricionales"]):
+            return "Diabetes mellitus tipo 1"
+        return "Diabetes mellitus general"
+
+    # 3. DISLIPEMIAS Y NUTRICIÓN
+    elif any(w in tema_l for w in ["dislipemia", "obesidad", "nutrición"]):
+        if any(w in t_full for w in ["bypass", "gastrectomía", "manga gástrica", "bariátrica", "orlistat", "obesidad mórbida"]):
+            return "Obesidad y cirugía bariátrica"
+        if any(w in t_full for w in ["enteral", "parenteral", "polimérica", "oligomérica", "harris-benedict", "realimentación", "desnutrición", "malnutrición", "soporte nutricional"]):
+            return "Soporte nutricional y desnutrición"
+        if any(w in t_full for w in ["vitamina b12", "cobalamina", "liposoluble", "ácido fólico"]):
+            return "Vitaminas y oligoelementos"
+        if any(w in t_full for w in ["síndrome metabólico", "criterios atp-iii", "perímetro de cintura"]):
+            return "Síndrome metabólico"
+        if any(w in t_full for w in ["hipercolesterolemia familiar", "estatina", "ezetimiba", "pcsk9", "hipertrigliceridemia", "fibrato", "fenofibrato", "gemfibrozilo", "xantomas"]):
+            return "Dislipemias y metabolismo lipídico"
+        if any(w in t_full for w in ["riesgo cardiovascular", "esc/eas", "score"]):
+            return "Evaluación del riesgo cardiovascular"
+        return "Dislipemia y nutrición"
+
+    return "General / Varios"
+
+
 def load_question_catalog():
     catalog = {}
 
@@ -155,6 +215,11 @@ def generate_markdown_skeleton(tirada, audit_items, out_path="/tmp/guia_tirada_e
     for p in all_preguntas:
         t_name = p.get("tema") or "General / Varios"
         s_name = p.get("subtema") or ""
+        if not s_name or s_name.lower() in ("general", "otros", "general / conceptos clave"):
+            enun_p = p.get("enunciado", "") or p.get("enun", "")
+            coment_p = p.get("comentario", "") or p.get("coment", "")
+            s_name = infer_subtema(p.get("asignatura", ""), t_name, enun_p, coment_p)
+            p["subtema"] = s_name
 
         if t_name not in temas_stats:
             temas_stats[t_name] = {"total": 0, "aciertos": 0, "fallos": 0, "dudas": 0}
@@ -299,13 +364,20 @@ def generate_markdown_skeleton(tirada, audit_items, out_path="/tmp/guia_tirada_e
             lines.append("")
             return "\n".join(lines)
 
+        coment_txt = it.get("coment", "").strip()
+
         if justif:
             lines.append(f"* **🎯 Desmontaje del razonamiento («Espejo Clínico»):**")
             lines.append(f"  • **Premisa acertada:** [PREMISA_QUE_VISTE_BIEN]")
             lines.append(f"  • **Dato ciego / Trampa que te desvió:** [DATO_CIEGO_O_TRAMPA]")
             lines.append(f"  • **Regla de decisión MIR:** [REGLA_DIRECTA_PARA_NO_DUDAR]")
+            if coment_txt:
+                lines.append(f"  • **Explicación oficial CTO:** {coment_txt}")
         else:
-            lines.append(f"* **🎯 Concepto clave / Por qué fallaste:** [ANÁLISIS_CLÍNICO_FISIOPATOLÓGICO]")
+            if coment_txt:
+                lines.append(f"* **🎯 Concepto clave / Por qué fallaste:** {coment_txt}")
+            else:
+                lines.append(f"* **🎯 Concepto clave / Por qué fallaste:** [ANÁLISIS_CLÍNICO_FISIOPATOLÓGICO]")
 
         # Interrelación obligatoria si hay preguntas afines en la tirada
         if rel_items:
@@ -382,7 +454,7 @@ def generate_markdown_skeleton(tirada, audit_items, out_path="/tmp/guia_tirada_e
 
             sub_list_sorted = sorted(sub_list, key=sort_priority)
 
-            if len(sub_list_sorted) >= 2:
+            if s_name != "General / Conceptos Clave" and len(sub_list_sorted) >= 2:
                 q_refs = ", ".join(f"`Q{x['orden']:02d}`" for x in sub_list_sorted)
                 out.append(f"### 🧬 Clúster Clínico: {s_name} ({len(sub_list_sorted)} preguntas interrelacionadas: {q_refs})")
                 out.append(f"> 💡 **Interrelación de la Tirada:** Este clúster agrupa preguntas relacionadas sobre *{s_name}*. Compara los datos pivote que diferencian cada caso clínico.")
@@ -510,6 +582,8 @@ def main():
         asignatura = p.get("asignatura") or raw_q.get("asignatura") or "General"
         tema = p.get("tema") or raw_q.get("tema") or ""
         subtema = p.get("subtema") or raw_q.get("subtema") or ""
+        if not subtema or subtema.lower() in ("general", "otros", "general / conceptos clave"):
+            subtema = infer_subtema(asignatura, tema, enun_txt, coment_txt)
         dif = p.get("dificultad") or raw_q.get("dificultad") or 3
         convocatoria = p.get("convocatoria") or raw_q.get("convocatoria") or ""
         origen_tirada = p.get("origen_tirada") or "tema_estudiado"
