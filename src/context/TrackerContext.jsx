@@ -43,6 +43,52 @@ export function TrackerProvider({ children }) {
 
   const notifiedRef = useRef(false)
 
+  // ─── AUTO-TRACKER MAC (Lee el estado emitido por scripts/mac_tracker.py) ─────
+  useEffect(() => {
+    let activeAutoSessionId = null
+    const checkAutoTracker = async () => {
+      try {
+        const resp = await fetch('/src/data/live_tracker.json?t=' + Date.now())
+        if (!resp.ok) return
+        const live = await resp.json()
+        if (live.is_studying && live.session_active && live.descripcion) {
+          // Si el usuario no tiene una sesión manual iniciada o es una sesión automática
+          const currentActive = JSON.parse(localStorage.getItem(KEY_ACTIVE) || 'null')
+          if (!currentActive || currentActive.isAuto) {
+            if (activeAutoSessionId !== live.session_id) {
+              activeAutoSessionId = live.session_id
+              const autoEntry = {
+                id: live.session_id,
+                descripcion: live.descripcion,
+                especialidad: null,
+                tema: null,
+                inicio: live.session_start || (Date.now() - (live.session_duration_seconds * 1000)),
+                fecha: todayKey(),
+                isAuto: true,
+                categoria: live.categoria
+              }
+              setActiveEntry(autoEntry)
+              localStorage.setItem(KEY_ACTIVE, JSON.stringify(autoEntry))
+            }
+          }
+        } else {
+          // No está estudiando o inactivo
+          const currentActive = JSON.parse(localStorage.getItem(KEY_ACTIVE) || 'null')
+          if (currentActive && currentActive.isAuto) {
+            stopTracking()
+            activeAutoSessionId = null
+          }
+        }
+      } catch (e) {
+        // Ignorar si no está corriendo el daemon
+      }
+    }
+
+    const interval = setInterval(checkAutoTracker, 3000)
+    checkAutoTracker()
+    return () => clearInterval(interval)
+  }, [])
+
   useEffect(() => {
     clearInterval(timerRef.current)
     if (activeEntry) {

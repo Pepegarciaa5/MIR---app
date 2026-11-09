@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "tracker": "python3 scripts/mac_tracker.py"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.3",

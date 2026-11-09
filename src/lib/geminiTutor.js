@@ -131,6 +131,7 @@ export async function solicitarExplicacionTutor({
   isCorrect = false,
   confidence = null,
   discardedOptions = [],
+  userReasoning = '',
   commentary = '',
   forceRefresh = false
 }) {
@@ -165,7 +166,7 @@ ${optionsText}
 
 RESPUESTA CORRECTA: ${correctStr}
 RESPUESTA DEL OPOSITOR: ${userSelectedStr} (${isCorrect ? 'ACERTADA' : 'FALLADA'})
-NIVEL DE SEGURIDAD AL RESPONDER: ${confidenceStr}
+${userReasoning ? `JUSTIFICACIÓN / RAZONAMIENTO DEL OPOSITOR AL MARCAR ESTA RESPUESTA:\n"${userReasoning}"\n(IMPORTANTE: Analiza explícitamente la lógica del opositor: explica en qué punto acertó en su razonamiento y qué sesgo, olvido o trampa concreta le hizo llegar a una conclusión errónea o dudar)\n` : ''}NIVEL DE SEGURIDAD AL RESPONDER: ${confidenceStr}
 OPCIONES PREVIAMENTE DESCARTADAS POR EL OPOSITOR: ${discardedStr}
 
 ${commentary ? `COMENTARIO OFICIAL CTO DE APOYO:\n${commentary.replace(/<[^>]+>/g, ' ').slice(0, 1000)}` : ''}

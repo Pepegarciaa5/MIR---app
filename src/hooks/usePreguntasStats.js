@@ -1,10 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getOrCreateAnonUserId, upsertQuestionStat, flushOfflineSyncQueue, getOfflineQueueStats, enqueueQuestionStat } from '../utils/quizSync';
 import { supabase } from '../lib/supabase';
+import { getCanonicalId } from '../lib/bancoUnificado.js';
 
 import rawSimulacrosData from '../data/simulacrosCTO.json';
 
 const STORAGE_KEY = 'mir_banco_preguntas_stats';
+const LAST_CLOUD_PULL_KEY = 'mir_last_cloud_pull_ts';
+const RECONCILED_FLAG_KEY = 'mir_reconciled_nov2026_v1';
 
 // Bidirectional alias maps between pregunta_id (UUID) and simulacro-numero (e.g. "14-12")
 const uuidToSimNumMap = {};
@@ -124,7 +127,8 @@ export function calcularPrioridadYLatencia(esCorrecta, seguridad = 'green', esta
  */
 export function isEnLatencia(preguntaId, statsMap) {
   if (!preguntaId || !statsMap) return false;
-  const p = statsMap[preguntaId];
+  const canonId = getCanonicalId(preguntaId);
+  const p = statsMap[canonId] || statsMap[preguntaId];
   if (!p || !p.latenciaHasta) return false;
   return new Date(p.latenciaHasta).getTime() > Date.now();
 }
@@ -147,17 +151,28 @@ export function usePreguntasStats() {
     const doFetch = async () => {
       try {
         const userId = getOrCreateAnonUserId();
+        const currentStats = getGlobalStatsData();
+        const hasLocalData = Object.keys(currentStats).length > 0;
+        const lastPullTs = (!force && hasLocalData && typeof localStorage !== 'undefined')
+          ? localStorage.getItem(LAST_CLOUD_PULL_KEY)
+          : null;
+
         let allData = [];
         let from = 0;
         const PAGE_SIZE = 1000;
         let hasMore = true;
 
         while (hasMore) {
-          const { data, error } = await supabase
+          let query = supabase
             .from('user_question_stats')
             .select('question_id,status,confidence_history,note,racha_verde,latencia_hasta,puntuacion_prioridad,updated_at,created_at')
-            .eq('user_id', userId)
-            .range(from, from + PAGE_SIZE - 1);
+            .eq('user_id', userId);
+
+          if (lastPullTs) {
+            query = query.gt('updated_at', lastPullTs);
+          }
+
+          const { data, error } = await query.range(from, from + PAGE_SIZE - 1);
 
           if (error) {
             console.warn('Sincronización Supabase omitida o con error:', error.message);
@@ -179,41 +194,54 @@ export function usePreguntasStats() {
 
         isInitialFetched = true;
 
-        if (allData.length > 0) {
-          const currentStats = getGlobalStatsData();
-          const merged = { ...currentStats };
+        const merged = { ...currentStats };
+        let maxCloudTs = lastPullTs || null;
 
+        if (allData.length > 0) {
           allData.forEach(item => {
             if (item.question_id) {
+              const itemTs = item.updated_at || item.created_at || null;
+              if (itemTs && (!maxCloudTs || itemTs > maxCloudTs)) {
+                maxCloudTs = itemTs;
+              }
+
               const prev = merged[item.question_id] || {};
               const confHist = Array.isArray(item.confidence_history) ? item.confidence_history : [];
-              const aciertosCloud = confHist.filter(c => (typeof c === 'string' ? c === 'green' : c?.c === 'green')).length;
-              const fallosCloud = confHist.filter(c => {
+              const prevHist = Array.isArray(prev.confidence_history) ? prev.confidence_history : [];
+
+              const prevMs = prev.ultimaFecha ? new Date(prev.ultimaFecha).getTime() : 0;
+              const cloudMs = itemTs ? new Date(itemTs).getTime() : 0;
+              const localIsNewer = (prevMs > cloudMs + 2000) || (prevHist.length > confHist.length);
+
+              const activeHist = localIsNewer && prevHist.length > 0 ? prevHist : (confHist.length > 0 ? confHist : prevHist);
+              const aciertosCloud = activeHist.filter(c => (typeof c === 'string' ? c === 'green' : c?.c === 'green')).length;
+              const fallosCloud = activeHist.filter(c => {
                 const val = typeof c === 'string' ? c : c?.c;
                 return val === 'red' || val === 'orange' || val === 'yellow';
               }).length;
-              const vistasCloud = confHist.length;
+              const vistasCloud = activeHist.length;
 
               const finalAciertos = vistasCloud > 0 ? aciertosCloud : (prev.aciertos || 0);
               const finalFallos = vistasCloud > 0 ? fallosCloud : (prev.fallos || 0);
               const finalVistas = vistasCloud > 0 ? vistasCloud : Math.max(prev.vecesVistas || 0, finalAciertos + finalFallos);
 
               const isCorregida = item.status === 'corrected' || (item.note && item.note.includes('[CORREGIDA]')) || prev.corregida || false;
-              const cleanNote = item.note ? item.note.replace(/\[CORREGIDA\]\s*/g, '') : (prev.nota || '');
+              const cloudCleanNote = item.note ? item.note.replace(/\[CORREGIDA\]\s*/g, '') : '';
+              const cleanNote = (localIsNewer && prev.nota) ? prev.nota : (cloudCleanNote || prev.nota || '');
 
               const qStatObj = {
                 ...prev,
-                status: item.status,
+                status: localIsNewer && prev.status ? prev.status : item.status,
                 archivada: item.status === 'archived' || prev.archivada || false,
-                dudosa: item.status === 'needs_review' && item.confidence === 'yellow',
-                dominada: item.status === 'mastered',
+                dudosa: localIsNewer ? (prev.dudosa || false) : (item.status === 'needs_review' && item.confidence === 'yellow'),
+                dominada: localIsNewer ? (prev.dominada ?? (item.status === 'mastered')) : (item.status === 'mastered'),
                 corregida: isCorregida,
                 nota: cleanNote,
-                confidence_history: confHist.length > 0 ? confHist : (prev.confidence_history || []),
-                rachaVerde: item.racha_verde ?? prev.rachaVerde ?? 0,
-                latenciaHasta: item.latencia_hasta || prev.latenciaHasta || null,
-                puntuacionPrioridad: item.puntuacion_prioridad ?? prev.puntuacionPrioridad ?? null,
-                ultimaFecha: item.updated_at || item.created_at || prev.ultimaFecha,
+                confidence_history: activeHist,
+                rachaVerde: localIsNewer ? (prev.rachaVerde ?? item.racha_verde ?? 0) : (item.racha_verde ?? prev.rachaVerde ?? 0),
+                latenciaHasta: localIsNewer ? (prev.latenciaHasta || item.latencia_hasta || null) : (item.latencia_hasta || prev.latenciaHasta || null),
+                puntuacionPrioridad: localIsNewer ? (prev.puntuacionPrioridad ?? item.puntuacion_prioridad ?? null) : (item.puntuacion_prioridad ?? prev.puntuacionPrioridad ?? null),
+                ultimaFecha: localIsNewer ? (prev.ultimaFecha || itemTs) : (itemTs || prev.ultimaFecha),
                 vecesVistas: finalVistas,
                 aciertos: finalAciertos,
                 fallos: finalFallos
@@ -229,12 +257,55 @@ export function usePreguntasStats() {
             }
           });
           setGlobalStatsData(merged);
-          if (!silent) alert(`¡Sincronización completada! Se han descargado ${allData.length} preguntas de la nube.`);
-          return allData.length;
-        } else {
-          if (!silent) alert('No se encontraron registros de preguntas en la nube de Supabase.');
-          return 0;
         }
+
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem(LAST_CLOUD_PULL_KEY, maxCloudTs || new Date().toISOString());
+
+          // Reconciliación única post-corte offline: sube cualquier nota, [CORREGIDA] o respuesta local reciente
+          if (localStorage.getItem(RECONCILED_FLAG_KEY) !== '1') {
+            localStorage.setItem(RECONCILED_FLAG_KEY, '1');
+            const seenCanon = new Set();
+            let enqueuedDelta = 0;
+            for (const [k, s] of Object.entries(merged)) {
+              if (!s) continue;
+              const canonId = getCanonicalId(k) || simNumToUuidMap[k] || k;
+              if (seenCanon.has(canonId)) continue;
+              seenCanon.add(canonId);
+
+              const hasRecentOffline = s.ultimaFecha && s.ultimaFecha > '2026-10-23T16:50:00.000Z';
+              if (s.corregida || s.nota || s.archivada || hasRecentOffline) {
+                const status = s.archivada
+                  ? 'archived'
+                  : (s.dominada
+                    ? 'mastered'
+                    : (s.fallos > 0 || s.dudosa ? 'needs_review' : 'mastered'));
+                let noteWithTag = s.nota || '';
+                if (s.corregida && !noteWithTag.includes('[CORREGIDA]')) {
+                  noteWithTag = `[CORREGIDA] ${noteWithTag}`.trim();
+                }
+                enqueueQuestionStat(userId, canonId, {
+                  subject: s.subject || 'General',
+                  status,
+                  confidence_history: Array.isArray(s.confidence_history) ? s.confidence_history : [],
+                  note: noteWithTag,
+                  racha_verde: s.rachaVerde || 0,
+                  latencia_hasta: s.latenciaHasta || null,
+                  puntuacion_prioridad: s.puntuacionPrioridad || 7
+                });
+                enqueuedDelta++;
+              }
+            }
+            if (enqueuedDelta > 0) {
+              await flushOfflineSyncQueue();
+            }
+          }
+        }
+
+        if (!silent) {
+          alert(`¡Sincronización completada! (${allData.length} registros nuevos/actualizados desde la nube).`);
+        }
+        return allData.length;
       } catch (err) {
         console.warn('Excepción al consultar Supabase:', err.message);
         if (!silent) alert(`Excepción al sincronizar: ${err.message}`);
@@ -252,9 +323,15 @@ export function usePreguntasStats() {
     const currentStats = getGlobalStatsData();
     const userId = getOrCreateAnonUserId();
     const entries = Object.entries(currentStats);
+    const seenCanon = new Set();
     let count = 0;
 
     for (const [preguntaId, s] of entries) {
+      if (!s) continue;
+      const canonId = getCanonicalId(preguntaId) || simNumToUuidMap[preguntaId] || preguntaId;
+      if (seenCanon.has(canonId)) continue;
+      seenCanon.add(canonId);
+
       if (s.vecesVistas > 0 || s.nota || s.archivada || s.aciertos > 0 || s.fallos > 0 || s.corregida) {
         const status = s.archivada
           ? 'archived'
@@ -278,7 +355,7 @@ export function usePreguntasStats() {
           noteWithTag = `[CORREGIDA] ${noteWithTag}`.trim();
         }
 
-        enqueueQuestionStat(userId, preguntaId, {
+        enqueueQuestionStat(userId, canonId, {
           subject: s.subject || 'General',
           status: status,
           confidence_history: confHist,
@@ -367,16 +444,18 @@ export function usePreguntasStats() {
     };
 
     // Guardar una sola fila canónica en la nube (los alias locales ya se resuelven en memoria)
-    const canonicalId = simNumToUuidMap[preguntaId] || preguntaId;
+    const canonicalId = getCanonicalId(preguntaId) || simNumToUuidMap[preguntaId] || preguntaId;
     upsertQuestionStat(userId, canonicalId, payload);
   };
 
   const registrarRespuesta = useCallback((preguntaId, esCorrecta, respuestaSeleccionada, extraData = {}) => {
+    if (!preguntaId) return;
     const currentStats = getGlobalStatsData();
+    const canonId = getCanonicalId(preguntaId);
     const alias1 = uuidToSimNumMap[preguntaId];
     const alias2 = simNumToUuidMap[preguntaId];
 
-    const p = currentStats[preguntaId] || (alias1 ? currentStats[alias1] : null) || (alias2 ? currentStats[alias2] : null) || {
+    const p = currentStats[canonId] || currentStats[preguntaId] || (alias1 ? currentStats[alias1] : null) || (alias2 ? currentStats[alias2] : null) || {
       vecesVistas: 0, aciertos: 0, fallos: 0, ultimaRespuesta: null, ultimaFecha: null, dudosa: false, dominada: false, corregida: false
     };
 
@@ -407,21 +486,24 @@ export function usePreguntasStats() {
 
     const newStats = {
       ...currentStats,
-      [preguntaId]: updated
+      [canonId]: updated
     };
-    if (alias1) newStats[alias1] = updated;
-    if (alias2) newStats[alias2] = updated;
+    if (preguntaId !== canonId) newStats[preguntaId] = updated;
+    if (alias1 && alias1 !== canonId) newStats[alias1] = updated;
+    if (alias2 && alias2 !== canonId) newStats[alias2] = updated;
 
     setGlobalStatsData(newStats);
-    syncToCloud(preguntaId, updated);
+    syncToCloud(canonId, updated);
   }, []);
 
   const marcarEstado = useCallback((preguntaId, tipo) => {
+    if (!preguntaId) return;
     const currentStats = getGlobalStatsData();
+    const canonId = getCanonicalId(preguntaId);
     const alias1 = uuidToSimNumMap[preguntaId];
     const alias2 = simNumToUuidMap[preguntaId];
 
-    const p = currentStats[preguntaId] || (alias1 ? currentStats[alias1] : null) || (alias2 ? currentStats[alias2] : null) || {
+    const p = currentStats[canonId] || currentStats[preguntaId] || (alias1 ? currentStats[alias1] : null) || (alias2 ? currentStats[alias2] : null) || {
       vecesVistas: 0, aciertos: 0, fallos: 0, ultimaRespuesta: null, ultimaFecha: null, dudosa: false, dominada: false, corregida: false
     };
 
@@ -433,21 +515,24 @@ export function usePreguntasStats() {
 
     const newStats = {
       ...currentStats,
-      [preguntaId]: updated
+      [canonId]: updated
     };
-    if (alias1) newStats[alias1] = updated;
-    if (alias2) newStats[alias2] = updated;
+    if (preguntaId !== canonId) newStats[preguntaId] = updated;
+    if (alias1 && alias1 !== canonId) newStats[alias1] = updated;
+    if (alias2 && alias2 !== canonId) newStats[alias2] = updated;
 
     setGlobalStatsData(newStats);
-    syncToCloud(preguntaId, updated);
+    syncToCloud(canonId, updated);
   }, []);
 
   const marcarCorregida = useCallback((preguntaId, estado = true) => {
+    if (!preguntaId) return;
     const currentStats = getGlobalStatsData();
+    const canonId = getCanonicalId(preguntaId);
     const alias1 = uuidToSimNumMap[preguntaId];
     const alias2 = simNumToUuidMap[preguntaId];
 
-    const p = currentStats[preguntaId] || (alias1 ? currentStats[alias1] : null) || (alias2 ? currentStats[alias2] : null) || {
+    const p = currentStats[canonId] || currentStats[preguntaId] || (alias1 ? currentStats[alias1] : null) || (alias2 ? currentStats[alias2] : null) || {
       vecesVistas: 0, aciertos: 0, fallos: 0, ultimaRespuesta: null, ultimaFecha: null, dudosa: false, dominada: false, corregida: false
     };
 
@@ -458,17 +543,20 @@ export function usePreguntasStats() {
 
     const newStats = {
       ...currentStats,
-      [preguntaId]: updated
+      [canonId]: updated
     };
-    if (alias1) newStats[alias1] = updated;
-    if (alias2) newStats[alias2] = updated;
+    if (preguntaId !== canonId) newStats[preguntaId] = updated;
+    if (alias1 && alias1 !== canonId) newStats[alias1] = updated;
+    if (alias2 && alias2 !== canonId) newStats[alias2] = updated;
 
     setGlobalStatsData(newStats);
-    syncToCloud(preguntaId, updated);
+    syncToCloud(canonId, updated);
   }, []);
 
   const getStatsPregunta = useCallback((preguntaId) => {
     if (!preguntaId) return null;
+    const canonId = getCanonicalId(preguntaId);
+    if (stats[canonId]) return stats[canonId];
     if (stats[preguntaId]) return stats[preguntaId];
     const alias1 = uuidToSimNumMap[preguntaId];
     if (alias1 && stats[alias1]) return stats[alias1];
@@ -478,22 +566,27 @@ export function usePreguntasStats() {
   }, [stats]);
 
   const guardarNota = useCallback((preguntaId, nota) => {
+    if (!preguntaId) return;
     const currentStats = getGlobalStatsData();
-    const p = currentStats[preguntaId] || {
+    const canonId = getCanonicalId(preguntaId);
+    const p = currentStats[canonId] || currentStats[preguntaId] || {
       vecesVistas: 0, aciertos: 0, fallos: 0, ultimaRespuesta: null, ultimaFecha: null, dudosa: false, dominada: false, corregida: false
     };
-    const updated = { ...p, nota: nota.trim() };
-    setGlobalStatsData({
+    const updated = { ...p, nota: (nota || '').trim() };
+    const newStats = {
       ...currentStats,
-      [preguntaId]: updated
-    });
-    syncToCloud(preguntaId, updated);
+      [canonId]: updated
+    };
+    if (preguntaId !== canonId) newStats[preguntaId] = updated;
+    setGlobalStatsData(newStats);
+    syncToCloud(canonId, updated);
   }, []);
 
   const archivarPregunta = useCallback((preguntaId, motivo = 'missing_data') => {
     if (!preguntaId) return;
     const currentStats = getGlobalStatsData();
-    const p = currentStats[preguntaId] || {
+    const canonId = getCanonicalId(preguntaId);
+    const p = currentStats[canonId] || currentStats[preguntaId] || {
       vecesVistas: 0, aciertos: 0, fallos: 0, ultimaRespuesta: null, ultimaFecha: null, dudosa: false, dominada: false, corregida: false
     };
     const updated = {
@@ -504,24 +597,34 @@ export function usePreguntasStats() {
     };
     const newStats = {
       ...currentStats,
-      [preguntaId]: updated
+      [canonId]: updated
     };
+    if (preguntaId !== canonId) newStats[preguntaId] = updated;
     setGlobalStatsData(newStats);
-    syncToCloud(preguntaId, updated);
+    syncToCloud(canonId, updated);
   }, []);
 
   const isArchivada = useCallback((preguntaId) => {
     if (!preguntaId) return false;
-    return !!stats[preguntaId]?.archivada || stats[preguntaId]?.status === 'archived';
+    const canonId = getCanonicalId(preguntaId);
+    const s = stats[canonId] || stats[preguntaId];
+    return !!s?.archivada || s?.status === 'archived';
   }, [stats]);
 
-  // Obtener rendimiento global
+  // Obtener rendimiento global sin duplicación por alias
   const getGlobalStats = useCallback(() => {
     let totalRespuestas = 0;
     let totalAciertos = 0;
     let totalFallos = 0;
 
-    Object.values(stats).forEach(s => {
+    const seenCanonicalKeys = new Set();
+
+    Object.entries(stats).forEach(([key, s]) => {
+      if (!s) return;
+      const canonId = getCanonicalId(key);
+      if (seenCanonicalKeys.has(canonId)) return;
+      seenCanonicalKeys.add(canonId);
+
       totalRespuestas += s.vecesVistas || 0;
       totalAciertos += s.aciertos || 0;
       totalFallos += s.fallos || 0;

@@ -13,6 +13,7 @@ export default function TutorGemini({
   isCorrect,
   confidence,
   discardedOptions = [],
+  userReasoning = '',
   commentary = '',
   onGuardarNota = null,
   currentNota = ''
@@ -59,6 +60,7 @@ export default function TutorGemini({
         isCorrect,
         confidence,
         discardedOptions,
+        userReasoning,
         commentary,
         forceRefresh
       });

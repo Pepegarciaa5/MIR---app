@@ -124,31 +124,51 @@ export function generarColaPreguntas(
   }
 
   const numNuevasDeseadas = Math.min(nuevas.length, Math.round(targetCount * pctNuevas));
-  const numRepasosDeseados = Math.max(0, targetCount - numNuevasDeseadas);
+
+  const normalizeTxt = (txt) => (txt || '').toLowerCase().replace(/<[^>]*>/g, '').replace(/[^\p{L}\p{N}]/gu, '').slice(0, 100);
+
+  // Seleccionar asegurando unicidad absoluta tanto por ID como por texto del enunciado
+  const finalCola = [];
+  const idsUsados = new Set();
+  const textosUsados = new Set();
+
+  const intentarAgregar = (q) => {
+    if (!q || !q.id || idsUsados.has(q.id)) return false;
+    const norm = normalizeTxt(q.text || q.enunciado);
+    if (norm.length >= 25 && textosUsados.has(norm)) return false;
+    
+    idsUsados.add(q.id);
+    if (norm.length >= 25) textosUsados.add(norm);
+    finalCola.push(q);
+    return true;
+  };
 
   // 7. Seleccionar preguntas nuevas (mezcladas aleatoriamente)
-  const nuevasSeleccionadas = [...nuevas].sort(() => 0.5 - Math.random()).slice(0, numNuevasDeseadas);
+  const nuevasMezcladas = [...nuevas].sort(() => 0.5 - Math.random());
+  for (const q of nuevasMezcladas) {
+    if (finalCola.length >= numNuevasDeseadas) break;
+    intentarAgregar(q);
+  }
 
-  // 8. Seleccionar preguntas de repaso ordenadas por prioridad DESC (10 -> 1) con pequeña aleatoriedad en empates
+  // 8. Seleccionar preguntas de repaso ordenadas por prioridad DESC (10 -> 1)
   const repasosOrdenados = [...repasos].sort((a, b) => {
     if (b._prio !== a._prio) return b._prio - a._prio;
     return 0.5 - Math.random();
   });
-  const repasosSeleccionados = repasosOrdenados.slice(0, numRepasosDeseados);
+  for (const q of repasosOrdenados) {
+    if (finalCola.length >= targetCount) break;
+    intentarAgregar(q);
+  }
 
-  // 9. Combinar y rellenar si alguna lista quedó corta
-  let finalCola = [...nuevasSeleccionadas, ...repasosSeleccionados];
-
+  // 9. Si aún no alcanzamos el cupo, rellenar con lo restante disponible
   if (finalCola.length < targetCount) {
-    const idsUsados = new Set(finalCola.map(q => q.id));
-    const restantesNuevas = nuevas.filter(q => !idsUsados.has(q.id));
-    const restantesRepasos = repasosOrdenados.filter(q => !idsUsados.has(q.id));
-    const restantes = [...restantesNuevas, ...restantesRepasos];
-    
-    let i = 0;
-    while (finalCola.length < targetCount && i < restantes.length) {
-      finalCola.push(restantes[i]);
-      i++;
+    for (const q of nuevasMezcladas) {
+      if (finalCola.length >= targetCount) break;
+      intentarAgregar(q);
+    }
+    for (const q of repasosOrdenados) {
+      if (finalCola.length >= targetCount) break;
+      intentarAgregar(q);
     }
   }
 

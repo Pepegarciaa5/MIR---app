@@ -26,6 +26,7 @@ import {
   getDetalleBigotesAsignatura
 } from '../lib/simulacros'
 import ClinicalImage from '../components/common/ClinicalImage'
+import ErrorBoundary from '../components/common/ErrorBoundary'
 
 
 
@@ -831,92 +832,101 @@ function QuestionRow({ q, highlightColor }) {
       </div>
       
       {open && fullQ.texto && (
-        <div className="p-5 bg-slate-50/50 border-t border-slate-100 text-sm animate-fade-in shadow-inner">
-          <p className="font-medium text-slate-800 mb-4 whitespace-pre-wrap leading-relaxed">{fullQ.texto.enunciado}</p>
+        <ErrorBoundary fallback={
+          <div className="p-5 bg-red-50 text-red-800 text-xs border-t">
+            ⚠️ Ocurrió un error al cargar los detalles de esta pregunta.
+          </div>
+        }>
+          <div className="p-5 bg-slate-50/50 border-t border-slate-100 text-sm animate-fade-in shadow-inner">
+            <p className="font-medium text-slate-800 mb-4 whitespace-pre-wrap leading-relaxed">{fullQ.texto.enunciado}</p>
 
-          {fullQ.texto.imagen_nombre && (
-            <ClinicalImage
-              src={fullQ.texto.imagen_nombre}
-              alt={`Simulacro ${q.simulacro} · Pregunta ${q.numero}`}
-              className="my-4"
-            />
-          )}
+            {fullQ.texto.imagen_nombre && (
+              <ClinicalImage
+                src={fullQ.texto.imagen_nombre}
+                alt={`Simulacro ${q.simulacro} · Pregunta ${q.numero}`}
+                className="my-4"
+              />
+            )}
 
-          {/* Porcentaje de acierto de la comunidad */}
-          {pctNum !== null && (() => {
-            const bgColor = pctNum >= 70
-              ? 'bg-red-50 border-red-200 text-red-800'
-              : pctNum >= 40
-                ? 'bg-orange-50 border-orange-200 text-orange-800'
-                : 'bg-emerald-50 border-emerald-200 text-emerald-800';
-            const label = pctNum >= 70
-              ? '😬 La acertaba casi todo el mundo — revisa bien este concepto'
-              : pctNum >= 40
-                ? '😐 Dificultad media en el examen'
-                : '🧠 Pregunta difícil — no te flagelesmucho si la fallaste';
-            return (
-              <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border mb-5 ${bgColor}`}>
-                <span className="text-2xl font-black">{pctNum}%</span>
-                <div>
-                  <div className="font-black text-[11px] uppercase tracking-widest opacity-60 mb-0.5">Acierto en el examen real</div>
-                  <div className="text-xs font-semibold">{label}</div>
-                </div>
-              </div>
-            );
-          })()}
-
-          <div className="flex flex-col gap-2 mb-5">
-            {fullQ.texto.respuestas?.map((res) => {
-              const isSelected = res.numero === q.respuesta_dada
-              const isRight = res.numero === q.respuesta_correcta
-              
-              let styleCls = "p-3 rounded-lg border bg-white flex gap-3 shadow-sm transition-all"
-              if (isRight) styleCls = "p-3 rounded-lg border-emerald-500 bg-emerald-50 text-emerald-900 font-medium flex gap-3 shadow-sm ring-1 ring-emerald-500/20"
-              else if (isSelected) styleCls = "p-3 rounded-lg border-red-400 bg-red-50 text-red-900 font-medium flex gap-3 shadow-sm"
-              
+            {/* Porcentaje de acierto de la comunidad */}
+            {pctNum !== null && (() => {
+              const bgColor = pctNum >= 70
+                ? 'bg-red-50 border-red-200 text-red-800'
+                : pctNum >= 40
+                  ? 'bg-orange-50 border-orange-200 text-orange-800'
+                  : 'bg-emerald-50 border-emerald-200 text-emerald-800';
+              const label = pctNum >= 70
+                ? '😬 La acertaba casi todo el mundo — revisa bien este concepto'
+                : pctNum >= 40
+                  ? '😐 Dificultad media en el examen'
+                  : '🧠 Pregunta difícil — no te flagelesmucho si la fallaste';
               return (
-                <div key={res.numero} className={styleCls}>
-                  <div className="font-black w-4 opacity-50">{res.numero}.</div>
-                  <div className="flex-1 leading-relaxed">{res.enunciado}</div>
-                  {isRight && <div className="text-emerald-600 font-bold">✅</div>}
-                  {isSelected && !isRight && <div className="text-red-500 font-bold">❌</div>}
+                <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border mb-5 ${bgColor}`}>
+                  <span className="text-2xl font-black">{pctNum}%</span>
+                  <div>
+                    <div className="font-black text-[11px] uppercase tracking-widest opacity-60 mb-0.5">Acierto en el examen real</div>
+                    <div className="text-xs font-semibold">{label}</div>
+                  </div>
                 </div>
-              )
-            })}
-          </div>
-          {fullQ.texto.comentario && (
-            <div className="bg-blue-50/30 border border-blue-100 rounded-lg p-5 text-slate-700 text-sm">
-              <div className="font-black mb-2 uppercase tracking-widest text-[10px] text-blue-600 flex items-center gap-2">
-                <span>💡</span> Comentario Oficial
-              </div>
-              <div className="whitespace-pre-wrap leading-relaxed">{fullQ.texto.comentario}</div>
+              );
+            })()}
+
+            <div className="flex flex-col gap-2 mb-5">
+              {fullQ.texto.respuestas?.map((res) => {
+                const isSelected = res.numero === q.respuesta_dada
+                const isRight = res.numero === q.respuesta_correcta
+                
+                let styleCls = "p-3 rounded-lg border bg-white flex gap-3 shadow-sm transition-all"
+                if (isRight) styleCls = "p-3 rounded-lg border-emerald-500 bg-emerald-50 text-emerald-900 font-medium flex gap-3 shadow-sm ring-1 ring-emerald-500/20"
+                else if (isSelected) styleCls = "p-3 rounded-lg border-red-400 bg-red-50 text-red-900 font-medium flex gap-3 shadow-sm"
+                
+                return (
+                  <div key={res.numero} className={styleCls}>
+                    <div className="font-black w-4 opacity-50">{res.numero}.</div>
+                    <div className="flex-1 leading-relaxed">{res.enunciado}</div>
+                    {isRight && <div className="text-emerald-600 font-bold">✅</div>}
+                    {isSelected && !isRight && <div className="text-red-500 font-bold">❌</div>}
+                  </div>
+                )
+              })}
             </div>
-          )}
+            {fullQ.texto.comentario && (
+              <div className="bg-blue-50/40 border border-blue-200/80 rounded-xl p-5 text-slate-800">
+                <div className="font-black mb-2 uppercase tracking-wider text-xs text-blue-700 flex items-center gap-2">
+                  <span>💡</span> Comentario Oficial CTO
+                </div>
+                <div
+                  className="comentario-html text-base sm:text-[17px] text-slate-800 leading-relaxed"
+                  dangerouslySetInnerHTML={{ __html: fullQ.texto.comentario }}
+                />
+              </div>
+            )}
 
-          <NotaPersonal
-            preguntaId={qId}
-            nota={stats.nota || ''}
-            onGuardar={(id, notaText) => {
-              guardarNota(id, notaText);
-              if (q.simulacro && q.numero && `${q.simulacro}-${q.numero}` !== id) {
-                guardarNota(`${q.simulacro}-${q.numero}`, notaText);
-              }
-            }}
-          />
+            <NotaPersonal
+              preguntaId={qId}
+              nota={stats.nota || ''}
+              onGuardar={(id, notaText) => {
+                guardarNota(id, notaText);
+                if (q.simulacro && q.numero && `${q.simulacro}-${q.numero}` !== id) {
+                  guardarNota(`${q.simulacro}-${q.numero}`, notaText);
+                }
+              }}
+            />
 
-          <div className="mt-5 border-t border-slate-200/60 pt-5 flex justify-end">
-            <button
-              onClick={toggleCorregida}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm ${
-                isCorregida 
-                  ? 'bg-emerald-100 text-emerald-800 border-2 border-emerald-300 hover:bg-emerald-200'
-                  : 'bg-white text-slate-600 border-2 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-              }`}
-            >
-              {isCorregida ? '✅ Marcar como NO aprendida' : '🎓 Marcar como Corregida / Aprendida'}
-            </button>
+            <div className="mt-5 border-t border-slate-200/60 pt-5 flex justify-end">
+              <button
+                onClick={toggleCorregida}
+                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm ${
+                  isCorregida 
+                    ? 'bg-emerald-100 text-emerald-800 border-2 border-emerald-300 hover:bg-emerald-200'
+                    : 'bg-white text-slate-600 border-2 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                }`}
+              >
+                {isCorregida ? '✅ Marcar como NO aprendida' : '🎓 Marcar como Corregida / Aprendida'}
+              </button>
+            </div>
           </div>
-        </div>
+        </ErrorBoundary>
       )}
       
       {open && !fullQ.texto && (

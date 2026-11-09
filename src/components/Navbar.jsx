@@ -111,17 +111,43 @@ const IcoQuiz = ({ active }) => (
   </svg>
 )
 
+const IcoTarget = ({ active }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+    stroke={active ? ACCENT : '#999'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <circle cx="12" cy="12" r="6" />
+    <circle cx="12" cy="12" r="2" />
+  </svg>
+)
+
+const IcoSearch = ({ active }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+    stroke={active ? ACCENT : '#999'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="11" cy="11" r="8" />
+    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+  </svg>
+)
+
+const IcoTrendingUp = ({ active }) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+    stroke={active ? ACCENT : '#999'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+    <polyline points="17 6 23 6 23 12" />
+  </svg>
+)
+
 const ALL_TABS = [
-  { id: 'inicio',     label: 'Inicio',            Icon: IcoHome },
-  { id: 'desgloses',  label: 'Desgloses MIR',      Icon: IcoSimulacros },
-  { id: 'quiz',       label: 'Banco Preguntas',    Icon: IcoQuiz },
-  { id: 'adaptativo', label: 'Estudio Adaptativo', Icon: IcoRepeat },
-  { id: 'simulacros', label: 'Simulacros',         Icon: IcoSimulacros },
-  { id: 'calendario', label: 'Calendario',         Icon: IcoCalendar },
-  { id: 'repasos',    label: 'Repasos',            Icon: IcoRepeat },
-  { id: 'progreso',   label: 'Progreso',           Icon: IcoChart },
-  { id: 'diario',     label: 'Diario',             Icon: IcoPen },
-  { id: 'publico',    label: 'Vista Pública',      Icon: IcoHome },
+  { id: 'inicio',      label: 'Inicio',            Icon: IcoHome },
+  { id: 'buscador',    label: 'Buscador',          Icon: IcoSearch },
+  { id: 'prioridades', label: 'Prioridades Temas', Icon: IcoTarget },
+  { id: 'evaluacion_p80', label: 'Evaluación P80', Icon: IcoTrendingUp },
+  { id: 'preguntas',   label: 'Tirador de Preguntas', Icon: IcoQuiz },
+  { id: 'simulacros',  label: 'Simulacros',         Icon: IcoSimulacros },
+  { id: 'calendario',  label: 'Calendario',         Icon: IcoCalendar },
+  { id: 'repasos',     label: 'Repasos',            Icon: IcoRepeat },
+  { id: 'progreso',    label: 'Progreso',           Icon: IcoChart },
+  { id: 'diario',      label: 'Diario',             Icon: IcoPen },
+  { id: 'publico',     label: 'Vista Pública',      Icon: IcoHome },
 ]
 
 export default function Navbar({ active, setActive }) {
@@ -162,7 +188,7 @@ export default function Navbar({ active, setActive }) {
       </button>
 
       {ALL_TABS.map(({ id, label, Icon }) => {
-        const isActive = active === id
+        const isActive = active === id || (id === 'preguntas' && ['desgloses', 'quiz', 'adaptativo', 'preguntas'].includes(active))
         return (
           <button
             key={id}

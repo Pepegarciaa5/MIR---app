@@ -54,6 +54,7 @@ const EMOJI_CATEGORIA = {
   'Videoclase': '🎬',
   'Clase': '📡',
   'Desgloses': '📝',
+  'SmartCards': '🃏',
   'Evaluación': '📝',
   'Corrección Evaluación': '✏️',
   'Simulacro': '📝',
@@ -80,6 +81,8 @@ planificacionRaw.forEach((entry, idx) => {
     titulo: t.titulo,
     tieneVideo: t.tiene_video,
     resumen: t.resumen || null,
+    esquemaFile: t.esquema_file || null,
+    adendaFile: t.adenda_file || null,
   }))
 
   const bloque = {

@@ -3,7 +3,9 @@ import {
   getAnalisisPrioridadesTemas,
   getPreguntasDeTema,
   formatQuestionAsText,
-  formatTopicAsDocument
+  formatTopicAsDocument,
+  SIMULACRO_MIN_PRIORIDAD,
+  MAX_SIMULACRO_DISPONIBLE
 } from '../lib/prioridadesTemas';
 import { getEspecialidadColor } from '../data/especialidadesMIR';
 import ClinicalImage from '../components/common/ClinicalImage';
@@ -166,7 +168,7 @@ export default function PrioridadesTemas() {
                 Prioridades de Repaso por Temas
               </h1>
               <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-800 border border-orange-200">
-                Últimos 4 MIR + Sims 9-18
+                Últimos 4 MIR + Sims {SIMULACRO_MIN_PRIORIDAD}-{MAX_SIMULACRO_DISPONIBLE}
               </span>
             </div>
             <p className="text-sm text-slate-500 mt-1.5 max-w-3xl leading-relaxed">
@@ -357,7 +359,7 @@ export default function PrioridadesTemas() {
                                   <span className="text-slate-300">•</span>
                                   <span>MIR recientes: <strong className="text-slate-700">{t.mirCount}</strong></span>
                                   <span className="text-slate-300">•</span>
-                                  <span>Simulacros 9-18: <strong className="text-slate-700">{t.simCount}</strong></span>
+                                  <span>Simulacros {SIMULACRO_MIN_PRIORIDAD}-{MAX_SIMULACRO_DISPONIBLE}: <strong className="text-slate-700">{t.simCount}</strong></span>
                                 </div>
                               </div>
                             </div>
@@ -574,7 +576,7 @@ export default function PrioridadesTemas() {
                       onChange={(e) => setSoloRecientes(!e.target.checked)}
                       className="rounded text-orange-600 focus:ring-orange-500 h-3.5 w-3.5"
                     />
-                    <span>Histórico completo (MIR 2010-2026 y Sims 1-18)</span>
+                    <span>Histórico completo (MIR 2010-2026 y Sims 1-{MAX_SIMULACRO_DISPONIBLE})</span>
                   </label>
 
                   <div className="h-4 w-px bg-slate-300" />

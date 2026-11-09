@@ -24,6 +24,8 @@ export default function ClinicalImage({
   const [hasError, setHasError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  const imageUrl = currentSrc || localUrl;
+
   // Sincronizar fuente si cambia la pregunta
   useEffect(() => {
     setCurrentSrc(localUrl);

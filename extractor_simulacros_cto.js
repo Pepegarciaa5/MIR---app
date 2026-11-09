@@ -15,8 +15,8 @@
 
   // PREGUNTA AL USUARIO PARA OPTIMIZAR
   const textoSimulacroStartStr = prompt(
-    "¿Desde qué número de simulacro quieres descargar los textos largos?\n(Ej: Pon '18' para descargar solo los textos del simulacro 18. Pon '0' para descargar todos de nuevo).", 
-    "18"
+    "¿Desde qué número de simulacro quieres descargar los textos largos?\n(Ej: Pon '20' para descargar solo los textos del simulacro 20. Pon '0' para descargar todos de nuevo).", 
+    "20"
   );
   const textoSimulacroStart = parseInt(textoSimulacroStartStr || "0", 10);
 
@@ -36,7 +36,25 @@
     console.warn("⚠️  Usando IDs por defecto. Si falla, navega a Simulacros y vuelve a ejecutar.");
   }
 
-  // ── 2. Obtener lista de simulacros ──────────────────────────────────────
+  // ── 2. Obtener lista de simulacros y tabla oficial de percentiles ───────
+  let percentilesMap = {};
+  try {
+    const resGlobal = await fetch(`/api/campus/examenes/resultados/${edicionId}/Simulacro?timestamp=${Date.now()}`, { headers });
+    if (resGlobal.ok) {
+      const resJson = await resGlobal.json();
+      const objRes = Array.isArray(resJson) ? resJson[0] : resJson;
+      (objRes?.percentiles_simulacros || []).forEach(p => {
+        percentilesMap[p.numero] = {
+          p5: Math.round((p.p05 / 3) * 100) / 100,
+          p25: Math.round((p.p25 / 3) * 100) / 100,
+          p50: Math.round((p.p50 / 3) * 100) / 100,
+          p75: Math.round((p.p75 / 3) * 100) / 100,
+          p95: Math.round((p.p95 / 3) * 100) / 100,
+        };
+      });
+    }
+  } catch (e) {}
+
   const listR = await fetch(`/api/campus/examenes/activos/${edicionId}/${grupoId}/Simulacro`, { headers });
   if (!listR.ok) {
     console.error("❌ Error al obtener simulacros:", listR.status);
@@ -66,11 +84,7 @@
       if (infoR.ok) infoData = await infoR.json();
     } catch (e) {}
 
-    let percentilesData = null;
-    try {
-      const percR = await fetch(`/api/campus/examenes/percentiles/${resultadoId}`);
-      if (percR.ok) percentilesData = await percR.json();
-    } catch (e) {}
+    let percentilesData = percentilesMap[sim.numero] || null;
 
     // --- B. Extraer Respuestas del Alumno (/revisar/) ---
     let preguntasRevisar = [];

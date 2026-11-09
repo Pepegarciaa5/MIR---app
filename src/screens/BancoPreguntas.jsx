@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import BANCO_RAW from '../data/bancoPreguntas.json';
 import TEXTOS_SIMULACROS from '../data/simulacros_textos.json';
 import TEXTOS_DESGLOSES from '../data/desgloses.json';
@@ -7,15 +7,29 @@ import { desgloseAnual } from '../data/mirStats';
 import { usePreguntasStats } from '../hooks/usePreguntasStats';
 import { generarColaPreguntas } from '../lib/recommendations';
 import QuestionCard from '../components/quiz/QuestionCard';
+import ClinicalImage from '../components/common/ClinicalImage';
 import NotaPersonal from '../components/quiz/NotaPersonal';
 import TutorGemini from '../components/quiz/TutorGemini';
 import SyncStatusBanner from '../components/quiz/SyncStatusBanner';
 import { getOrCreateAnonUserId, createQuizResult, flushOfflineSyncQueue } from '../utils/quizSync';
+import { 
+  construirPayloadTirada, 
+  guardarTiradaParaChat, 
+  descargarTiradaJSON, 
+  copiarTiradaAlPortapapeles 
+} from '../utils/tiradaStorage';
 
 const STATS_MAP = new Map(getPreguntas().map(p => [p.pregunta_id, p]));
 
-const QUESTIONS = [
-  ...BANCO_RAW,
+// BANCO_RAW contiene preguntas de Simulacros 1 al 7 (duplicadas con simulacros_textos.json) y preguntas PDF por asignatura.
+// Conservamos solo las preguntas exclusivas de banco (PDFs) para que los simulacros se carguen desde TEXTOS_SIMULACROS con sus UUIDs oficiales.
+const BANCO_PDFS = BANCO_RAW.filter(q => !q.origen?.startsWith('Simulacro') && !q.cto_id);
+
+const RAW_COMBINED_QUESTIONS = [
+  ...BANCO_PDFS.map(q => ({
+    ...q,
+    image: q.image || q.imagen || q.imagen_nombre
+  })),
   ...TEXTOS_SIMULACROS.map(t => {
     const stats_cto = STATS_MAP.get(t.id) || {};
     return {
@@ -24,7 +38,7 @@ const QUESTIONS = [
       options: [...(t.respuestas || [])].sort((a, b) => a.numero - b.numero).map(r => r.enunciado),
       answer: t.respuestas?.find(r => r.correcta)?.numero || 1,
       asignatura: ASIGNATURA_NOMBRE[stats_cto.asignatura] || stats_cto.asignatura || 'Simulacros',
-      image: t.imagen_nombre,
+      image: t.imagen_nombre || t.image || t.imagen,
       origen: `Simulacro ${t.simulacro}`,
       comentario: t.comentario,
       cto_fallada: stats_cto.fallada === 1,
@@ -37,13 +51,38 @@ const QUESTIONS = [
     options: [...(d.respuestas || [])].sort((a, b) => a.numero - b.numero).map(r => r.enunciado),
     answer: d.respuestas?.find(r => r.correcta)?.numero || 1,
     asignatura: d.asignatura || 'Desgloses',
-    image: d.imagen_nombre,
+    image: d.imagen_nombre || d.image || d.imagen,
     origen: d.convocatoria || 'Desglose MIR',
     comentario: d.comentario,
     cto_fallada: false, 
     cto_dudosa: false
   }))
 ];
+
+// Deduplicación estricta por ID y por texto normalizado del enunciado (evita solapamientos entre Desgloses y Simulacros)
+const normalizeEnunciado = (txt) => (txt || '').toLowerCase().replace(/<[^>]*>/g, '').replace(/[^\p{L}\p{N}]/gu, '').slice(0, 120);
+
+const QUESTIONS = (() => {
+  const seenIds = new Set();
+  const seenTexts = new Set();
+  const unique = [];
+
+  for (const q of RAW_COMBINED_QUESTIONS) {
+    if (!q || !q.id) continue;
+    if (seenIds.has(q.id)) continue;
+
+    const norm = normalizeEnunciado(q.text);
+    if (norm.length >= 25 && seenTexts.has(norm)) {
+      continue;
+    }
+
+    seenIds.add(q.id);
+    if (norm.length >= 25) seenTexts.add(norm);
+    unique.push(q);
+  }
+
+  return unique;
+})();
 
 const getSessionData = (key, defaultVal) => {
   try {
@@ -81,6 +120,27 @@ export default function BancoPreguntas({ initialFiltros = null, onFiltrosConsume
   const [cola, setCola] = useState(() => getSessionData('cola', []));
   const [currentIndex, setCurrentIndex] = useState(() => getSessionData('currentIndex', 0));
   const [respuestasDesglose, setRespuestasDesglose] = useState(() => getSessionData('respuestas', {}));
+
+  // Modo Examen: por defecto activado (como en Desgloses) para evitar spoilers y permitir corrección al final
+  const [modoExamen, setModoExamen] = useState(() => {
+    try {
+      const saved = localStorage.getItem('mir_banco_modo_examen');
+      return saved !== null ? JSON.parse(saved) : true;
+    } catch {
+      return true;
+    }
+  });
+
+  const [chatExportStatus, setChatExportStatus] = useState(null);
+  const [ultimaTiradaPayload, setUltimaTiradaPayload] = useState(null);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('mir_banco_modo_examen', JSON.stringify(modoExamen));
+    } catch (e) {
+      // ignore
+    }
+  }, [modoExamen]);
 
   useEffect(() => { sessionStorage.setItem('mir_banco_filtros', JSON.stringify(filtros)); }, [filtros]);
   useEffect(() => { sessionStorage.setItem('mir_banco_cola', JSON.stringify(cola)); }, [cola]);
@@ -220,7 +280,7 @@ export default function BancoPreguntas({ initialFiltros = null, onFiltrosConsume
   const questionForCard = currentQuestionData ? {
     id: currentQuestionData.id,
     text: currentQuestionData.text,
-    image: currentQuestionData.image || currentQuestionData.imagen_nombre,
+    image: currentQuestionData.image || currentQuestionData.imagen || currentQuestionData.imagen_nombre,
     options: currentQuestionData.options.map((opt, idx) => ({
       id: numToLetter(idx + 1),
       text: opt
@@ -230,42 +290,82 @@ export default function BancoPreguntas({ initialFiltros = null, onFiltrosConsume
 
   const currentAnswer = questionForCard ? respuestasDesglose[questionForCard.id] : null;
 
-  const handleNext = () => {
+  const finalizarYExportarTirada = useCallback(async (colaActual, respuestasActuales) => {
+    const payload = construirPayloadTirada({
+      origen: 'Banco de Preguntas',
+      asignatura: filtros.asignaturas?.length > 0 ? filtros.asignaturas.join(', ') : 'Banco Mixto',
+      temas: [],
+      resumenCola: null,
+      cola: colaActual,
+      respuestasDesglose: respuestasActuales
+    });
+    setUltimaTiradaPayload(payload);
+    const status = await guardarTiradaParaChat(payload, {
+      autoDownloadOnFallback: true,
+      autoCopy: true
+    });
+    setChatExportStatus(status);
+  }, [filtros.asignaturas]);
+
+  const handleNext = useCallback((updatedRespuestas = null) => {
+    const mapResp = updatedRespuestas || respuestasDesglose;
     if (currentIndex < cola.length - 1) {
       setCurrentIndex(prev => prev + 1);
     } else {
+      const contestadas = cola.filter(q => mapResp[q.id] && !mapResp[q.id].skipped);
+      if (contestadas.length > 0) {
+        finalizarYExportarTirada(cola, mapResp);
+      }
       setQuizFinished(true);
     }
-  };
+  }, [currentIndex, cola, respuestasDesglose, finalizarYExportarTirada]);
 
   const handleAnswerSubmit = (answerData) => {
     if (answerData.skipped) {
       if (answerData.archive || answerData.reason === 'missing_data') {
         archivarPregunta(questionForCard.id, 'missing_data');
       }
-      setRespuestasDesglose(prev => ({ ...prev, [questionForCard.id]: { skipped: true } }));
-      handleNext();
+      const nextResp = {
+        ...respuestasDesglose,
+        [questionForCard.id]: { skipped: true }
+      };
+      setRespuestasDesglose(nextResp);
+      handleNext(nextResp);
       return;
     }
 
-    const discardedCorrect = answerData.discardedOptions.includes(questionForCard.correctOption);
+    const discardedCorrect = (answerData.discardedOptions || []).includes(questionForCard.correctOption);
     
-    registrarRespuesta(questionForCard.id, answerData.isCorrect, answerData.selectedOption);
+    registrarRespuesta(questionForCard.id, answerData.isCorrect, answerData.selectedOption, {
+      confidence: answerData.confidence,
+      subject: currentQuestionData?.asignatura
+    });
 
-    setRespuestasDesglose(prev => ({
-      ...prev,
-      [questionForCard.id]: {
-        isCorrect: answerData.isCorrect,
-        selectedLetter: answerData.selectedOption,
-        correctLetter: questionForCard.correctOption,
-        discardedCorrect: discardedCorrect
-      }
-    }));
+    const nuevaEntrada = {
+      isCorrect: answerData.isCorrect,
+      selectedLetter: answerData.selectedOption,
+      correctLetter: questionForCard.correctOption,
+      discardedOptions: answerData.discardedOptions || [],
+      discardedCorrect: discardedCorrect,
+      confidence: answerData.confidence || 'green',
+      seconds: answerData.seconds || 0,
+      justificacion: answerData.justificacion || ''
+    };
+
+    const nextResp = {
+      ...respuestasDesglose,
+      [questionForCard.id]: nuevaEntrada
+    };
+    setRespuestasDesglose(nextResp);
+
+    if (modoExamen) {
+      handleNext(nextResp);
+    }
   };
 
   const numToLetterIdx = (letter) => ['A', 'B', 'C', 'D', 'E'].indexOf(letter);
 
-  const handleFinalizarSesion = () => {
+  const handleFinalizarSesion = async () => {
     const contestadasIds = new Set(
       Object.keys(respuestasDesglose).filter(qId => respuestasDesglose[qId] && !respuestasDesglose[qId].skipped)
     );
@@ -276,11 +376,15 @@ export default function BancoPreguntas({ initialFiltros = null, onFiltrosConsume
         setRespuestasDesglose({});
         setCurrentIndex(0);
         setQuizFinished(false);
+        sessionStorage.removeItem('mir_banco_cola');
+        sessionStorage.removeItem('mir_banco_respuestas');
+        sessionStorage.removeItem('mir_banco_currentIndex');
       }
       return;
     }
 
     const finalCola = cola.filter(q => contestadasIds.has(q.id));
+    await finalizarYExportarTirada(finalCola, respuestasDesglose);
     setCola(finalCola);
     setQuizFinished(true);
   };
@@ -345,41 +449,105 @@ export default function BancoPreguntas({ initialFiltros = null, onFiltrosConsume
   if (quizFinished) {
     const contestadas = cola.filter(q => respuestasDesglose[q.id] && !respuestasDesglose[q.id].skipped);
     const correctCount = contestadas.filter(q => respuestasDesglose[q.id]?.isCorrect).length;
-    const incorrectCount = contestadas.length - correctCount;
+    const falladasSesion = contestadas.filter(q => !respuestasDesglose[q.id]?.isCorrect);
+    const netasSesion = (correctCount - falladasSesion.length / 3).toFixed(2);
+
+    const fallosVerdes = falladasSesion.filter(q => respuestasDesglose[q.id]?.confidence === 'green').length;
+    const aciertosDudosos = contestadas.filter(q => {
+      const a = respuestasDesglose[q.id];
+      return a?.isCorrect && (a.confidence === 'orange' || a.confidence === 'red');
+    }).length;
+
+    const handleCopyTirada = async () => {
+      const payload = ultimaTiradaPayload || construirPayloadTirada({
+        origen: 'Banco de Preguntas',
+        asignatura: filtros.asignaturas?.length > 0 ? filtros.asignaturas.join(', ') : 'Banco Mixto',
+        temas: [],
+        resumenCola: null,
+        cola,
+        respuestasDesglose
+      });
+      const ok = await copiarTiradaAlPortapapeles(payload);
+      if (ok) {
+        setChatExportStatus(prev => ({ ...prev, copied: true }));
+      }
+    };
+
+    const handleDownloadTirada = () => {
+      const payload = ultimaTiradaPayload || construirPayloadTirada({
+        origen: 'Banco de Preguntas',
+        asignatura: filtros.asignaturas?.length > 0 ? filtros.asignaturas.join(', ') : 'Banco Mixto',
+        temas: [],
+        resumenCola: null,
+        cola,
+        respuestasDesglose
+      });
+      const ok = descargarTiradaJSON(payload);
+      if (ok) {
+        setChatExportStatus(prev => ({ ...prev, downloaded: true }));
+      }
+    };
 
     return (
       <div className="min-h-screen bg-slate-50 py-8 px-4 flex flex-col items-center">
         <div className="max-w-3xl w-full p-8 bg-white rounded-3xl shadow-lg border border-slate-100 text-center animate-in slide-in-from-bottom-8 fade-in duration-500 mb-8">
           <div className="text-6xl mb-4">🎯</div>
           <h2 className="text-3xl font-black text-slate-900 mb-2">Sesión Finalizada</h2>
-          <p className="text-slate-500 mb-6 font-medium">Resumen de las preguntas contestadas en esta sesión.</p>
+          <p className="text-slate-500 mb-6 font-medium">
+            {filtros.asignaturas?.length > 0 ? filtros.asignaturas.join(', ') : 'Banco Mixto Global'} · {contestadas.length} preguntas
+          </p>
           
-          <div className="flex justify-center gap-4 mb-8 flex-wrap">
-            <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100 shadow-inner flex-1 min-w-[140px] max-w-[200px]">
-              <div className="text-5xl font-black text-emerald-500 mb-1 tracking-tighter">
-                {correctCount}
+          {/* CAJA DE AUDITORÍA EN EL CHAT (MODO SIMULACRO + ANKI) */}
+          <div className="mb-8 p-5 rounded-2xl bg-gradient-to-br from-cyan-50 to-slate-50 border-2 border-cyan-200 text-left shadow-xs">
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div>
+                <div className="flex items-center gap-2 text-cyan-900 font-black text-base mb-1">
+                  <span>🤖</span>
+                  <span>Lista para Corregir en el Chat (Protocolo Simulacro + Anki)</span>
+                </div>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  {chatExportStatus?.savedDisk
+                    ? '✅ Guardada automáticamente en disco (src/data/ultima_tirada.json) y en el portapapeles. Ve al chat y escribe: "Corrígeme la tirada".'
+                    : chatExportStatus?.downloaded
+                      ? '✅ Descargada automáticamente en ~/Downloads y copiada al portapapeles (funciona 100% sin Supabase). Ve al chat y escribe: "Corrígeme la tirada".'
+                      : 'Guarda o copia esta tirada y pide en el chat: "Corrígeme la tirada".'}
+                </p>
               </div>
-              <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                Aciertos
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={handleCopyTirada}
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold bg-white hover:bg-cyan-100 text-cyan-900 border border-cyan-300 transition-colors shadow-2xs"
+                >
+                  {chatExportStatus?.copied ? '✓ Copiada al Portapapeles' : '📋 Copiar para el Chat'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadTirada}
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold bg-cyan-600 hover:bg-cyan-700 text-white transition-colors shadow-2xs"
+                >
+                  📥 Descargar JSON
+                </button>
               </div>
             </div>
+          </div>
 
-            <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100 shadow-inner flex-1 min-w-[140px] max-w-[200px]">
-              <div className="text-5xl font-black text-red-500 mb-1 tracking-tighter">
-                {incorrectCount}
-              </div>
-              <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                Fallos
-              </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+              <div className="text-3xl font-black text-cyan-600">{netasSesion}</div>
+              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-1">Netas</div>
             </div>
-
-            <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100 shadow-inner flex-1 min-w-[140px] max-w-[200px]">
-              <div className="text-5xl font-black text-cyan-500 mb-1 tracking-tighter">
-                {contestadas.length}
-              </div>
-              <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                Contestadas
-              </div>
+            <div className="bg-emerald-50/60 rounded-2xl p-4 border border-emerald-100">
+              <div className="text-3xl font-black text-emerald-600">{correctCount}</div>
+              <div className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider mt-1">Aciertos</div>
+            </div>
+            <div className="bg-red-50/60 rounded-2xl p-4 border border-red-100">
+              <div className="text-3xl font-black text-red-500">{falladasSesion.length}</div>
+              <div className="text-[11px] font-bold text-red-700 uppercase tracking-wider mt-1">Fallos ({fallosVerdes} en Verde)</div>
+            </div>
+            <div className="bg-amber-50/60 rounded-2xl p-4 border border-amber-100">
+              <div className="text-3xl font-black text-amber-600">{aciertosDudosos}</div>
+              <div className="text-[11px] font-bold text-amber-700 uppercase tracking-wider mt-1">Aciertos Dudosos</div>
             </div>
           </div>
 
@@ -431,6 +599,14 @@ export default function BancoPreguntas({ initialFiltros = null, onFiltrosConsume
                   {q.text}
                 </div>
 
+                {(q.image || q.imagen || q.imagen_nombre) && (
+                  <ClinicalImage
+                    src={q.image || q.imagen || q.imagen_nombre}
+                    alt={q.text ? `Imagen: ${q.text.slice(0, 60)}...` : 'Imagen clínica asociada'}
+                    className="mt-3"
+                  />
+                )}
+
                 <div className="space-y-2 text-sm font-medium">
                   {!isCorrect && ans.selectedLetter && (
                     <div className="p-3 rounded-lg bg-red-50 text-red-700 border border-red-200">
@@ -440,12 +616,25 @@ export default function BancoPreguntas({ initialFiltros = null, onFiltrosConsume
                   <div className="p-3 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200">
                     <span className="font-bold">Respuesta correcta:</span> {numToLetter(q.answer)}) {correctOptText}
                   </div>
+                  {ans.justificacion && (
+                    <div className="p-3 rounded-lg bg-indigo-50/80 text-indigo-900 border border-indigo-200 text-xs">
+                      <span className="font-bold flex items-center gap-1.5 text-indigo-950 mb-0.5">
+                        <span>💬</span> Tu justificación al responder:
+                      </span>
+                      <p className="italic font-normal leading-relaxed text-indigo-900">
+                        "{ans.justificacion}"
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {q.comentario && (
-                  <div className="bg-slate-50 p-4 rounded-xl text-slate-700 text-sm border border-slate-200">
-                    <div className="font-bold text-slate-900 mb-1">Explicación:</div>
-                    <div dangerouslySetInnerHTML={{ __html: q.comentario }} />
+                  <div className="bg-slate-50 p-5 rounded-xl border border-slate-200">
+                    <div className="font-bold text-slate-900 mb-2 text-sm">Explicación CTO:</div>
+                    <div
+                      className="comentario-html text-base sm:text-[17px] text-slate-800 leading-relaxed"
+                      dangerouslySetInnerHTML={{ __html: q.comentario }}
+                    />
                   </div>
                 )}
 
@@ -459,8 +648,9 @@ export default function BancoPreguntas({ initialFiltros = null, onFiltrosConsume
                   question={q}
                   userAnswer={ans?.selectedLetter}
                   isCorrect={isCorrect}
-                  confidence={null}
-                  discardedOptions={[]}
+                  confidence={ans?.confidence || null}
+                  discardedOptions={ans?.discardedOptions || []}
+                  userReasoning={ans?.justificacion || ''}
                   commentary={q.comentario}
                   onGuardarNota={guardarNota}
                   currentNota={getStatsPregunta(q.id)?.nota || ''}
@@ -478,8 +668,39 @@ export default function BancoPreguntas({ initialFiltros = null, onFiltrosConsume
       <div className="max-w-5xl mx-auto space-y-6">
         
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold text-slate-900">Banco de Preguntas Global</h2>
+          <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h2 className="text-xl font-bold text-slate-900">Banco de Preguntas Global</h2>
+
+              {/* TOGGLE MODO EXAMEN / TUTOR */}
+              <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setModoExamen(true)}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    modoExamen
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                  title="No muestra la respuesta al instante; pasa directamente a la siguiente como en un examen real para corregir toda la tirada al final en el chat"
+                >
+                  <span>🎯</span> Modo Examen (Tirada)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setModoExamen(false)}
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    !modoExamen
+                      ? 'bg-cyan-600 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                  title="Muestra la respuesta correcta y la explicación de CTO inmediatamente después de responder"
+                >
+                  <span>💡</span> Modo Tutor
+                </button>
+              </div>
+            </div>
+
             {cola.length > 0 && (
               <button 
                 onClick={handleFinalizarSesion}
@@ -587,31 +808,54 @@ export default function BancoPreguntas({ initialFiltros = null, onFiltrosConsume
           <div className="space-y-6">
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
               <div className="flex items-center justify-between mb-4">
-                <div className="text-sm font-bold text-slate-500 uppercase tracking-wider">Progreso de la Sesión</div>
+                <div className="text-sm font-bold text-slate-500 uppercase tracking-wider">
+                  Progreso {modoExamen ? '• Modo Examen (Tirada)' : '• Modo Tutor'}
+                </div>
                 <div className="text-sm font-bold bg-slate-100 text-slate-700 px-3 py-1 rounded-full">
                   {currentIndex + 1} / {cola.length}
                 </div>
               </div>
-              <div className="flex flex-wrap gap-1">
+              <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-1">
                 {cola.map((_, idx) => {
                   const qId = cola[idx].id;
                   const ans = respuestasDesglose[qId];
-                  let bgColor = 'bg-slate-100';
+                  let bgColor = 'bg-slate-100 text-slate-600 border-slate-200';
                   
                   if (ans) {
-                    if (ans.skipped) bgColor = 'bg-slate-300';
-                    else if (ans.isCorrect) bgColor = 'bg-emerald-500';
-                    else bgColor = 'bg-red-500';
-                  } else if (idx === currentIndex) {
-                    bgColor = 'bg-cyan-500 ring-2 ring-cyan-200 ring-offset-1';
+                    if (ans.skipped) {
+                      bgColor = 'bg-slate-200 text-slate-500 border-slate-300';
+                    } else if (modoExamen) {
+                      if (ans.confidence === 'orange') {
+                        bgColor = 'bg-amber-100 text-amber-800 border-amber-300 font-bold shadow-2xs';
+                      } else if (ans.confidence === 'red') {
+                        bgColor = 'bg-purple-100 text-purple-800 border-purple-300 font-bold shadow-2xs';
+                      } else {
+                        bgColor = 'bg-cyan-100 text-cyan-800 border-cyan-300 font-bold shadow-2xs';
+                      }
+                    } else {
+                      if (ans.isCorrect) bgColor = 'bg-emerald-100 text-emerald-700 border-emerald-300 font-bold';
+                      else bgColor = 'bg-red-100 text-red-700 border-red-300 font-bold';
+                    }
+                  }
+                  
+                  if (idx === currentIndex) {
+                    bgColor += ' ring-2 ring-cyan-500 ring-offset-1 font-bold';
                   }
 
                   return (
-                    <div 
+                    <button 
                       key={idx}
-                      className={`w-3 h-3 rounded-sm ${bgColor} transition-colors`}
-                      title={`Pregunta ${idx + 1}`}
-                    />
+                      type="button"
+                      onClick={() => setCurrentIndex(idx)}
+                      className={`w-7 h-7 rounded-lg border text-xs flex items-center justify-center transition-all ${bgColor}`}
+                      title={
+                        ans && !ans.skipped && modoExamen
+                          ? `Pregunta ${idx + 1}: Marcada ${ans.selectedLetter} (Confianza: ${ans.confidence || 'verde'})`
+                          : `Pregunta ${idx + 1}`
+                      }
+                    >
+                      {idx + 1}
+                    </button>
                   );
                 })}
               </div>
@@ -626,16 +870,35 @@ export default function BancoPreguntas({ initialFiltros = null, onFiltrosConsume
               </span>
             </div>
 
-            <div className={currentAnswer ? 'opacity-50 pointer-events-none transition-opacity' : ''}>
+            {/* AVISO SI VUELVE A UNA PREGUNTA YA CONTESTADA EN MODO EXAMEN */}
+            {modoExamen && currentAnswer && !currentAnswer.skipped && (
+              <div className="px-4 py-2.5 rounded-xl bg-cyan-50 border border-cyan-200 text-cyan-900 text-xs font-bold flex items-center justify-between">
+                <span>
+                  📌 Ya marcaste la opción <strong>{currentAnswer.selectedLetter}</strong> (Seguridad: {currentAnswer.confidence === 'green' ? 'Verde' : currentAnswer.confidence === 'orange' ? 'Dudosa' : 'Rojo'}). Puedes cambiarla si lo deseas.
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleNext()}
+                  className="text-cyan-700 hover:underline ml-4"
+                >
+                  Siguiente →
+                </button>
+              </div>
+            )}
+
+            <div className={!modoExamen && currentAnswer ? 'opacity-50 pointer-events-none transition-opacity' : ''}>
               <QuestionCard 
                 key={currentQuestionData.id} 
                 question={questionForCard} 
                 onAnswer={handleAnswerSubmit} 
-                onNext={handleNext}
+                onNext={() => handleNext()}
+                examMode={modoExamen}
+                initialAnswer={modoExamen ? currentAnswer : null}
               />
             </div>
 
-            {currentAnswer && !currentAnswer.skipped && (
+            {/* MODO TUTOR INMEDIATO (Solo visible si modoExamen === false) */}
+            {!modoExamen && currentAnswer && !currentAnswer.skipped && (
               <div className="bg-white p-6 rounded-xl shadow-sm border-2 border-cyan-500 animate-in slide-in-from-bottom-4">
                 <div className="flex items-center gap-3 mb-4">
                   {currentAnswer.isCorrect ? (
@@ -653,6 +916,14 @@ export default function BancoPreguntas({ initialFiltros = null, onFiltrosConsume
                     <span className="font-bold text-cyan-800 block mb-1">Respuesta correcta: {currentAnswer.correctLetter}</span>
                     {currentQuestionData.options[currentQuestionData.answer - 1]}
                   </p>
+
+                  {(currentQuestionData.image || currentQuestionData.imagen || currentQuestionData.imagen_nombre) && (
+                    <ClinicalImage
+                      src={currentQuestionData.image || currentQuestionData.imagen || currentQuestionData.imagen_nombre}
+                      alt={currentQuestionData.text ? `Imagen: ${currentQuestionData.text.slice(0, 60)}...` : 'Imagen clínica asociada'}
+                      className="mt-3"
+                    />
+                  )}
                   
                   <NotaPersonal
                     preguntaId={currentQuestionData.id}
@@ -666,14 +937,19 @@ export default function BancoPreguntas({ initialFiltros = null, onFiltrosConsume
                     isCorrect={currentAnswer.isCorrect}
                     confidence={currentAnswer.confidence}
                     discardedOptions={currentAnswer.discardedOptions || []}
+                    userReasoning={currentAnswer.justificacion || ''}
                     commentary={currentQuestionData.comentario}
                     onGuardarNota={guardarNota}
                     currentNota={getStatsPregunta(currentQuestionData.id)?.nota || ''}
                   />
 
                   {currentQuestionData.comentario && (
-                    <div className="prose prose-lg max-w-none prose-slate mt-4">
-                      <div dangerouslySetInnerHTML={{ __html: currentQuestionData.comentario }} />
+                    <div className="mt-4 bg-white/80 p-5 rounded-xl border border-slate-200">
+                      <div className="font-bold text-slate-900 mb-2 text-sm">Explicación CTO:</div>
+                      <div
+                        className="comentario-html text-base sm:text-[17px] text-slate-800 leading-relaxed"
+                        dangerouslySetInnerHTML={{ __html: currentQuestionData.comentario }}
+                      />
                     </div>
                   )}
                 </div>
@@ -681,7 +957,7 @@ export default function BancoPreguntas({ initialFiltros = null, onFiltrosConsume
                 <div className="mt-4 flex justify-end">
                   <button 
                     type="button"
-                    onClick={handleNext}
+                    onClick={() => handleNext()}
                     className="bg-slate-900 text-white font-bold py-2.5 px-6 rounded-xl hover:bg-slate-800 transition-colors flex items-center gap-2"
                   >
                     <span>{currentIndex >= cola.length - 1 ? 'Finalizar Sesión 🎉' : 'Siguiente Pregunta →'}</span>

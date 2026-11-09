@@ -112,11 +112,7 @@ export function enqueueQuizResult(userId, resultPayload) {
 async function uploadStatsInChunks(payloads) {
   const CHUNK_SIZE = 50;
   for (let i = 0; i < payloads.length; i += CHUNK_SIZE) {
-    const chunk = payloads.slice(i, i + CHUNK_SIZE).map(p => {
-      // Eliminar campos internos antes de enviar a Supabase
-      const { updated_at, ...supabasePayload } = p;
-      return supabasePayload;
-    });
+    const chunk = payloads.slice(i, i + CHUNK_SIZE);
 
     const { error } = await supabase
       .from('user_question_stats')
@@ -138,18 +134,24 @@ export async function flushOfflineSyncQueue() {
   const resultsQueue = getStoredResultsQueue();
   const pendingStatsList = Object.values(statsQueue);
 
+  // Limpiar resultados pendientes si la tabla opcional user_quiz_results fue deshabilitada
+  if (resultsQueue.length > 0 && localStorage.getItem('mir_quiz_results_table_missing') === '1') {
+    setStoredResultsQueue([]);
+  }
+  const activeResultsQueue = getStoredResultsQueue();
+
   if (!isOnline) {
     return {
       success: false,
       isOnline: false,
       reason: 'offline',
       pendingStats: pendingStatsList.length,
-      pendingResults: resultsQueue.length,
+      pendingResults: activeResultsQueue.length,
       lastSyncTime: getLastSyncTimestamp()
     };
   }
 
-  if (pendingStatsList.length === 0 && resultsQueue.length === 0) {
+  if (pendingStatsList.length === 0 && activeResultsQueue.length === 0) {
     const now = new Date().toISOString();
     localStorage.setItem(LAST_SYNC_KEY, now);
     return {
@@ -175,13 +177,19 @@ export async function flushOfflineSyncQueue() {
       setStoredStatsQueue({});
     }
 
-    // 2. Subir resultados de tests pendientes
-    if (resultsQueue.length > 0) {
+    // 2. Subir resultados de tests pendientes (si la tabla existe)
+    if (activeResultsQueue.length > 0) {
       const remainingResults = [];
-      for (const item of resultsQueue) {
+      for (const item of activeResultsQueue) {
         const { _client_id, ...cleanResult } = item;
         const { error } = await supabase.from('user_quiz_results').insert(cleanResult);
         if (error) {
+          // Si la tabla user_quiz_results no existe en el esquema, no reintentar infinitamente
+          if (error.message && (error.message.includes('schema cache') || error.message.includes('does not exist') || error.code === 'PGRST205' || error.code === '42P01')) {
+            localStorage.setItem('mir_quiz_results_table_missing', '1');
+            remainingResults.length = 0;
+            break;
+          }
           console.error('Error insertando resultado de test:', error);
           remainingResults.push(item);
         } else {
@@ -252,6 +260,9 @@ export async function upsertQuestionStat(userId, questionId, statsObj) {
  * Insert a completed quiz result into Supabase with offline queue fallback.
  */
 export async function createQuizResult(userId, resultPayload) {
+  if (typeof localStorage !== 'undefined' && localStorage.getItem('mir_quiz_results_table_missing') === '1') {
+    return true;
+  }
   const item = enqueueQuizResult(userId, resultPayload);
 
   if (typeof navigator !== 'undefined' && !navigator.onLine) {
@@ -268,6 +279,11 @@ export async function createQuizResult(userId, resultPayload) {
       setStoredResultsQueue(queue);
       return true;
     } else {
+      if (error.message && (error.message.includes('schema cache') || error.message.includes('does not exist') || error.code === 'PGRST205' || error.code === '42P01')) {
+        localStorage.setItem('mir_quiz_results_table_missing', '1');
+        setStoredResultsQueue([]);
+        return true;
+      }
       console.warn('Insert de resultado falló, se mantiene en cola offline:', error.message);
       return false;
     }

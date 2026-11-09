@@ -1,0 +1,1293 @@
+{
+  "2026-11-03": {
+    "titulo": "Reumatología (Mañana) + Digestivo Bloque 1 (Tarde)",
+    "fase": "Cierre 2ª Vuelta & Refuerzo Digestivo",
+    "bloques": [
+      {
+        "id": "b1_anki_m",
+        "hora": "09:00 - 09:30",
+        "duracionMin": 30,
+        "titulo": "Sprint 1 Anki (MIR 2027)",
+        "subtitulo": "Atasco de vacaciones (80-90 tarjetas a ritmo de 12s)",
+        "categoria": "anki",
+        "asignatura": "Transversal",
+        "targetApp": "Anki",
+        "linkTab": "inicio"
+      },
+      {
+        "id": "b_sim_sector_2026-11-03",
+        "hora": "09:30 - 10:00",
+        "duracionMin": 30,
+        "titulo": "Corrección Sectorial Simu · Bloque 2A · Asequibles Parte 1 (50-69% pob)",
+        "subtitulo": "Preguntas de dificultad media: algoritmos de 1er escalón (~12-14 preguntas)",
+        "categoria": "correccion",
+        "asignatura": "Transversal",
+        "targetApp": "Campus CTO",
+        "linkTab": "simulacros"
+      },
+      {
+        "id": "b2_estudio_rm",
+        "hora": "10:00 - 11:30",
+        "duracionMin": 90,
+        "titulo": "Estudio Quirúrgico Reumatología (P80)",
+        "subtitulo": "Artritis Reumatoide, Lupus, Espondiloartritis y Vasculitis",
+        "categoria": "estudio",
+        "asignatura": "Reumatología",
+        "targetApp": "NotebookLM",
+        "linkTab": "inicio",
+        "temasNucleares": [
+          "Artritis reumatoide",
+          "Lupus eritematoso sistémico",
+          "Espondiloartritis",
+          "Vasculitis",
+          "Microcristalinas"
+        ]
+      },
+      {
+        "id": "b3_test_rm",
+        "hora": "11:30 - 13:30",
+        "duracionMin": 120,
+        "titulo": "Tirada 1 Mañana · Reumatología (75p)",
+        "subtitulo": "Desgloses MIR nucleares + Sims P80 + Corrección triada",
+        "categoria": "test",
+        "asignatura": "Reumatología",
+        "targetApp": "Desgloses",
+        "linkTab": "desgloses",
+        "targetPreguntas": 75,
+        "temasNucleares": [
+          "Artritis reumatoide",
+          "Lupus eritematoso sistémico",
+          "Espondiloartritis",
+          "Vasculitis",
+          "Microcristalinas"
+        ],
+        "temasSatelite": [
+          "Esclerosis sistémica",
+          "Miopatías inflamatorias",
+          "Amiloidosis",
+          "Fibromialgia",
+          "Artrosis"
+        ]
+      },
+      {
+        "id": "b4_anki_t",
+        "hora": "15:00 - 15:40",
+        "duracionMin": 40,
+        "titulo": "Café + Sprint 2 Anki (MIR 2027)",
+        "subtitulo": "Repaso normal del día",
+        "categoria": "anki",
+        "asignatura": "Transversal",
+        "targetApp": "Anki",
+        "linkTab": "inicio"
+      },
+      {
+        "id": "b5_estudio_dg1",
+        "hora": "15:40 - 17:10",
+        "duracionMin": 90,
+        "titulo": "Estudio Quirúrgico Digestivo 1 (Tubo Alto + EII)",
+        "subtitulo": "Acalasia, ERGE, Úlcera péptica/H. pylori, Cáncer gástrico y Crohn vs CU",
+        "categoria": "estudio",
+        "asignatura": "Digestivo",
+        "targetApp": "NotebookLM",
+        "linkTab": "inicio",
+        "temasNucleares": [
+          "Disfagia",
+          "Trastornos motores del esófago",
+          "Infección por Helicobacter pylori",
+          "Úlcera péptica producida por H. pylori y antiinflamatorios no esteroideos",
+          "Tumores gástricos. Complicaciones de la cirugía gástrica",
+          "Enfermedad inflamatoria intestinal"
+        ]
+      },
+      {
+        "id": "b6_test_dg1",
+        "hora": "17:10 - 19:15",
+        "duracionMin": 125,
+        "titulo": "Tirada 2 Tarde · Digestivo 1 (75p)",
+        "subtitulo": "Tubo alto + EII + temas secundarios absorbidos. Ciego en test / Ordenado en chat",
+        "categoria": "test",
+        "asignatura": "Digestivo",
+        "targetApp": "Desgloses",
+        "linkTab": "desgloses",
+        "targetPreguntas": 75,
+        "temasNucleares": [
+          "Disfagia",
+          "Trastornos motores del esófago",
+          "Infección por Helicobacter pylori",
+          "Úlcera péptica producida por H. pylori y antiinflamatorios no esteroideos",
+          "Tumores gástricos. Complicaciones de la cirugía gástrica",
+          "Enfermedad inflamatoria intestinal"
+        ],
+        "temasSatelite": [
+          "Gastropatías hiperplásicas",
+          "Cirugía bariátrica y cirugía metabólica",
+          "Cirugía en la enfermedad diverticular",
+          "Patología perianal",
+          "Patología del apéndice cecal"
+        ]
+      },
+      {
+        "id": "b7_misa",
+        "hora": "19:30 - 20:00",
+        "duracionMin": 30,
+        "titulo": "Misa y Desconexión Mental",
+        "subtitulo": "Paz y recarga espiritual",
+        "categoria": "descanso",
+        "asignatura": null,
+        "targetApp": null,
+        "linkTab": "inicio"
+      },
+      {
+        "id": "b8_eval_cto",
+        "hora": "20:00 - 20:45",
+        "duracionMin": 45,
+        "titulo": "Evaluación CTO en Campus",
+        "subtitulo": "Evaluación oficial antes de cenar",
+        "categoria": "evaluacion",
+        "asignatura": "Digestivo",
+        "targetApp": "Campus CTO",
+        "linkTab": "inicio"
+      }
+    ]
+  },
+  "2026-11-04": {
+    "titulo": "Medicina Familiar (Mañana) + Digestivo Hígado y Vía Biliar (Tarde)",
+    "fase": "Familia B1 & Núcleo Hepático Digestivo",
+    "bloques": [
+      {
+        "id": "b1_anki_m",
+        "hora": "09:00 - 09:30",
+        "duracionMin": 30,
+        "titulo": "Sprint 1 Anki (MIR 2027)",
+        "subtitulo": "Repaso matinal rápido",
+        "categoria": "anki",
+        "asignatura": "Transversal",
+        "targetApp": "Anki",
+        "linkTab": "inicio"
+      },
+      {
+        "id": "b_sim_sector_2026-11-04",
+        "hora": "09:30 - 10:00",
+        "duracionMin": 30,
+        "titulo": "Corrección Sectorial Simu · Bloque 2B · Asequibles Parte 2 (50-69% pob)",
+        "subtitulo": "Preguntas de dificultad media: diagnósticos diferenciales típicos (~12-14 preguntas)",
+        "categoria": "correccion",
+        "asignatura": "Transversal",
+        "targetApp": "Campus CTO",
+        "linkTab": "simulacros"
+      },
+      {
+        "id": "b2_estudio_fc",
+        "hora": "10:00 - 11:30",
+        "duracionMin": 90,
+        "titulo": "Estudio Quirúrgico Medicina Familiar (P80)",
+        "subtitulo": "FRCV/SCORE2, DM2, Cribados PAPPS (cáncer/vascular), Tabaquismo y Vacunas",
+        "categoria": "estudio",
+        "asignatura": "Medicina Familiar y Comunitaria",
+        "targetApp": "NotebookLM",
+        "linkTab": "inicio",
+        "temasNucleares": [
+          "Factores de riesgo cardiovascular",
+          "Cribados y PAPPS",
+          "Tabaquismo y deshabituación",
+          "Vacunación en adultos",
+          "Manejo de diabetes en AP"
+        ]
+      },
+      {
+        "id": "b3_test_fc",
+        "hora": "11:30 - 13:30",
+        "duracionMin": 120,
+        "titulo": "Tirada 1 Mañana · Familia y Comunitaria (75p)",
+        "subtitulo": "Desgloses MIR + Sims CTO + Test 2V FC + Corrección triada",
+        "categoria": "test",
+        "asignatura": "Medicina Familiar y Comunitaria",
+        "targetApp": "Desgloses",
+        "linkTab": "desgloses",
+        "targetPreguntas": 75,
+        "temasNucleares": [
+          "Factores de riesgo cardiovascular",
+          "Cribados y PAPPS",
+          "Tabaquismo y deshabituación",
+          "Vacunación en adultos",
+          "Manejo de diabetes en AP"
+        ],
+        "temasSatelite": [
+          "Bioética en atención primaria",
+          "Incapacidades y bajas",
+          "Polimedicación en el anciano"
+        ]
+      },
+      {
+        "id": "b4_anki_t",
+        "hora": "15:00 - 15:40",
+        "duracionMin": 40,
+        "titulo": "Café + Sprint 2 Anki (MIR 2027)",
+        "subtitulo": "Fijación activa",
+        "categoria": "anki",
+        "asignatura": "Transversal",
+        "targetApp": "Anki",
+        "linkTab": "inicio"
+      },
+      {
+        "id": "b5_estudio_dg2",
+        "hora": "15:40 - 17:10",
+        "duracionMin": 90,
+        "titulo": "Estudio Quirúrgico Digestivo 2 (Hígado, Biliar y Páncreas)",
+        "subtitulo": "Serología VHB/VHC, Cirrosis y descompensaciones (PBE, Ascitis, Varices), Litiasis y Pancreatitis",
+        "categoria": "estudio",
+        "asignatura": "Digestivo",
+        "targetApp": "NotebookLM",
+        "linkTab": "inicio",
+        "temasNucleares": [
+          "Hepatitis víricas",
+          "Cirrosis",
+          "Complicaciones de la cirrosis",
+          "Tumores hepáticos",
+          "Enfermedades de la vesícula biliar y conductos biliares",
+          "Pancreatitis aguda",
+          "Pancreatitis crónica",
+          "Tumores del páncreas exocrino"
+        ]
+      },
+      {
+        "id": "b6_test_dg2",
+        "hora": "17:10 - 19:15",
+        "duracionMin": 125,
+        "titulo": "Tirada 2 Tarde · Digestivo 2 (75p)",
+        "subtitulo": "Hígado + Biliar + Páncreas + Cribado CCR + temas satélite de Digestivo",
+        "categoria": "test",
+        "asignatura": "Digestivo",
+        "targetApp": "Desgloses",
+        "linkTab": "desgloses",
+        "targetPreguntas": 75,
+        "temasNucleares": [
+          "Hepatitis víricas",
+          "Cirrosis",
+          "Complicaciones de la cirrosis",
+          "Tumores hepáticos",
+          "Enfermedades de la vesícula biliar y conductos biliares",
+          "Pancreatitis aguda",
+          "Pancreatitis crónica",
+          "Tumores del páncreas exocrino",
+          "Manejo de los pólipos y cribado del cáncer colorrectal"
+        ],
+        "temasSatelite": [
+          "Alteraciones del metabolismo de la bilirrubina",
+          "Colestasis crónicas",
+          "Enfermedades metabólicas hepáticas",
+          "Fármacos e hígado",
+          "Hepatitis autoinmunitaria",
+          "Patología vascular intestinal",
+          "Diarrea crónica",
+          "Síndromes malabsortivos"
+        ]
+      },
+      {
+        "id": "b7_misa",
+        "hora": "19:30 - 20:00",
+        "duracionMin": 30,
+        "titulo": "Misa y Desconexión Mental",
+        "subtitulo": "Paz y recarga espiritual",
+        "categoria": "descanso",
+        "asignatura": null,
+        "targetApp": null,
+        "linkTab": "inicio"
+      },
+      {
+        "id": "b8_eval_cto",
+        "hora": "20:00 - 20:45",
+        "duracionMin": 45,
+        "titulo": "Evaluación CTO en Campus",
+        "subtitulo": "Evaluación oficial de Familia antes de cenar",
+        "categoria": "evaluacion",
+        "asignatura": "Medicina Familiar y Comunitaria",
+        "targetApp": "Campus CTO",
+        "linkTab": "inicio"
+      }
+    ]
+  },
+  "2026-11-05": {
+    "titulo": "Macroconciertos CTO de Repaso Médico (Bloque 1 y 2)",
+    "fase": "Entrenamiento Integrado Multiasignatura",
+    "bloques": [
+      {
+        "id": "b1_anki_m",
+        "hora": "09:00 - 09:30",
+        "duracionMin": 30,
+        "titulo": "Sprint 1 Anki (MIR 2027)",
+        "subtitulo": "Repaso matinal",
+        "categoria": "anki",
+        "asignatura": "Transversal",
+        "targetApp": "Anki",
+        "linkTab": "inicio"
+      },
+      {
+        "id": "b_sim_sector_2026-11-05",
+        "hora": "09:30 - 10:00",
+        "duracionMin": 30,
+        "titulo": "Corrección Sectorial Simu · Bloque 3 · Discriminación P80 (35-49% pob)",
+        "subtitulo": "El campo de batalla del P80: detalles de 2ª línea y excepciones (~15-18 preguntas)",
+        "categoria": "correccion",
+        "asignatura": "Transversal",
+        "targetApp": "Campus CTO",
+        "linkTab": "simulacros"
+      },
+      {
+        "id": "b2_macro_1",
+        "hora": "10:00 - 11:30",
+        "duracionMin": 90,
+        "titulo": "Macroconcierto CTO 1 (NF, CD, DG)",
+        "subtitulo": "Repaso exprés con perlas de Nefro, Cardio y Digestivo",
+        "categoria": "estudio",
+        "asignatura": "Cardiología",
+        "targetApp": "Campus CTO",
+        "linkTab": "inicio"
+      },
+      {
+        "id": "b3_test_macro1",
+        "hora": "11:30 - 13:30",
+        "duracionMin": 120,
+        "titulo": "Tirada 1 Mañana · Mixto Médico 1 (75p)",
+        "subtitulo": "75 preguntas combinadas NF + CD + DG (Desgloses + Sims P80)",
+        "categoria": "test",
+        "asignatura": "Cardiología",
+        "targetApp": "Desgloses",
+        "linkTab": "desgloses",
+        "targetPreguntas": 75
+      },
+      {
+        "id": "b4_anki_t",
+        "hora": "15:00 - 15:40",
+        "duracionMin": 40,
+        "titulo": "Café + Sprint 2 Anki (MIR 2027)",
+        "subtitulo": "Repaso",
+        "categoria": "anki",
+        "asignatura": "Transversal",
+        "targetApp": "Anki",
+        "linkTab": "inicio"
+      },
+      {
+        "id": "b5_macro_2",
+        "hora": "15:40 - 17:10",
+        "duracionMin": 90,
+        "titulo": "Macroconcierto CTO 2 (IF, HM, RM)",
+        "subtitulo": "Perlas de Infecciosas, Hematología y Reumatología",
+        "categoria": "estudio",
+        "asignatura": "Infecciosas",
+        "targetApp": "Campus CTO",
+        "linkTab": "inicio"
+      },
+      {
+        "id": "b6_test_macro2",
+        "hora": "17:10 - 19:15",
+        "duracionMin": 125,
+        "titulo": "Tirada 2 Tarde · Mixto Médico 2 (75p)",
+        "subtitulo": "75 preguntas combinadas IF + HM + RM (Desgloses + Sims P80)",
+        "categoria": "test",
+        "asignatura": "Infecciosas",
+        "targetApp": "Desgloses",
+        "linkTab": "desgloses",
+        "targetPreguntas": 75
+      },
+      {
+        "id": "b7_descanso",
+        "hora": "19:30 - 20:30",
+        "duracionMin": 60,
+        "titulo": "Descanso y Cierre Semanal Pre-Simulacro",
+        "subtitulo": "Desconexión mental",
+        "categoria": "descanso",
+        "asignatura": null,
+        "targetApp": null,
+        "linkTab": "inicio"
+      }
+    ]
+  },
+  "2026-11-06": {
+    "titulo": "Inmunología (Mañana: Fundamental · Tarde: Clínica y Terapia)",
+    "fase": "Inmunología B1 · Rentabilidad Máxima",
+    "bloques": [
+      {
+        "id": "b1_anki_m",
+        "hora": "09:00 - 09:30",
+        "duracionMin": 30,
+        "titulo": "Sprint 1 Anki (MIR 2027)",
+        "subtitulo": "Repaso matinal",
+        "categoria": "anki",
+        "asignatura": "Transversal",
+        "targetApp": "Anki",
+        "linkTab": "inicio"
+      },
+      {
+        "id": "b_sim_sector_2026-11-06",
+        "hora": "09:30 - 10:00",
+        "duracionMin": 30,
+        "titulo": "Corrección Sectorial Simu · Bloque 4 · Radar de Marcianas (<35% pob)",
+        "subtitulo": "Modo telegrama: capturar la perla rápida en 10s sin atascarse (~10-15 preguntas)",
+        "categoria": "correccion",
+        "asignatura": "Transversal",
+        "targetApp": "Campus CTO",
+        "linkTab": "simulacros"
+      },
+      {
+        "id": "b2_estudio_ig1",
+        "hora": "10:00 - 11:30",
+        "duracionMin": 90,
+        "titulo": "Estudio Quirúrgico Inmuno 1 (Fundamental P80)",
+        "subtitulo": "Inmunoglobulinas, Vía del complemento, Células del sistema inmune y HLA",
+        "categoria": "estudio",
+        "asignatura": "Inmunología",
+        "targetApp": "NotebookLM",
+        "linkTab": "inicio",
+        "temasNucleares": [
+          "Estructura del sistema inmunitario",
+          "Inmunoglobulinas",
+          "Complemento",
+          "Células del sistema inmunitario",
+          "Complejo principal de histocompatibilidad"
+        ]
+      },
+      {
+        "id": "b3_test_ig1",
+        "hora": "11:30 - 13:30",
+        "duracionMin": 120,
+        "titulo": "Tirada 1 Mañana · Inmunología Fundamental (75p)",
+        "subtitulo": "Desgloses MIR Inmuno + Sims CTO P80 + Corrección triada",
+        "categoria": "test",
+        "asignatura": "Inmunología",
+        "targetApp": "Desgloses",
+        "linkTab": "desgloses",
+        "targetPreguntas": 75,
+        "temasNucleares": [
+          "Estructura del sistema inmunitario",
+          "Inmunoglobulinas",
+          "Complemento",
+          "Células del sistema inmunitario",
+          "Complejo principal de histocompatibilidad"
+        ]
+      },
+      {
+        "id": "b4_anki_t",
+        "hora": "15:00 - 15:40",
+        "duracionMin": 40,
+        "titulo": "Café + Sprint 2 Anki (MIR 2027)",
+        "subtitulo": "Repaso",
+        "categoria": "anki",
+        "asignatura": "Transversal",
+        "targetApp": "Anki",
+        "linkTab": "inicio"
+      },
+      {
+        "id": "b5_estudio_ig2",
+        "hora": "15:40 - 17:10",
+        "duracionMin": 90,
+        "titulo": "Estudio Quirúrgico Inmuno 2 / Streaming CTO",
+        "subtitulo": "Inmunodeficiencias congénitas clásicas, Hipersensibilidad I-IV e Inmunoterapia/Biológicos (-mab)",
+        "categoria": "estudio",
+        "asignatura": "Inmunología",
+        "targetApp": "Campus CTO",
+        "linkTab": "inicio",
+        "temasNucleares": [
+          "Inmunodeficiencias",
+          "Inmunoterapia",
+          "Inmunología clínica",
+          "Respuesta inmunitaria"
+        ]
+      },
+      {
+        "id": "b6_test_ig2",
+        "hora": "17:10 - 19:15",
+        "duracionMin": 125,
+        "titulo": "Tirada 2 Tarde · Inmunología Clínica (75p)",
+        "subtitulo": "Consolidación total Inmuno para dejar la asignatura cerrada",
+        "categoria": "test",
+        "asignatura": "Inmunología",
+        "targetApp": "Desgloses",
+        "linkTab": "desgloses",
+        "targetPreguntas": 75,
+        "temasNucleares": [
+          "Inmunodeficiencias",
+          "Inmunoterapia",
+          "Inmunología clínica",
+          "Respuesta inmunitaria"
+        ]
+      },
+      {
+        "id": "b7_descanso",
+        "hora": "19:30 - 20:30",
+        "duracionMin": 60,
+        "titulo": "Descanso y Preparación Mental Simulacro",
+        "subtitulo": "Cenar pronto y descansar para el sábado",
+        "categoria": "descanso",
+        "asignatura": null,
+        "targetApp": null,
+        "linkTab": "inicio"
+      }
+    ]
+  },
+  "2026-11-07": {
+    "titulo": "Día de Examen: SIMULACRO OFICIAL 20 CTO (210 preguntas)",
+    "fase": "Simulacro Semanal Oficial",
+    "bloques": [
+      {
+        "id": "b1_anki_m",
+        "hora": "09:30 - 10:30",
+        "duracionMin": 60,
+        "titulo": "Repaso Visual y Fórmulas Pre-Simulacro",
+        "subtitulo": "Anki MIR 2027 + Fórmulas de Epidemiología y Criterios clave",
+        "categoria": "anki",
+        "asignatura": "Transversal",
+        "targetApp": "Anki",
+        "linkTab": "inicio"
+      },
+      {
+        "id": "b2_comida",
+        "hora": "12:30 - 13:45",
+        "duracionMin": 75,
+        "titulo": "Comida ligera e hidratación",
+        "subtitulo": "Comida rica en hidratos complejos, café suave y puesta a punto",
+        "categoria": "descanso",
+        "asignatura": null,
+        "targetApp": null,
+        "linkTab": "inicio"
+      },
+      {
+        "id": "b3_simulacro_20",
+        "hora": "14:00 - 18:30",
+        "duracionMin": 270,
+        "titulo": "🎯 SIMULACRO OFICIAL 20 CTO (210 PREGUNTAS)",
+        "subtitulo": "Examen oficial de 4h30m bajo presión real de tiempo",
+        "categoria": "test",
+        "asignatura": "Transversal",
+        "targetApp": "Campus CTO",
+        "linkTab": "inicio",
+        "targetPreguntas": 210
+      },
+      {
+        "id": "b4_descanso_post",
+        "hora": "18:30 - 21:00",
+        "duracionMin": 150,
+        "titulo": "Descanso y Desconexión Post-Simulacro",
+        "subtitulo": "Cena libre y desconexión absoluta",
+        "categoria": "descanso",
+        "asignatura": null,
+        "targetApp": null,
+        "linkTab": "inicio"
+      }
+    ]
+  },
+  "2026-11-08": {
+    "titulo": "Domingo de Descanso y Recarga",
+    "fase": "Descanso Semanal",
+    "bloques": [
+      {
+        "id": "b1_descanso_total",
+        "hora": "Todo el día",
+        "duracionMin": 480,
+        "titulo": "Descanso absoluto",
+        "subtitulo": "Paseo, familia, deporte y desconexión para resetear la mente",
+        "categoria": "descanso",
+        "asignatura": null,
+        "targetApp": null,
+        "linkTab": "inicio"
+      }
+    ]
+  },
+  "2026-11-09": {
+    "titulo": "Endocrinología Día 1 (Tiroides · DM y Metabolismo)",
+    "fase": "Endocrino B1 · Eje Tiroideo y Metabólico",
+    "bloques": [
+      {
+        "id": "b1_anki_m",
+        "hora": "09:00 - 09:30",
+        "duracionMin": 30,
+        "titulo": "Sprint 1 Anki (MIR 2027)",
+        "subtitulo": "Repaso matinal",
+        "categoria": "anki",
+        "asignatura": "Transversal",
+        "targetApp": "Anki",
+        "linkTab": "inicio"
+      },
+      {
+        "id": "b_sim_sector_2026-11-09",
+        "hora": "09:30 - 10:00",
+        "duracionMin": 30,
+        "titulo": "Corrección Sectorial Simu · Bloque 1 · Las Imperdonables (≥70% pob)",
+        "subtitulo": "Fallos graves por despiste o precipitación en conceptos estándar (~10-12 preguntas)",
+        "categoria": "correccion",
+        "asignatura": "Transversal",
+        "targetApp": "Campus CTO",
+        "linkTab": "simulacros"
+      },
+      {
+        "id": "b2_estudio_ed1",
+        "hora": "10:00 - 11:30",
+        "duracionMin": 90,
+        "titulo": "Estudio Quirúrgico Endocrino 1 (Tiroides P80)",
+        "subtitulo": "Hipo/Hipertiroidismo, Tiroiditis y Cáncer de Tiroides (Papilar vs Folicular vs Medular)",
+        "categoria": "estudio",
+        "asignatura": "Endocrinología y Metabolismo",
+        "targetApp": "NotebookLM",
+        "linkTab": "inicio",
+        "temasNucleares": [
+          "Enfermedades de la glándula tiroides"
+        ]
+      },
+      {
+        "id": "b3_test_ed1",
+        "hora": "11:30 - 13:30",
+        "duracionMin": 120,
+        "titulo": "Tirada 1 Mañana · Tiroides y Bocio (75p)",
+        "subtitulo": "Desgloses MIR Tiroides + Sims P80 + Corrección triada",
+        "categoria": "test",
+        "asignatura": "Endocrinología y Metabolismo",
+        "targetApp": "Desgloses",
+        "linkTab": "desgloses",
+        "targetPreguntas": 75,
+        "temasNucleares": [
+          "Enfermedades de la glándula tiroides"
+        ],
+        "temasSatelite": [
+          "Fisiología del sistema endocrino",
+          "Trastornos del desarrollo sexual"
+        ]
+      },
+      {
+        "id": "b4_anki_t",
+        "hora": "15:00 - 15:40",
+        "duracionMin": 40,
+        "titulo": "Café + Sprint 2 Anki (MIR 2027)",
+        "subtitulo": "Repaso de tarde",
+        "categoria": "anki",
+        "asignatura": "Transversal",
+        "targetApp": "Anki",
+        "linkTab": "inicio"
+      },
+      {
+        "id": "b5_estudio_ed2",
+        "hora": "15:40 - 17:10",
+        "duracionMin": 90,
+        "titulo": "Estudio Quirúrgico Endocrino 2 (Diabetes y Metabolismo)",
+        "subtitulo": "Algoritmo terapéutico DM2 (iSGLT2, arGLP1, Insulinas), Cetoacidosis/EHH y Dislipemias",
+        "categoria": "estudio",
+        "asignatura": "Endocrinología y Metabolismo",
+        "targetApp": "NotebookLM",
+        "linkTab": "inicio",
+        "temasNucleares": [
+          "Diabetes mellitus",
+          "Dislipemia, obesidad y desnutrición"
+        ]
+      },
+      {
+        "id": "b6_test_ed2",
+        "hora": "17:10 - 19:15",
+        "duracionMin": 125,
+        "titulo": "Tirada 2 Tarde · Diabetes y Nutrición (75p)",
+        "subtitulo": "Desgloses MIR DM + Complicaciones + Sims P80",
+        "categoria": "test",
+        "asignatura": "Endocrinología y Metabolismo",
+        "targetApp": "Desgloses",
+        "linkTab": "desgloses",
+        "targetPreguntas": 75,
+        "temasNucleares": [
+          "Diabetes mellitus",
+          "Dislipemia, obesidad y desnutrición"
+        ],
+        "temasSatelite": [
+          "Hipoglucemia en el sujeto no diabético"
+        ]
+      },
+      {
+        "id": "b7_misa",
+        "hora": "19:30 - 20:00",
+        "duracionMin": 30,
+        "titulo": "Misa y Desconexión Mental",
+        "subtitulo": "Paz y recarga espiritual",
+        "categoria": "descanso",
+        "asignatura": null,
+        "targetApp": null,
+        "linkTab": "inicio"
+      },
+      {
+        "id": "b8_eval_cto",
+        "hora": "20:00 - 20:45",
+        "duracionMin": 45,
+        "titulo": "Evaluación CTO en Campus",
+        "subtitulo": "Evaluación Endocrino B1",
+        "categoria": "evaluacion",
+        "asignatura": "Endocrinología y Metabolismo",
+        "targetApp": "Campus CTO",
+        "linkTab": "inicio"
+      }
+    ]
+  },
+  "2026-11-10": {
+    "titulo": "Endocrinología Día 2 (Hipófisis-Suprarrenales · Calcio y MEN)",
+    "fase": "Endocrino B2 · Ejes Complejos y Fósforo-Cálcico",
+    "bloques": [
+      {
+        "id": "b1_anki_m",
+        "hora": "09:00 - 09:30",
+        "duracionMin": 30,
+        "titulo": "Sprint 1 Anki (MIR 2027)",
+        "subtitulo": "Repaso matinal",
+        "categoria": "anki",
+        "asignatura": "Transversal",
+        "targetApp": "Anki",
+        "linkTab": "inicio"
+      },
+      {
+        "id": "b_sim_sector_2026-11-10",
+        "hora": "09:30 - 10:00",
+        "duracionMin": 30,
+        "titulo": "Corrección Sectorial Simu · Bloque 2A · Asequibles Parte 1 (50-69% pob)",
+        "subtitulo": "Preguntas de dificultad media: algoritmos de 1er escalón (~12-14 preguntas)",
+        "categoria": "correccion",
+        "asignatura": "Transversal",
+        "targetApp": "Campus CTO",
+        "linkTab": "simulacros"
+      },
+      {
+        "id": "b2_estudio_ed3",
+        "hora": "10:00 - 11:30",
+        "duracionMin": 90,
+        "titulo": "Estudio Quirúrgico Endocrino 3 (Hipófisis y Suprarrenales)",
+        "subtitulo": "Prolactinoma, Acromegalia, Hipopituitarismo, Cushing, Addison e Incidentaloma/Feocromocitoma",
+        "categoria": "estudio",
+        "asignatura": "Endocrinología y Metabolismo",
+        "targetApp": "NotebookLM",
+        "linkTab": "inicio",
+        "temasNucleares": [
+          "Enfermedades de la hipófisis",
+          "Enfermedades de las glándulas suprarrenales"
+        ]
+      },
+      {
+        "id": "b3_test_ed3",
+        "hora": "11:30 - 13:30",
+        "duracionMin": 120,
+        "titulo": "Tirada 1 Mañana · Hipófisis y Suprarrenales (75p)",
+        "subtitulo": "Desgloses MIR + Sims P80 + Corrección triada",
+        "categoria": "test",
+        "asignatura": "Endocrinología y Metabolismo",
+        "targetApp": "Desgloses",
+        "linkTab": "desgloses",
+        "targetPreguntas": 75,
+        "temasNucleares": [
+          "Enfermedades de la hipófisis",
+          "Enfermedades de las glándulas suprarrenales"
+        ]
+      },
+      {
+        "id": "b4_anki_t",
+        "hora": "15:00 - 15:40",
+        "duracionMin": 40,
+        "titulo": "Café + Sprint 2 Anki (MIR 2027)",
+        "subtitulo": "Repaso de tarde",
+        "categoria": "anki",
+        "asignatura": "Transversal",
+        "targetApp": "Anki",
+        "linkTab": "inicio"
+      },
+      {
+        "id": "b5_estudio_ed4",
+        "hora": "15:40 - 17:10",
+        "duracionMin": 90,
+        "titulo": "Estudio Quirúrgico Endocrino 4 (Calcio, Fósforo y MEN)",
+        "subtitulo": "Hipercalcemia (HPTP vs Tumoral), Hipocalcemia y Neoplasias Endocrinas Múltiples (MEN 1, 2A, 2B)",
+        "categoria": "estudio",
+        "asignatura": "Endocrinología y Metabolismo",
+        "targetApp": "NotebookLM",
+        "linkTab": "inicio",
+        "temasNucleares": [
+          "Trastornos del metabolismo del calcio",
+          "Trastornos que afectan a múltiples órganos endocrinos",
+          "Tumores neuroendocrinos gastroenteropancreáticos. Tumor y síndrome carcinoide"
+        ]
+      },
+      {
+        "id": "b6_test_ed4",
+        "hora": "17:10 - 19:15",
+        "duracionMin": 125,
+        "titulo": "Tirada 2 Tarde · Calcio, MEN y Barrido Endocrino (75p)",
+        "subtitulo": "Cierre completo de Endocrinología (75 preguntas)",
+        "categoria": "test",
+        "asignatura": "Endocrinología y Metabolismo",
+        "targetApp": "Desgloses",
+        "linkTab": "desgloses",
+        "targetPreguntas": 75,
+        "temasNucleares": [
+          "Trastornos del metabolismo del calcio",
+          "Trastornos que afectan a múltiples órganos endocrinos",
+          "Tumores neuroendocrinos gastroenteropancreáticos. Tumor y síndrome carcinoide"
+        ]
+      },
+      {
+        "id": "b7_misa",
+        "hora": "19:30 - 20:00",
+        "duracionMin": 30,
+        "titulo": "Misa y Desconexión Mental",
+        "subtitulo": "Paz y recarga espiritual",
+        "categoria": "descanso",
+        "asignatura": null,
+        "targetApp": null,
+        "linkTab": "inicio"
+      },
+      {
+        "id": "b8_eval_cto",
+        "hora": "20:00 - 20:45",
+        "duracionMin": 45,
+        "titulo": "Evaluación CTO en Campus",
+        "subtitulo": "Evaluación Endocrino B2",
+        "categoria": "evaluacion",
+        "asignatura": "Endocrinología y Metabolismo",
+        "targetApp": "Campus CTO",
+        "linkTab": "inicio"
+      }
+    ]
+  },
+  "2026-11-11": {
+    "titulo": "Nefrología Día 1 (Glomerulonefritis · Sedimento y Riñón Sistémico)",
+    "fase": "Nefrología B1 · Síndromes Glomerulares y Sistémicos",
+    "bloques": [
+      {
+        "id": "b1_anki_m",
+        "hora": "09:00 - 09:30",
+        "duracionMin": 30,
+        "titulo": "Sprint 1 Anki (MIR 2027)",
+        "subtitulo": "Repaso matinal",
+        "categoria": "anki",
+        "asignatura": "Transversal",
+        "targetApp": "Anki",
+        "linkTab": "inicio"
+      },
+      {
+        "id": "b_sim_sector_2026-11-11",
+        "hora": "09:30 - 10:00",
+        "duracionMin": 30,
+        "titulo": "Corrección Sectorial Simu · Bloque 2B · Asequibles Parte 2 (50-69% pob)",
+        "subtitulo": "Preguntas de dificultad media: diagnósticos diferenciales típicos (~12-14 preguntas)",
+        "categoria": "correccion",
+        "asignatura": "Transversal",
+        "targetApp": "Campus CTO",
+        "linkTab": "simulacros"
+      },
+      {
+        "id": "b2_estudio_nf1",
+        "hora": "10:00 - 11:30",
+        "duracionMin": 90,
+        "titulo": "Estudio Quirúrgico Nefro 1 (Glomerulonefritis P80)",
+        "subtitulo": "Síndrome Nefrótico vs Nefrítico, Membranosa, Cambios mínimos, FSG, Mesangiocapilar, IgA y GNRP",
+        "categoria": "estudio",
+        "asignatura": "Nefrología",
+        "targetApp": "NotebookLM",
+        "linkTab": "inicio",
+        "temasNucleares": [
+          "Introducción a la patología glomerular",
+          "Glomerulonefritis"
+        ]
+      },
+      {
+        "id": "b3_test_nf1",
+        "hora": "11:30 - 13:30",
+        "duracionMin": 120,
+        "titulo": "Tirada 1 Mañana · Glomerulonefritis (75p)",
+        "subtitulo": "Desgloses MIR Glomérulo + Sims CTO P80 + Corrección triada",
+        "categoria": "test",
+        "asignatura": "Nefrología",
+        "targetApp": "Desgloses",
+        "linkTab": "desgloses",
+        "targetPreguntas": 75,
+        "temasNucleares": [
+          "Introducción a la patología glomerular",
+          "Glomerulonefritis"
+        ]
+      },
+      {
+        "id": "b4_anki_t",
+        "hora": "15:00 - 15:40",
+        "duracionMin": 40,
+        "titulo": "Café + Sprint 2 Anki (MIR 2027)",
+        "subtitulo": "Repaso de tarde",
+        "categoria": "anki",
+        "asignatura": "Transversal",
+        "targetApp": "Anki",
+        "linkTab": "inicio"
+      },
+      {
+        "id": "b5_estudio_nf2",
+        "hora": "15:40 - 17:10",
+        "duracionMin": 90,
+        "titulo": "Estudio Quirúrgico Nefro 2 (Riñón en Sistémicas y Sedimento)",
+        "subtitulo": "Nefropatía Diabética, Nefritis Lúpica, Mieloma Múltiple, Amiloidosis y Sedimento Urinario Decisivo",
+        "categoria": "estudio",
+        "asignatura": "Nefrología",
+        "targetApp": "NotebookLM",
+        "linkTab": "inicio",
+        "temasNucleares": [
+          "Afectación renal en las enfermedades sistémicas",
+          "Enfermedad renal diabética",
+          "Alteraciones en el sedimento urinario"
+        ]
+      },
+      {
+        "id": "b6_test_nf2",
+        "hora": "17:10 - 19:15",
+        "duracionMin": 125,
+        "titulo": "Tirada 2 Tarde · Riñón Sistémico y Sedimento (75p)",
+        "subtitulo": "75 preguntas combinadas de patología glomerular secundaria y orina",
+        "categoria": "test",
+        "asignatura": "Nefrología",
+        "targetApp": "Desgloses",
+        "linkTab": "desgloses",
+        "targetPreguntas": 75,
+        "temasNucleares": [
+          "Afectación renal en las enfermedades sistémicas",
+          "Enfermedad renal diabética",
+          "Alteraciones en el sedimento urinario"
+        ]
+      },
+      {
+        "id": "b7_misa",
+        "hora": "19:30 - 20:00",
+        "duracionMin": 30,
+        "titulo": "Misa y Desconexión Mental",
+        "subtitulo": "Paz y recarga espiritual",
+        "categoria": "descanso",
+        "asignatura": null,
+        "targetApp": null,
+        "linkTab": "inicio"
+      },
+      {
+        "id": "b8_eval_cto",
+        "hora": "20:00 - 20:45",
+        "duracionMin": 45,
+        "titulo": "Evaluación CTO en Campus",
+        "subtitulo": "Evaluación Nefrología B1",
+        "categoria": "evaluacion",
+        "asignatura": "Nefrología",
+        "targetApp": "Campus CTO",
+        "linkTab": "inicio"
+      }
+    ]
+  },
+  "2026-11-12": {
+    "titulo": "Nefrología Día 2 (Fracaso Renal y Medio Interno · ERC y AP)",
+    "fase": "Nefrología B2 · Iones, Insuficiencia y Micro-AP",
+    "bloques": [
+      {
+        "id": "b1_anki_m",
+        "hora": "09:00 - 09:30",
+        "duracionMin": 30,
+        "titulo": "Sprint 1 Anki (MIR 2027)",
+        "subtitulo": "Repaso matinal",
+        "categoria": "anki",
+        "asignatura": "Transversal",
+        "targetApp": "Anki",
+        "linkTab": "inicio"
+      },
+      {
+        "id": "b_sim_sector_2026-11-12",
+        "hora": "09:30 - 10:00",
+        "duracionMin": 30,
+        "titulo": "Corrección Sectorial Simu · Bloque 3 · Discriminación P80 (35-49% pob)",
+        "subtitulo": "El campo de batalla del P80: detalles de 2ª línea y excepciones (~15-18 preguntas)",
+        "categoria": "correccion",
+        "asignatura": "Transversal",
+        "targetApp": "Campus CTO",
+        "linkTab": "simulacros"
+      },
+      {
+        "id": "b2_estudio_nf3",
+        "hora": "10:00 - 11:30",
+        "duracionMin": 90,
+        "titulo": "Estudio Quirúrgico Nefro 3 (Fracaso Renal Agudo e Iones P80)",
+        "subtitulo": "FRA (Prerrenal vs NTA vs Obstructivo), Hiponatremia/SIADH e Hiper/Hipopotasemia",
+        "categoria": "estudio",
+        "asignatura": "Nefrología",
+        "targetApp": "NotebookLM",
+        "linkTab": "inicio",
+        "temasNucleares": [
+          "Fracaso renal agudo",
+          "Trastornos hidroelectrolíticos"
+        ]
+      },
+      {
+        "id": "b3_test_nf3",
+        "hora": "11:30 - 13:30",
+        "duracionMin": 120,
+        "titulo": "Tirada 1 Mañana · FRA y Medio Interno (75p)",
+        "subtitulo": "Desgloses MIR FRA + Trastornos del Sodio y Potasio",
+        "categoria": "test",
+        "asignatura": "Nefrología",
+        "targetApp": "Desgloses",
+        "linkTab": "desgloses",
+        "targetPreguntas": 75,
+        "temasNucleares": [
+          "Fracaso renal agudo",
+          "Trastornos hidroelectrolíticos"
+        ]
+      },
+      {
+        "id": "b4_anki_t",
+        "hora": "15:00 - 15:40",
+        "duracionMin": 40,
+        "titulo": "Café + Sprint 2 Anki (MIR 2027)",
+        "subtitulo": "Repaso de tarde",
+        "categoria": "anki",
+        "asignatura": "Transversal",
+        "targetApp": "Anki",
+        "linkTab": "inicio"
+      },
+      {
+        "id": "b5_estudio_nf4",
+        "hora": "15:40 - 17:10",
+        "duracionMin": 90,
+        "titulo": "Estudio Quirúrgico Nefro 4 + Micro-AP (ERC y Biopsias)",
+        "subtitulo": "Enfermedad Renal Crónica, Tubulointersticial, Fármacos y riñón + Patrones clave de Anatomía Patológica",
+        "categoria": "estudio",
+        "asignatura": "Nefrología",
+        "targetApp": "NotebookLM",
+        "linkTab": "inicio",
+        "temasNucleares": [
+          "Enfermedad renal crónica",
+          "Trastornos tubulointersticiales del riñón. Fármacos y riñón",
+          "Microangiopatías trombóticas"
+        ]
+      },
+      {
+        "id": "b6_test_nf4",
+        "hora": "17:10 - 19:15",
+        "duracionMin": 125,
+        "titulo": "Tirada 2 Tarde · ERC + Barrido Nefro y AP (75p)",
+        "subtitulo": "Cierre de Nefrología y preguntas clave de Anatomía Patológica",
+        "categoria": "test",
+        "asignatura": "Nefrología",
+        "targetApp": "Desgloses",
+        "linkTab": "desgloses",
+        "targetPreguntas": 75,
+        "temasNucleares": [
+          "Enfermedad renal crónica",
+          "Trastornos tubulointersticiales del riñón. Fármacos y riñón",
+          "Microangiopatías trombóticas"
+        ],
+        "temasSatelite": [
+          "Enfermedades quísticas hereditarias",
+          "Hipertensión y riñón. Enfermedades vasculares renales"
+        ]
+      },
+      {
+        "id": "b7_misa",
+        "hora": "19:30 - 20:00",
+        "duracionMin": 30,
+        "titulo": "Misa y Desconexión Mental",
+        "subtitulo": "Paz y recarga espiritual",
+        "categoria": "descanso",
+        "asignatura": null,
+        "targetApp": null,
+        "linkTab": "inicio"
+      },
+      {
+        "id": "b8_eval_cto",
+        "hora": "20:00 - 20:45",
+        "duracionMin": 45,
+        "titulo": "Evaluación CTO en Campus",
+        "subtitulo": "Evaluación Nefrología B2",
+        "categoria": "evaluacion",
+        "asignatura": "Nefrología",
+        "targetApp": "Campus CTO",
+        "linkTab": "inicio"
+      }
+    ]
+  },
+  "2026-11-13": {
+    "titulo": "Urología (Próstata y Litiasis · Tumores y Urgencias)",
+    "fase": "Urología B1 · Cánceres Urológicos y Litiasis",
+    "bloques": [
+      {
+        "id": "b1_anki_m",
+        "hora": "09:00 - 09:30",
+        "duracionMin": 30,
+        "titulo": "Sprint 1 Anki (MIR 2027)",
+        "subtitulo": "Repaso matinal",
+        "categoria": "anki",
+        "asignatura": "Transversal",
+        "targetApp": "Anki",
+        "linkTab": "inicio"
+      },
+      {
+        "id": "b_sim_sector_2026-11-13",
+        "hora": "09:30 - 10:00",
+        "duracionMin": 30,
+        "titulo": "Corrección Sectorial Simu · Bloque 4 · Radar de Marcianas (<35% pob)",
+        "subtitulo": "Modo telegrama: capturar la perla rápida en 10s sin atascarse (~10-15 preguntas)",
+        "categoria": "correccion",
+        "asignatura": "Transversal",
+        "targetApp": "Campus CTO",
+        "linkTab": "simulacros"
+      },
+      {
+        "id": "b2_estudio_ur1",
+        "hora": "10:00 - 11:30",
+        "duracionMin": 90,
+        "titulo": "Estudio Quirúrgico Urología 1 (Próstata y Litiasis P80)",
+        "subtitulo": "HBP (médico vs quirúrgico), Cáncer de Próstata (estadiaje y Gleason) y Urolitiasis (cólico y expulsivo)",
+        "categoria": "estudio",
+        "asignatura": "Urología",
+        "targetApp": "NotebookLM",
+        "linkTab": "inicio",
+        "temasNucleares": [
+          "Hiperplasia prostática benigna y carcinoma prostático",
+          "Urolitiasis"
+        ]
+      },
+      {
+        "id": "b3_test_ur1",
+        "hora": "11:30 - 13:30",
+        "duracionMin": 120,
+        "titulo": "Tirada 1 Mañana · Próstata y Litiasis (75p)",
+        "subtitulo": "Desgloses MIR Urología + Sims CTO P80 + Corrección triada",
+        "categoria": "test",
+        "asignatura": "Urología",
+        "targetApp": "Desgloses",
+        "linkTab": "desgloses",
+        "targetPreguntas": 75,
+        "temasNucleares": [
+          "Hiperplasia prostática benigna y carcinoma prostático",
+          "Urolitiasis"
+        ]
+      },
+      {
+        "id": "b4_anki_t",
+        "hora": "15:00 - 15:40",
+        "duracionMin": 40,
+        "titulo": "Café + Sprint 2 Anki (MIR 2027)",
+        "subtitulo": "Repaso de tarde",
+        "categoria": "anki",
+        "asignatura": "Transversal",
+        "targetApp": "Anki",
+        "linkTab": "inicio"
+      },
+      {
+        "id": "b5_estudio_ur2",
+        "hora": "15:40 - 17:10",
+        "duracionMin": 90,
+        "titulo": "Estudio Quirúrgico Urología 2 (Tumores Renales, Vejiga y Testículo)",
+        "subtitulo": "Carcinoma renal, Cáncer de vejiga (RTU vs Cistectomía), Tumores de testículo y Trasplante renal",
+        "categoria": "estudio",
+        "asignatura": "Urología",
+        "targetApp": "NotebookLM",
+        "linkTab": "inicio",
+        "temasNucleares": [
+          "Tumores renales",
+          "Carcinomas del tracto urinario",
+          "Tumores testiculares",
+          "Trasplante renal"
+        ]
+      },
+      {
+        "id": "b6_test_ur2",
+        "hora": "17:10 - 19:15",
+        "duracionMin": 125,
+        "titulo": "Tirada 2 Tarde · Tumores Urológicos y Urgencias (75p)",
+        "subtitulo": "Cierre total de Urología (75 preguntas)",
+        "categoria": "test",
+        "asignatura": "Urología",
+        "targetApp": "Desgloses",
+        "linkTab": "desgloses",
+        "targetPreguntas": 75,
+        "temasNucleares": [
+          "Tumores renales",
+          "Carcinomas del tracto urinario",
+          "Tumores testiculares",
+          "Trasplante renal"
+        ],
+        "temasSatelite": [
+          "Semiología urológica y definiciones",
+          "Andrología",
+          "Infecciones del tracto urinario. Cistitis intersticial",
+          "Uropatía obstructiva"
+        ]
+      },
+      {
+        "id": "b7_descanso",
+        "hora": "19:30 - 20:30",
+        "duracionMin": 60,
+        "titulo": "Descanso y Preparación Mental Simulacro 21",
+        "subtitulo": "Cenar pronto y descansar",
+        "categoria": "descanso",
+        "asignatura": null,
+        "targetApp": null,
+        "linkTab": "inicio"
+      }
+    ]
+  },
+  "2026-11-14": {
+    "titulo": "Día de Examen: SIMULACRO OFICIAL 21 CTO (210 preguntas)",
+    "fase": "Simulacro Semanal Oficial",
+    "bloques": [
+      {
+        "id": "b1_videoclase_ur",
+        "hora": "09:30 - 11:00",
+        "duracionMin": 90,
+        "titulo": "Videoclase CTO Urología / Repaso Visual",
+        "subtitulo": "Consolidación rápida matinal",
+        "categoria": "estudio",
+        "asignatura": "Urología",
+        "targetApp": "Campus CTO",
+        "linkTab": "inicio"
+      },
+      {
+        "id": "b2_comida",
+        "hora": "12:30 - 13:45",
+        "duracionMin": 75,
+        "titulo": "Comida ligera e hidratación",
+        "subtitulo": "Preparación previa al examen",
+        "categoria": "descanso",
+        "asignatura": null,
+        "targetApp": null,
+        "linkTab": "inicio"
+      },
+      {
+        "id": "b3_simulacro_21",
+        "hora": "14:00 - 18:30",
+        "duracionMin": 270,
+        "titulo": "🎯 SIMULACRO OFICIAL 21 CTO (210 PREGUNTAS)",
+        "subtitulo": "Examen oficial de 4h30m bajo presión real de tiempo",
+        "categoria": "test",
+        "asignatura": "Transversal",
+        "targetApp": "Campus CTO",
+        "linkTab": "inicio",
+        "targetPreguntas": 210
+      },
+      {
+        "id": "b4_descanso_post",
+        "hora": "18:30 - 21:00",
+        "duracionMin": 150,
+        "titulo": "Descanso y Desconexión Post-Simulacro",
+        "subtitulo": "Cena libre y desconexión absoluta",
+        "categoria": "descanso",
+        "asignatura": null,
+        "targetApp": null,
+        "linkTab": "inicio"
+      }
+    ]
+  },
+  "2026-11-15": {
+    "titulo": "Domingo de Descanso y Recarga",
+    "fase": "Descanso Semanal",
+    "bloques": [
+      {
+        "id": "b1_descanso_total",
+        "hora": "Todo el día",
+        "duracionMin": 480,
+        "titulo": "Descanso absoluto",
+        "subtitulo": "Reset mental y físico para la semana de Infecciosas",
+        "categoria": "descanso",
+        "asignatura": null,
+        "targetApp": null,
+        "linkTab": "inicio"
+      }
+    ]
+  }
+}

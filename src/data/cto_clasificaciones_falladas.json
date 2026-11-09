@@ -1,0 +1,1594 @@
+[
+  {
+    "asignatura_id": "83906ee5-56ca-4ef7-85b4-f385da66574e",
+    "tema_id": "a97672a6-8ffa-4dbf-b716-ab17637f92ea",
+    "asignatura": "Alergología",
+    "tema": "Alergia a alimentos",
+    "nivel": 2,
+    "total": 5
+  },
+  {
+    "asignatura_id": "d3a3b3d3-121d-4c45-b8f8-4783bc973568",
+    "tema_id": "51b099b8-804c-4450-80f3-7d3000c82a53",
+    "asignatura": "Anatomía Patológica",
+    "tema": "Conceptos generales",
+    "nivel": 2,
+    "total": 7
+  },
+  {
+    "asignatura_id": "d3a3b3d3-121d-4c45-b8f8-4783bc973568",
+    "tema_id": "eb3fc80d-382e-4f1a-9278-110cc6fcee0a",
+    "asignatura": "Anatomía Patológica",
+    "tema": "Lesiones anatomopatológicas por secciones",
+    "nivel": 2,
+    "total": 38
+  },
+  {
+    "asignatura_id": "28f7a4fc-3e53-4757-960e-51e1b43754da",
+    "tema_id": "51d6fe0a-1c66-45f2-8b2b-f8a79e2d05e6",
+    "asignatura": "Anestesiología",
+    "tema": "Complicaciones relacionadas con la anestesia",
+    "nivel": 2,
+    "total": 6
+  },
+  {
+    "asignatura_id": "28f7a4fc-3e53-4757-960e-51e1b43754da",
+    "tema_id": "1beed0ec-ea23-4972-9433-324b052989ca",
+    "asignatura": "Anestesiología",
+    "tema": "Fármacos en anestesiología",
+    "nivel": 2,
+    "total": 7
+  },
+  {
+    "asignatura_id": "28f7a4fc-3e53-4757-960e-51e1b43754da",
+    "tema_id": "05e6502b-24ef-4122-9a34-157bba5d4cad",
+    "asignatura": "Anestesiología",
+    "tema": "Manejo de la vía aérea",
+    "nivel": 2,
+    "total": 6
+  },
+  {
+    "asignatura_id": "28f7a4fc-3e53-4757-960e-51e1b43754da",
+    "tema_id": "0e55fd3e-a721-4cb0-b515-114372909679",
+    "asignatura": "Anestesiología",
+    "tema": "Visita preanestésica",
+    "nivel": 2,
+    "total": 18
+  },
+  {
+    "asignatura_id": "fd75966b-8612-4650-b9f5-cd8dfe46e11a",
+    "tema_id": "71fde92e-5937-407d-9ebb-404cd533ec42",
+    "asignatura": "Bioética y Medicina Legal",
+    "tema": "Ética en el final de la vida. El paciente terminal",
+    "nivel": 2,
+    "total": 11
+  },
+  {
+    "asignatura_id": "fd75966b-8612-4650-b9f5-cd8dfe46e11a",
+    "tema_id": "3e159104-4d29-4a37-8408-26813a9db358",
+    "asignatura": "Bioética y Medicina Legal",
+    "tema": "Medicina forense",
+    "nivel": 2,
+    "total": 10
+  },
+  {
+    "asignatura_id": "fd75966b-8612-4650-b9f5-cd8dfe46e11a",
+    "tema_id": "e77fbb12-6219-4ea8-8515-ccc0dc9996c5",
+    "asignatura": "Bioética y Medicina Legal",
+    "tema": "Medicina legal",
+    "nivel": 2,
+    "total": 8
+  },
+  {
+    "asignatura_id": "b1c9c6eb-3855-4546-b968-f2f39ff33438",
+    "tema_id": "2da4d5a7-db1c-4500-abea-93d990a6aee5",
+    "asignatura": "Bioquímica",
+    "tema": "Metabolismo",
+    "nivel": 2,
+    "total": 20
+  },
+  {
+    "asignatura_id": "c33d5f3c-f632-4da0-984f-003ceb92780f",
+    "tema_id": "bf97ffeb-c35b-408f-990c-81ea0fccd949",
+    "asignatura": "Cardiología",
+    "tema": "Arritmias",
+    "nivel": 2,
+    "total": 13
+  },
+  {
+    "asignatura_id": "c33d5f3c-f632-4da0-984f-003ceb92780f",
+    "tema_id": "9192d06b-74c4-4914-8aa0-dfffe23ad781",
+    "asignatura": "Cardiología",
+    "tema": "Cardiopatías congénitas",
+    "nivel": 2,
+    "total": 12
+  },
+  {
+    "asignatura_id": "c33d5f3c-f632-4da0-984f-003ceb92780f",
+    "tema_id": "de18d601-b90b-422e-b565-46eddeb5b8db",
+    "asignatura": "Cardiología",
+    "tema": "Enfermedad coronaria",
+    "nivel": 2,
+    "total": 19
+  },
+  {
+    "asignatura_id": "c33d5f3c-f632-4da0-984f-003ceb92780f",
+    "tema_id": "92c47f5a-81d0-4a78-abac-0bb0ed4ae423",
+    "asignatura": "Cardiología",
+    "tema": "Enfermedades de la aorta",
+    "nivel": 2,
+    "total": 18
+  },
+  {
+    "asignatura_id": "c33d5f3c-f632-4da0-984f-003ceb92780f",
+    "tema_id": "ed3bcf8c-3a78-4f25-bc7c-48c037d1242b",
+    "asignatura": "Cardiología",
+    "tema": "Enfermedades de los vasos periféricos",
+    "nivel": 2,
+    "total": 12
+  },
+  {
+    "asignatura_id": "c33d5f3c-f632-4da0-984f-003ceb92780f",
+    "tema_id": "ce512a5c-f19a-4cc1-aa05-853a5af8f08a",
+    "asignatura": "Cardiología",
+    "tema": "Insuficiencia cardíaca",
+    "nivel": 2,
+    "total": 21
+  },
+  {
+    "asignatura_id": "c33d5f3c-f632-4da0-984f-003ceb92780f",
+    "tema_id": "1855818a-c801-4b21-8154-4111884679ad",
+    "asignatura": "Cardiología",
+    "tema": "Métodos diagnósticos en Cardiología",
+    "nivel": 2,
+    "total": 13
+  },
+  {
+    "asignatura_id": "c33d5f3c-f632-4da0-984f-003ceb92780f",
+    "tema_id": "6abacc78-aae3-4541-accc-85235f9eb423",
+    "asignatura": "Cardiología",
+    "tema": "Miocardiopatías",
+    "nivel": 2,
+    "total": 6
+  },
+  {
+    "asignatura_id": "c33d5f3c-f632-4da0-984f-003ceb92780f",
+    "tema_id": "59218912-cacf-4c56-8ee2-d928c9f9410c",
+    "asignatura": "Cardiología",
+    "tema": "Otros",
+    "nivel": 2,
+    "total": 39
+  },
+  {
+    "asignatura_id": "c33d5f3c-f632-4da0-984f-003ceb92780f",
+    "tema_id": "fab9f708-da8e-4b3a-8354-1ab6b8f7c1d5",
+    "asignatura": "Cardiología",
+    "tema": "Semiología cardíaca y vascular",
+    "nivel": 2,
+    "total": 9
+  },
+  {
+    "asignatura_id": "c33d5f3c-f632-4da0-984f-003ceb92780f",
+    "tema_id": "0b5b6aef-deee-4860-a3f3-da7ec5dd0a69",
+    "asignatura": "Cardiología",
+    "tema": "Tumores y traumatismos cardíacos",
+    "nivel": 2,
+    "total": 5
+  },
+  {
+    "asignatura_id": "c33d5f3c-f632-4da0-984f-003ceb92780f",
+    "tema_id": "7f370572-b9ea-4aaf-96d0-a103fb4ccd94",
+    "asignatura": "Cardiología",
+    "tema": "Valvulopatías",
+    "nivel": 2,
+    "total": 14
+  },
+  {
+    "asignatura_id": "c33d5f3c-f632-4da0-984f-003ceb92780f",
+    "tema_id": "00000000-0000-0000-0000-000000000000",
+    "asignatura": "Cardiología",
+    "tema": null,
+    "nivel": 1,
+    "total": 5
+  },
+  {
+    "asignatura_id": "a7f0eac8-c1c6-4806-99ec-2c326556842a",
+    "tema_id": "6a3fceba-5fa4-4720-98f9-87d87603b33e",
+    "asignatura": "Cirugía General",
+    "tema": "Cirugía plástica",
+    "nivel": 2,
+    "total": 12
+  },
+  {
+    "asignatura_id": "a7f0eac8-c1c6-4806-99ec-2c326556842a",
+    "tema_id": "29981a0b-5f92-4345-af43-a86f164af2cd",
+    "asignatura": "Cirugía General",
+    "tema": "Complicaciones posoperatorias y cicatrización",
+    "nivel": 2,
+    "total": 5
+  },
+  {
+    "asignatura_id": "a7f0eac8-c1c6-4806-99ec-2c326556842a",
+    "tema_id": "05611ca6-3bb0-4552-a673-d645a1f13f09",
+    "asignatura": "Cirugía General",
+    "tema": "Otros",
+    "nivel": 2,
+    "total": 14
+  },
+  {
+    "asignatura_id": "a7f0eac8-c1c6-4806-99ec-2c326556842a",
+    "tema_id": "541f7dda-055c-4a13-9782-5d4e953c5071",
+    "asignatura": "Cirugía General",
+    "tema": "Pared abdominal y cirugía mayor ambulatoria",
+    "nivel": 2,
+    "total": 6
+  },
+  {
+    "asignatura_id": "a7f0eac8-c1c6-4806-99ec-2c326556842a",
+    "tema_id": "dba3842e-889d-4f9b-9750-92fba779684e",
+    "asignatura": "Cirugía General",
+    "tema": "Politraumatismos, traumatismos abdominales y torácicos",
+    "nivel": 2,
+    "total": 10
+  },
+  {
+    "asignatura_id": "5cded933-4131-4f15-84b6-e34b0b3c07de",
+    "tema_id": "96ed0608-46fb-41e4-8a47-984fabc1eb9c",
+    "asignatura": "Dermatología",
+    "tema": "Enfermedades ampollosas autoinmunitarias",
+    "nivel": 2,
+    "total": 5
+  },
+  {
+    "asignatura_id": "5cded933-4131-4f15-84b6-e34b0b3c07de",
+    "tema_id": "bc955167-9894-41ae-af88-22d75740be32",
+    "asignatura": "Dermatología",
+    "tema": "Enfermedades eritemato-descamativas",
+    "nivel": 2,
+    "total": 5
+  },
+  {
+    "asignatura_id": "5cded933-4131-4f15-84b6-e34b0b3c07de",
+    "tema_id": "9598b6fb-36a8-46bd-9b60-7f33fa9753f2",
+    "asignatura": "Dermatología",
+    "tema": "Toxicodermias",
+    "nivel": 2,
+    "total": 5
+  },
+  {
+    "asignatura_id": "a3ef885d-1c71-4dc1-8c2f-70c48cf1cd20",
+    "tema_id": "26b5bc05-d1df-4ce0-969e-7cf02cd86b01",
+    "asignatura": "Digestivo",
+    "tema": "Cáncer colorrectal esporádico",
+    "nivel": 2,
+    "total": 8
+  },
+  {
+    "asignatura_id": "a3ef885d-1c71-4dc1-8c2f-70c48cf1cd20",
+    "tema_id": "6f524016-3533-438b-b528-c6a254f6f692",
+    "asignatura": "Digestivo",
+    "tema": "Cáncer colorrectal hereditario asociado a poliposis y síndrome de Lynch",
+    "nivel": 2,
+    "total": 14
+  },
+  {
+    "asignatura_id": "a3ef885d-1c71-4dc1-8c2f-70c48cf1cd20",
+    "tema_id": "4311f1d6-ea57-4e89-a45a-7f77c8254f29",
+    "asignatura": "Digestivo",
+    "tema": "Cirugía bariátrica y cirugía metabólica",
+    "nivel": 2,
+    "total": 5
+  },
+  {
+    "asignatura_id": "a3ef885d-1c71-4dc1-8c2f-70c48cf1cd20",
+    "tema_id": "b068dbf4-3576-4443-9c5a-1de8cc1c2cd3",
+    "asignatura": "Digestivo",
+    "tema": "Complicaciones de la cirrosis",
+    "nivel": 2,
+    "total": 15
+  },
+  {
+    "asignatura_id": "a3ef885d-1c71-4dc1-8c2f-70c48cf1cd20",
+    "tema_id": "29958604-c844-4ec0-a000-bdac152cd95b",
+    "asignatura": "Digestivo",
+    "tema": "Enfermedades de la vesícula biliar y conductos biliares",
+    "nivel": 2,
+    "total": 12
+  },
+  {
+    "asignatura_id": "a3ef885d-1c71-4dc1-8c2f-70c48cf1cd20",
+    "tema_id": "bdd61db4-dc9c-42df-8638-51cc39f24b12",
+    "asignatura": "Digestivo",
+    "tema": "Enfermedades inflamatorias del esófago",
+    "nivel": 2,
+    "total": 5
+  },
+  {
+    "asignatura_id": "a3ef885d-1c71-4dc1-8c2f-70c48cf1cd20",
+    "tema_id": "b5845f18-a165-4200-b321-e62295a6b5e3",
+    "asignatura": "Digestivo",
+    "tema": "Enfermedad inflamatoria intestinal",
+    "nivel": 2,
+    "total": 6
+  },
+  {
+    "asignatura_id": "a3ef885d-1c71-4dc1-8c2f-70c48cf1cd20",
+    "tema_id": "2e856f29-e7af-414c-913a-3fc280786ddd",
+    "asignatura": "Digestivo",
+    "tema": "Hepatitis víricas",
+    "nivel": 2,
+    "total": 9
+  },
+  {
+    "asignatura_id": "a3ef885d-1c71-4dc1-8c2f-70c48cf1cd20",
+    "tema_id": "d03a23d1-65bc-48db-a378-896c7f250bd5",
+    "asignatura": "Digestivo",
+    "tema": "Pancreatitis aguda",
+    "nivel": 2,
+    "total": 6
+  },
+  {
+    "asignatura_id": "a3ef885d-1c71-4dc1-8c2f-70c48cf1cd20",
+    "tema_id": "337a6050-67af-42a6-a2f4-9b7f3fdab43a",
+    "asignatura": "Digestivo",
+    "tema": "Patología vascular intestinal",
+    "nivel": 2,
+    "total": 6
+  },
+  {
+    "asignatura_id": "a3ef885d-1c71-4dc1-8c2f-70c48cf1cd20",
+    "tema_id": "6b577ed6-a920-4683-99e3-33398dfe8945",
+    "asignatura": "Digestivo",
+    "tema": "Síndromes malabsortivos",
+    "nivel": 2,
+    "total": 6
+  },
+  {
+    "asignatura_id": "a3ef885d-1c71-4dc1-8c2f-70c48cf1cd20",
+    "tema_id": "9513905d-d9bc-4343-85d8-9fb948aabf83",
+    "asignatura": "Digestivo",
+    "tema": "Trastornos asociados al consumo de alcohol",
+    "nivel": 2,
+    "total": 5
+  },
+  {
+    "asignatura_id": "a3ef885d-1c71-4dc1-8c2f-70c48cf1cd20",
+    "tema_id": "ad7272c3-4fd6-4f9e-8512-1c88662fe0ca",
+    "asignatura": "Digestivo",
+    "tema": "Tumores del páncreas exocrino",
+    "nivel": 2,
+    "total": 8
+  },
+  {
+    "asignatura_id": "a3ef885d-1c71-4dc1-8c2f-70c48cf1cd20",
+    "tema_id": "b53a797d-46b5-4a7c-af41-79848454ee5a",
+    "asignatura": "Digestivo",
+    "tema": "Tumores gástricos. Complicaciones de la cirugía gástrica",
+    "nivel": 2,
+    "total": 6
+  },
+  {
+    "asignatura_id": "a3ef885d-1c71-4dc1-8c2f-70c48cf1cd20",
+    "tema_id": "91f58fb2-99f7-44f8-aea5-d80cc9648d68",
+    "asignatura": "Digestivo",
+    "tema": "Tumores hepáticos",
+    "nivel": 2,
+    "total": 6
+  },
+  {
+    "asignatura_id": "a3ef885d-1c71-4dc1-8c2f-70c48cf1cd20",
+    "tema_id": "73b5f3c2-b6d5-466a-8963-0650300c560c",
+    "asignatura": "Digestivo",
+    "tema": "Úlcera péptica producida por H. pylori y antiinflamatorios no esteroideos",
+    "nivel": 2,
+    "total": 11
+  },
+  {
+    "asignatura_id": "a3ef885d-1c71-4dc1-8c2f-70c48cf1cd20",
+    "tema_id": "00000000-0000-0000-0000-000000000000",
+    "asignatura": "Digestivo",
+    "tema": null,
+    "nivel": 1,
+    "total": 7
+  },
+  {
+    "asignatura_id": "d731bba0-a6c3-4ad0-9d77-61f23c6efde6",
+    "tema_id": "f9a889c1-21c3-43e8-98bc-4a32e2d8d36a",
+    "asignatura": "Endocrinología y Metabolismo",
+    "tema": "Diabetes mellitus",
+    "nivel": 2,
+    "total": 16
+  },
+  {
+    "asignatura_id": "d731bba0-a6c3-4ad0-9d77-61f23c6efde6",
+    "tema_id": "d192862e-5463-46a9-8bd9-e68bcfa2602b",
+    "asignatura": "Endocrinología y Metabolismo",
+    "tema": "Dislipemia, obesidad y desnutrición",
+    "nivel": 2,
+    "total": 17
+  },
+  {
+    "asignatura_id": "d731bba0-a6c3-4ad0-9d77-61f23c6efde6",
+    "tema_id": "666ca95a-3a85-46ee-9780-8c891105a409",
+    "asignatura": "Endocrinología y Metabolismo",
+    "tema": "Enfermedades de la glándula tiroides",
+    "nivel": 2,
+    "total": 10
+  },
+  {
+    "asignatura_id": "d731bba0-a6c3-4ad0-9d77-61f23c6efde6",
+    "tema_id": "23d5a03a-0dc4-45e6-a1ad-d186a3052865",
+    "asignatura": "Endocrinología y Metabolismo",
+    "tema": "Enfermedades de la hipófisis",
+    "nivel": 2,
+    "total": 7
+  },
+  {
+    "asignatura_id": "d731bba0-a6c3-4ad0-9d77-61f23c6efde6",
+    "tema_id": "0e20bf5f-e13d-499d-9604-4a79c000f96b",
+    "asignatura": "Endocrinología y Metabolismo",
+    "tema": "Enfermedades de las glándulas suprarrenales",
+    "nivel": 2,
+    "total": 11
+  },
+  {
+    "asignatura_id": "d731bba0-a6c3-4ad0-9d77-61f23c6efde6",
+    "tema_id": "71b984e8-6fc7-479c-8945-433b8e466455",
+    "asignatura": "Endocrinología y Metabolismo",
+    "tema": "Fisiología del sistema endocrino",
+    "nivel": 2,
+    "total": 7
+  },
+  {
+    "asignatura_id": "d731bba0-a6c3-4ad0-9d77-61f23c6efde6",
+    "tema_id": "35372f60-c13b-4293-8002-1cddcf73add8",
+    "asignatura": "Endocrinología y Metabolismo",
+    "tema": "Trastornos del metabolismo del calcio",
+    "nivel": 2,
+    "total": 10
+  },
+  {
+    "asignatura_id": "5792e671-479b-4e9b-88bc-45fa1c72a521",
+    "tema_id": "55875a2b-1d09-497f-8e06-329cf5175682",
+    "asignatura": "Estadística y Epidemiología",
+    "tema": "Conceptos de epidemiología. Estudio de un test",
+    "nivel": 2,
+    "total": 12
+  },
+  {
+    "asignatura_id": "5792e671-479b-4e9b-88bc-45fa1c72a521",
+    "tema_id": "53961f61-0559-4e49-a864-727928152c2d",
+    "asignatura": "Estadística y Epidemiología",
+    "tema": "El contraste de hipótesis",
+    "nivel": 2,
+    "total": 17
+  },
+  {
+    "asignatura_id": "5792e671-479b-4e9b-88bc-45fa1c72a521",
+    "tema_id": "f3eb2509-1f3a-46d9-8a0f-a4e9ab57d770",
+    "asignatura": "Estadística y Epidemiología",
+    "tema": "El ensayo clínico",
+    "nivel": 2,
+    "total": 12
+  },
+  {
+    "asignatura_id": "5792e671-479b-4e9b-88bc-45fa1c72a521",
+    "tema_id": "f87274ea-e549-4cc0-a02a-03d4b1637a46",
+    "asignatura": "Estadística y Epidemiología",
+    "tema": "Formas de medida",
+    "nivel": 2,
+    "total": 13
+  },
+  {
+    "asignatura_id": "5792e671-479b-4e9b-88bc-45fa1c72a521",
+    "tema_id": "185482bb-48f4-4cd4-8534-0cb4a94d5a59",
+    "asignatura": "Estadística y Epidemiología",
+    "tema": "La calidad asistencial y la seguridad del paciente",
+    "nivel": 2,
+    "total": 9
+  },
+  {
+    "asignatura_id": "5792e671-479b-4e9b-88bc-45fa1c72a521",
+    "tema_id": "f0f21f33-2f56-40c8-919b-088153f75b22",
+    "asignatura": "Estadística y Epidemiología",
+    "tema": "La evaluación económica",
+    "nivel": 2,
+    "total": 7
+  },
+  {
+    "asignatura_id": "5792e671-479b-4e9b-88bc-45fa1c72a521",
+    "tema_id": "dd1f451d-0e5a-4bad-bb69-ee183c6ff23a",
+    "asignatura": "Estadística y Epidemiología",
+    "tema": "Salud pública internacional",
+    "nivel": 2,
+    "total": 7
+  },
+  {
+    "asignatura_id": "5792e671-479b-4e9b-88bc-45fa1c72a521",
+    "tema_id": "497de7ec-7b88-4452-81b5-f9c61fc7afff",
+    "asignatura": "Estadística y Epidemiología",
+    "tema": "Tipos de estudios epidemiológicos",
+    "nivel": 2,
+    "total": 5
+  },
+  {
+    "asignatura_id": "5792e671-479b-4e9b-88bc-45fa1c72a521",
+    "tema_id": "9b0575de-c741-4810-b18c-ba0836339606",
+    "asignatura": "Estadística y Epidemiología",
+    "tema": "Vigilancia, prevención y control de las IRAS",
+    "nivel": 2,
+    "total": 9
+  },
+  {
+    "asignatura_id": "a4c09cea-9dae-4012-a108-6d2d05c481a9",
+    "tema_id": "b4cd9a49-cec5-44a8-a14c-f841c5c1154d",
+    "asignatura": "Farmacología",
+    "tema": "Introducción a la farmacología",
+    "nivel": 2,
+    "total": 30
+  },
+  {
+    "asignatura_id": "f6c7d9b8-38cc-40cb-847e-413d186f625a",
+    "tema_id": "4c4dbe85-ac9f-42a0-a5a5-23e207178389",
+    "asignatura": "Fisiología",
+    "tema": "Fisiología del sistema nervioso",
+    "nivel": 2,
+    "total": 6
+  },
+  {
+    "asignatura_id": "f6c7d9b8-38cc-40cb-847e-413d186f625a",
+    "tema_id": "d8137287-a657-497f-98c3-759029e26c37",
+    "asignatura": "Fisiología",
+    "tema": "Otros",
+    "nivel": 2,
+    "total": 12
+  },
+  {
+    "asignatura_id": "f6c7d9b8-38cc-40cb-847e-413d186f625a",
+    "tema_id": "00000000-0000-0000-0000-000000000000",
+    "asignatura": "Fisiología",
+    "tema": null,
+    "nivel": 1,
+    "total": 22
+  },
+  {
+    "asignatura_id": "ead58545-5c5a-4d04-b6fb-7b02c7734843",
+    "tema_id": "2efca7f8-06fb-4574-9c80-d6a4feab2c44",
+    "asignatura": "Genética",
+    "tema": "Herencia y enfermedad",
+    "nivel": 2,
+    "total": 18
+  },
+  {
+    "asignatura_id": "8eb52209-f01f-4393-a46e-675ee5611f81",
+    "tema_id": "1004ed2b-cea7-45f3-8f1b-4e6371833702",
+    "asignatura": "Geriatría",
+    "tema": "Fragilidad",
+    "nivel": 2,
+    "total": 12
+  },
+  {
+    "asignatura_id": "8eb52209-f01f-4393-a46e-675ee5611f81",
+    "tema_id": "08b133ce-24a6-4b20-a9aa-6663b772afb8",
+    "asignatura": "Geriatría",
+    "tema": "Síndromes geriátricos",
+    "nivel": 2,
+    "total": 14
+  },
+  {
+    "asignatura_id": "607b21d5-b20a-45c2-97c8-5b8d34d1d8b7",
+    "tema_id": "c11146cb-f9b0-4d9b-9d1a-d120b149e37f",
+    "asignatura": "Ginecología y Obstetricia",
+    "tema": "Amenorreas",
+    "nivel": 2,
+    "total": 7
+  },
+  {
+    "asignatura_id": "607b21d5-b20a-45c2-97c8-5b8d34d1d8b7",
+    "tema_id": "9250b01d-8393-40d9-b712-77ccf9c8541f",
+    "asignatura": "Ginecología y Obstetricia",
+    "tema": "Diagnóstico prenatal",
+    "nivel": 2,
+    "total": 5
+  },
+  {
+    "asignatura_id": "607b21d5-b20a-45c2-97c8-5b8d34d1d8b7",
+    "tema_id": "ab7e9eb4-3833-4efc-8943-8dae28d73c12",
+    "asignatura": "Ginecología y Obstetricia",
+    "tema": "Estudio de la pareja con disfunción reproductiva",
+    "nivel": 2,
+    "total": 6
+  },
+  {
+    "asignatura_id": "607b21d5-b20a-45c2-97c8-5b8d34d1d8b7",
+    "tema_id": "6e2b628b-1cbd-46f6-9aef-12f06a49836e",
+    "asignatura": "Ginecología y Obstetricia",
+    "tema": "Infecciones vulvovaginales. Enfermedad inflamatoria pélvica",
+    "nivel": 2,
+    "total": 5
+  },
+  {
+    "asignatura_id": "607b21d5-b20a-45c2-97c8-5b8d34d1d8b7",
+    "tema_id": "1567a859-1154-419e-a28a-148e0c9778ef",
+    "asignatura": "Ginecología y Obstetricia",
+    "tema": "Patología mamaria",
+    "nivel": 2,
+    "total": 16
+  },
+  {
+    "asignatura_id": "607b21d5-b20a-45c2-97c8-5b8d34d1d8b7",
+    "tema_id": "0575024d-29e2-4911-aecb-9b2d1c9b60b6",
+    "asignatura": "Ginecología y Obstetricia",
+    "tema": "Patología ovárica benigna",
+    "nivel": 2,
+    "total": 7
+  },
+  {
+    "asignatura_id": "607b21d5-b20a-45c2-97c8-5b8d34d1d8b7",
+    "tema_id": "d00f822b-5503-4dc9-b948-657013f02f0c",
+    "asignatura": "Ginecología y Obstetricia",
+    "tema": "Patología uterina maligna",
+    "nivel": 2,
+    "total": 7
+  },
+  {
+    "asignatura_id": "607b21d5-b20a-45c2-97c8-5b8d34d1d8b7",
+    "tema_id": "c1679ba3-999e-4aef-b8e0-ee07961b99c8",
+    "asignatura": "Ginecología y Obstetricia",
+    "tema": "Prevención del cáncer del cuello de útero",
+    "nivel": 2,
+    "total": 5
+  },
+  {
+    "asignatura_id": "607b21d5-b20a-45c2-97c8-5b8d34d1d8b7",
+    "tema_id": "ef95feb8-511c-4c67-bc88-7ed6355f683b",
+    "asignatura": "Ginecología y Obstetricia",
+    "tema": "Síndrome de ovario metabólico poliendocrino",
+    "nivel": 2,
+    "total": 5
+  },
+  {
+    "asignatura_id": "607b21d5-b20a-45c2-97c8-5b8d34d1d8b7",
+    "tema_id": "aaeaf7e9-d160-4e89-b15a-15f9bf7b682b",
+    "asignatura": "Ginecología y Obstetricia",
+    "tema": "Trastornos hipertensivos durante la gestación",
+    "nivel": 2,
+    "total": 6
+  },
+  {
+    "asignatura_id": "f1d2dbba-a4c3-4114-87bc-a48b6a110de2",
+    "tema_id": "647d1e7b-b223-46ad-9171-415d33b00e46",
+    "asignatura": "Hematología",
+    "tema": "Alteraciones de la coagulación sanguínea",
+    "nivel": 2,
+    "total": 10
+  },
+  {
+    "asignatura_id": "f1d2dbba-a4c3-4114-87bc-a48b6a110de2",
+    "tema_id": "3614870d-a3d2-4242-af7e-4205b144441d",
+    "asignatura": "Hematología",
+    "tema": "Anemias ferropénica y de enfermedad crónica",
+    "nivel": 2,
+    "total": 5
+  },
+  {
+    "asignatura_id": "f1d2dbba-a4c3-4114-87bc-a48b6a110de2",
+    "tema_id": "922094e5-06cf-4851-961a-385ee977ac71",
+    "asignatura": "Hematología",
+    "tema": "Anemias hemolíticas",
+    "nivel": 2,
+    "total": 5
+  },
+  {
+    "asignatura_id": "f1d2dbba-a4c3-4114-87bc-a48b6a110de2",
+    "tema_id": "0e1d8d27-22aa-4045-91a8-2bbdf41799bd",
+    "asignatura": "Hematología",
+    "tema": "Anemias megaloblásticas",
+    "nivel": 2,
+    "total": 10
+  },
+  {
+    "asignatura_id": "f1d2dbba-a4c3-4114-87bc-a48b6a110de2",
+    "tema_id": "b4a09d7d-6548-4be2-a7f7-013881d36ff8",
+    "asignatura": "Hematología",
+    "tema": "Aplasia de la médula ósea. Anemia mieloptísica",
+    "nivel": 2,
+    "total": 7
+  },
+  {
+    "asignatura_id": "f1d2dbba-a4c3-4114-87bc-a48b6a110de2",
+    "tema_id": "23de4cfa-0c4d-46b1-ab47-e10d1d00a262",
+    "asignatura": "Hematología",
+    "tema": "Introducción: fisiología del eritrocito. Anemia: concepto y evaluación",
+    "nivel": 2,
+    "total": 7
+  },
+  {
+    "asignatura_id": "f1d2dbba-a4c3-4114-87bc-a48b6a110de2",
+    "tema_id": "38302cb7-6eff-4369-94cd-8dab2b61d49a",
+    "asignatura": "Hematología",
+    "tema": "Leucemia linfática crónica",
+    "nivel": 2,
+    "total": 9
+  },
+  {
+    "asignatura_id": "f1d2dbba-a4c3-4114-87bc-a48b6a110de2",
+    "tema_id": "23f552f6-f73b-4bdd-860b-a42df554105c",
+    "asignatura": "Hematología",
+    "tema": "Leucemias agudas",
+    "nivel": 2,
+    "total": 6
+  },
+  {
+    "asignatura_id": "f1d2dbba-a4c3-4114-87bc-a48b6a110de2",
+    "tema_id": "f3fb3756-d1a3-43ab-87dd-5cc45ca5dc54",
+    "asignatura": "Hematología",
+    "tema": "Linfomas no Hodgkin",
+    "nivel": 2,
+    "total": 9
+  },
+  {
+    "asignatura_id": "f1d2dbba-a4c3-4114-87bc-a48b6a110de2",
+    "tema_id": "192dbced-5b84-4c93-b67d-8a0031e2ffe8",
+    "asignatura": "Hematología",
+    "tema": "Neoplasias mieloproliferativas crónicas",
+    "nivel": 2,
+    "total": 7
+  },
+  {
+    "asignatura_id": "f1d2dbba-a4c3-4114-87bc-a48b6a110de2",
+    "tema_id": "5ad68208-be9c-40ed-b80d-0b1180de79f5",
+    "asignatura": "Hematología",
+    "tema": "Síndromes mielodisplásicos",
+    "nivel": 2,
+    "total": 5
+  },
+  {
+    "asignatura_id": "f1d2dbba-a4c3-4114-87bc-a48b6a110de2",
+    "tema_id": "f2cf5ac3-e8b0-45a7-ae4f-43872256051c",
+    "asignatura": "Hematología",
+    "tema": "Terapias en hematología",
+    "nivel": 2,
+    "total": 7
+  },
+  {
+    "asignatura_id": "1374b632-31e7-460b-b669-49824977835b",
+    "tema_id": "d909b88f-e51d-4545-b6c6-25fd9a97da03",
+    "asignatura": "Infecciosas",
+    "tema": "Antibióticos",
+    "nivel": 2,
+    "total": 14
+  },
+  {
+    "asignatura_id": "1374b632-31e7-460b-b669-49824977835b",
+    "tema_id": "0852a37a-5249-4776-b4cb-6e26b8b6c254",
+    "asignatura": "Infecciosas",
+    "tema": "Endocarditis infecciosa",
+    "nivel": 2,
+    "total": 11
+  },
+  {
+    "asignatura_id": "1374b632-31e7-460b-b669-49824977835b",
+    "tema_id": "857de821-e9ef-45d0-9556-3924fb271011",
+    "asignatura": "Infecciosas",
+    "tema": "Enfermedades por virus",
+    "nivel": 2,
+    "total": 8
+  },
+  {
+    "asignatura_id": "1374b632-31e7-460b-b669-49824977835b",
+    "tema_id": "05c49b7c-5958-4b77-99bc-d9ae4f3c3141",
+    "asignatura": "Infecciosas",
+    "tema": "Infecciones del sistema nervioso",
+    "nivel": 2,
+    "total": 9
+  },
+  {
+    "asignatura_id": "1374b632-31e7-460b-b669-49824977835b",
+    "tema_id": "dd65b549-7885-4b67-9d2d-55521e716457",
+    "asignatura": "Infecciosas",
+    "tema": "Infecciones de transmisión sexual",
+    "nivel": 2,
+    "total": 11
+  },
+  {
+    "asignatura_id": "1374b632-31e7-460b-b669-49824977835b",
+    "tema_id": "875552b7-b152-46e9-b0a6-7435922bdfc4",
+    "asignatura": "Infecciosas",
+    "tema": "Infecciones por hongos",
+    "nivel": 2,
+    "total": 9
+  },
+  {
+    "asignatura_id": "1374b632-31e7-460b-b669-49824977835b",
+    "tema_id": "12061ac2-85c1-479f-8699-2d85ded550a5",
+    "asignatura": "Infecciosas",
+    "tema": "Infecciones por parásitos",
+    "nivel": 2,
+    "total": 10
+  },
+  {
+    "asignatura_id": "1374b632-31e7-460b-b669-49824977835b",
+    "tema_id": "78b4e19d-4653-44f6-865a-e94361ee846b",
+    "asignatura": "Infecciosas",
+    "tema": "Infección por el virus de la inmunodeficiencia humana",
+    "nivel": 2,
+    "total": 14
+  },
+  {
+    "asignatura_id": "1374b632-31e7-460b-b669-49824977835b",
+    "tema_id": "f80421d4-2cc6-41a6-94e0-8e9ac1c4045e",
+    "asignatura": "Infecciosas",
+    "tema": "Inmunodeficiencias e infecciones",
+    "nivel": 2,
+    "total": 5
+  },
+  {
+    "asignatura_id": "1374b632-31e7-460b-b669-49824977835b",
+    "tema_id": "07a406c0-6d7c-4f7d-8e04-a2ea8d8190c4",
+    "asignatura": "Infecciosas",
+    "tema": "Otros",
+    "nivel": 2,
+    "total": 8
+  },
+  {
+    "asignatura_id": "1374b632-31e7-460b-b669-49824977835b",
+    "tema_id": "22d38da1-121d-470e-a840-836df151ecb6",
+    "asignatura": "Infecciosas",
+    "tema": "Tuberculosis",
+    "nivel": 2,
+    "total": 21
+  },
+  {
+    "asignatura_id": "dcd68117-a3d4-40b6-b03f-e159c9c80c6d",
+    "tema_id": "dd171ad3-fd85-4cab-881b-03050776e0fd",
+    "asignatura": "Inmunología",
+    "tema": "Células del sistema inmunitario",
+    "nivel": 2,
+    "total": 7
+  },
+  {
+    "asignatura_id": "dcd68117-a3d4-40b6-b03f-e159c9c80c6d",
+    "tema_id": "d2903af1-99bf-4cf6-95d2-15c6a304eaf2",
+    "asignatura": "Inmunología",
+    "tema": "Inmunodeficiencias",
+    "nivel": 2,
+    "total": 21
+  },
+  {
+    "asignatura_id": "dcd68117-a3d4-40b6-b03f-e159c9c80c6d",
+    "tema_id": "9d2983ba-d190-4a4c-9862-d955859f924e",
+    "asignatura": "Inmunología",
+    "tema": "Inmunología clínica",
+    "nivel": 2,
+    "total": 8
+  },
+  {
+    "asignatura_id": "a6085771-88df-48dc-b44a-5f82262dfd4e",
+    "tema_id": "dc6cfbba-917b-497f-ac87-640cb259391b",
+    "asignatura": "Medicina Familiar y Comunitaria",
+    "tema": "Factores de riesgo cardiovascular",
+    "nivel": 2,
+    "total": 13
+  },
+  {
+    "asignatura_id": "a6085771-88df-48dc-b44a-5f82262dfd4e",
+    "tema_id": "11f7eac9-62a9-4546-8e4a-080bc474aaca",
+    "asignatura": "Medicina Familiar y Comunitaria",
+    "tema": "Vacunación en la población adulta",
+    "nivel": 2,
+    "total": 7
+  },
+  {
+    "asignatura_id": "1b60bcbd-e0f9-4628-9926-105885ea127b",
+    "tema_id": "f55721a5-9438-4b15-ba8b-955ac13e4d12",
+    "asignatura": "Nefrología",
+    "tema": "Afectación renal en las enfermedades sistémicas",
+    "nivel": 2,
+    "total": 12
+  },
+  {
+    "asignatura_id": "1b60bcbd-e0f9-4628-9926-105885ea127b",
+    "tema_id": "6ee0a8df-3ea2-49d5-b256-fd8754045fda",
+    "asignatura": "Nefrología",
+    "tema": "Glomerulonefritis",
+    "nivel": 2,
+    "total": 20
+  },
+  {
+    "asignatura_id": "1b60bcbd-e0f9-4628-9926-105885ea127b",
+    "tema_id": "d761a662-f53b-454a-9249-0256680ed4fb",
+    "asignatura": "Nefrología",
+    "tema": "Otros",
+    "nivel": 2,
+    "total": 13
+  },
+  {
+    "asignatura_id": "1b60bcbd-e0f9-4628-9926-105885ea127b",
+    "tema_id": "e40bf1dc-ba65-4d1c-bb10-bf513ce11d41",
+    "asignatura": "Nefrología",
+    "tema": "Repaso anatomofisiológico",
+    "nivel": 2,
+    "total": 8
+  },
+  {
+    "asignatura_id": "1b60bcbd-e0f9-4628-9926-105885ea127b",
+    "tema_id": "58c47b32-f005-4bee-a38c-cc447aeca8b7",
+    "asignatura": "Nefrología",
+    "tema": "Trastornos hidroelectrolíticos",
+    "nivel": 2,
+    "total": 8
+  },
+  {
+    "asignatura_id": "1b60bcbd-e0f9-4628-9926-105885ea127b",
+    "tema_id": "3c7d4ecc-0e59-474a-9904-87d6018e5b09",
+    "asignatura": "Nefrología",
+    "tema": "Trastornos tubulointersticiales del riñón. Fármacos y riñón",
+    "nivel": 2,
+    "total": 18
+  },
+  {
+    "asignatura_id": "01fd2b83-61c1-47eb-a483-33e7da938ab9",
+    "tema_id": "ba9c4890-7141-400b-a607-df759e89bda6",
+    "asignatura": "Neumología",
+    "tema": "Asma",
+    "nivel": 2,
+    "total": 7
+  },
+  {
+    "asignatura_id": "01fd2b83-61c1-47eb-a483-33e7da938ab9",
+    "tema_id": "90bede2e-8b10-4230-a37b-41add59252cf",
+    "asignatura": "Neumología",
+    "tema": "Enfermedades de la pleura",
+    "nivel": 2,
+    "total": 17
+  },
+  {
+    "asignatura_id": "01fd2b83-61c1-47eb-a483-33e7da938ab9",
+    "tema_id": "9a41851b-2870-441c-bb0f-b6001264c8d5",
+    "asignatura": "Neumología",
+    "tema": "Enfermedades pulmonares parenquimatosas difusas",
+    "nivel": 2,
+    "total": 28
+  },
+  {
+    "asignatura_id": "01fd2b83-61c1-47eb-a483-33e7da938ab9",
+    "tema_id": "36fa401e-fb41-499c-86c2-26490fb05c66",
+    "asignatura": "Neumología",
+    "tema": "Enfermedades vasculares pulmonares",
+    "nivel": 2,
+    "total": 10
+  },
+  {
+    "asignatura_id": "01fd2b83-61c1-47eb-a483-33e7da938ab9",
+    "tema_id": "ef3b0858-1e04-4435-9e5c-ae68fe5f43a3",
+    "asignatura": "Neumología",
+    "tema": "Enfermedad pulmonar obstructiva crónica",
+    "nivel": 2,
+    "total": 9
+  },
+  {
+    "asignatura_id": "01fd2b83-61c1-47eb-a483-33e7da938ab9",
+    "tema_id": "6d5015ed-5286-4bad-b695-6ad742ade0c3",
+    "asignatura": "Neumología",
+    "tema": "Fisiología y fisiopatología",
+    "nivel": 2,
+    "total": 14
+  },
+  {
+    "asignatura_id": "01fd2b83-61c1-47eb-a483-33e7da938ab9",
+    "tema_id": "0439e3f5-26d3-41bf-9549-098fd4d98aef",
+    "asignatura": "Neumología",
+    "tema": "Insuficiencia respiratoria",
+    "nivel": 2,
+    "total": 7
+  },
+  {
+    "asignatura_id": "01fd2b83-61c1-47eb-a483-33e7da938ab9",
+    "tema_id": "aeea257c-712a-4ba1-a661-f6c68c27f0e8",
+    "asignatura": "Neumología",
+    "tema": "Neoplasias pulmonares",
+    "nivel": 2,
+    "total": 24
+  },
+  {
+    "asignatura_id": "01fd2b83-61c1-47eb-a483-33e7da938ab9",
+    "tema_id": "00000000-0000-0000-0000-000000000000",
+    "asignatura": "Neumología",
+    "tema": null,
+    "nivel": 1,
+    "total": 5
+  },
+  {
+    "asignatura_id": "ca3c9e2a-b8d6-4d8b-9d16-a16acd5380d0",
+    "tema_id": "959d7ae6-7884-4630-9ba6-bb9ca7abf711",
+    "asignatura": "Neurología y Neurocirugía",
+    "tema": "Cefaleas",
+    "nivel": 2,
+    "total": 5
+  },
+  {
+    "asignatura_id": "ca3c9e2a-b8d6-4d8b-9d16-a16acd5380d0",
+    "tema_id": "14823105-919f-4a2d-a1b0-691fbc39920f",
+    "asignatura": "Neurología y Neurocirugía",
+    "tema": "Demencias",
+    "nivel": 2,
+    "total": 6
+  },
+  {
+    "asignatura_id": "ca3c9e2a-b8d6-4d8b-9d16-a16acd5380d0",
+    "tema_id": "50fc98ed-b600-4b09-b338-8bea8a27e9c5",
+    "asignatura": "Neurología y Neurocirugía",
+    "tema": "Enfermedades degenerativas del sistema nervioso",
+    "nivel": 2,
+    "total": 5
+  },
+  {
+    "asignatura_id": "ca3c9e2a-b8d6-4d8b-9d16-a16acd5380d0",
+    "tema_id": "165fb185-5f93-48de-9faa-684317d78cde",
+    "asignatura": "Neurología y Neurocirugía",
+    "tema": "Enfermedades vasculares cerebrales",
+    "nivel": 2,
+    "total": 13
+  },
+  {
+    "asignatura_id": "ca3c9e2a-b8d6-4d8b-9d16-a16acd5380d0",
+    "tema_id": "9fc6ed3a-83f6-4cc3-bab8-401fe1de3300",
+    "asignatura": "Neurología y Neurocirugía",
+    "tema": "Introducción: anatomía, semiología y fisiología del sistema nervioso",
+    "nivel": 2,
+    "total": 18
+  },
+  {
+    "asignatura_id": "ca3c9e2a-b8d6-4d8b-9d16-a16acd5380d0",
+    "tema_id": "b3087566-0e6b-4ae8-b424-ebd062361a30",
+    "asignatura": "Neurología y Neurocirugía",
+    "tema": "Neuropatías",
+    "nivel": 2,
+    "total": 5
+  },
+  {
+    "asignatura_id": "ca3c9e2a-b8d6-4d8b-9d16-a16acd5380d0",
+    "tema_id": "4d0a7dbe-bdae-446a-96c7-ae51911c62cd",
+    "asignatura": "Neurología y Neurocirugía",
+    "tema": "Patología raquimedular",
+    "nivel": 2,
+    "total": 9
+  },
+  {
+    "asignatura_id": "ca3c9e2a-b8d6-4d8b-9d16-a16acd5380d0",
+    "tema_id": "dece3ef7-16af-47f7-a2f1-85439b056c0e",
+    "asignatura": "Neurología y Neurocirugía",
+    "tema": "Trastornos del movimiento",
+    "nivel": 2,
+    "total": 15
+  },
+  {
+    "asignatura_id": "ca3c9e2a-b8d6-4d8b-9d16-a16acd5380d0",
+    "tema_id": "fbd22d42-d114-48d7-8e3e-e16914827501",
+    "asignatura": "Neurología y Neurocirugía",
+    "tema": "Traumatismos craneoencefálicos",
+    "nivel": 2,
+    "total": 7
+  },
+  {
+    "asignatura_id": "ca3c9e2a-b8d6-4d8b-9d16-a16acd5380d0",
+    "tema_id": "711af3db-a86d-4635-b9cc-6195c1cfcfe8",
+    "asignatura": "Neurología y Neurocirugía",
+    "tema": "Tumores intracraneales",
+    "nivel": 2,
+    "total": 8
+  },
+  {
+    "asignatura_id": "1a14392a-74ac-4bdb-af38-0a144f4a5896",
+    "tema_id": "3cf9e96d-5f6e-4269-a115-da50836ffd11",
+    "asignatura": "Oftalmología",
+    "tema": "Glaucoma",
+    "nivel": 2,
+    "total": 7
+  },
+  {
+    "asignatura_id": "1a14392a-74ac-4bdb-af38-0a144f4a5896",
+    "tema_id": "f9f1cb1f-7e36-4bd7-b830-36fd391b2505",
+    "asignatura": "Oftalmología",
+    "tema": "Otros",
+    "nivel": 2,
+    "total": 5
+  },
+  {
+    "asignatura_id": "1a14392a-74ac-4bdb-af38-0a144f4a5896",
+    "tema_id": "46510ddf-c7e9-49e8-aac2-44ea615c42aa",
+    "asignatura": "Oftalmología",
+    "tema": "Vítreo y retina",
+    "nivel": 2,
+    "total": 16
+  },
+  {
+    "asignatura_id": "881f976f-3f9e-41ff-97d8-7a7d79063520",
+    "tema_id": "0ad46f29-40a2-4d02-9257-5e70c48c531c",
+    "asignatura": "Oncología",
+    "tema": "Conceptos básicos",
+    "nivel": 2,
+    "total": 16
+  },
+  {
+    "asignatura_id": "881f976f-3f9e-41ff-97d8-7a7d79063520",
+    "tema_id": "39d4cf18-580c-4df1-b1e3-47ce90e8655f",
+    "asignatura": "Oncología",
+    "tema": "Genética del cáncer",
+    "nivel": 2,
+    "total": 9
+  },
+  {
+    "asignatura_id": "881f976f-3f9e-41ff-97d8-7a7d79063520",
+    "tema_id": "67b32839-9149-4fdd-8d32-d761f84c3263",
+    "asignatura": "Oncología",
+    "tema": "Tratamiento del paciente terminal. Cuidados paliativos",
+    "nivel": 2,
+    "total": 5
+  },
+  {
+    "asignatura_id": "881f976f-3f9e-41ff-97d8-7a7d79063520",
+    "tema_id": "d82ec143-2535-408a-bed2-a57c92768e60",
+    "asignatura": "Oncología",
+    "tema": "Tratamiento farmacológico en oncología",
+    "nivel": 2,
+    "total": 19
+  },
+  {
+    "asignatura_id": "c618a347-b4f8-4664-93dd-045a70996678",
+    "tema_id": "b8aff868-844a-4e46-a153-08dcdc366c2a",
+    "asignatura": "Otorrinolaringología",
+    "tema": "Cirugía maxilofacial",
+    "nivel": 2,
+    "total": 18
+  },
+  {
+    "asignatura_id": "c618a347-b4f8-4664-93dd-045a70996678",
+    "tema_id": "6d883c7a-51cb-43fe-b146-758d24b44305",
+    "asignatura": "Otorrinolaringología",
+    "tema": "Otología",
+    "nivel": 2,
+    "total": 18
+  },
+  {
+    "asignatura_id": "c618a347-b4f8-4664-93dd-045a70996678",
+    "tema_id": "caa57ffe-3e65-42d1-9d1a-ca5c15138b0d",
+    "asignatura": "Otorrinolaringología",
+    "tema": "Otros",
+    "nivel": 2,
+    "total": 7
+  },
+  {
+    "asignatura_id": "c618a347-b4f8-4664-93dd-045a70996678",
+    "tema_id": "f3894208-c2a9-44e1-bdfc-fdb3c22b4f12",
+    "asignatura": "Otorrinolaringología",
+    "tema": "Patología de la faringe",
+    "nivel": 2,
+    "total": 5
+  },
+  {
+    "asignatura_id": "c618a347-b4f8-4664-93dd-045a70996678",
+    "tema_id": "6197e23e-c2d4-4740-8966-a0b720e3969c",
+    "asignatura": "Otorrinolaringología",
+    "tema": "Patología de la laringe",
+    "nivel": 2,
+    "total": 7
+  },
+  {
+    "asignatura_id": "c618a347-b4f8-4664-93dd-045a70996678",
+    "tema_id": "ce86abed-0ee8-47a1-82c1-a5cb2693194c",
+    "asignatura": "Otorrinolaringología",
+    "tema": "Recuerdo anatómico y fisiológico en otorrinolaringología",
+    "nivel": 2,
+    "total": 6
+  },
+  {
+    "asignatura_id": "c618a347-b4f8-4664-93dd-045a70996678",
+    "tema_id": "00051368-16a8-463c-ab90-32a981ad7517",
+    "asignatura": "Otorrinolaringología",
+    "tema": "Rinología",
+    "nivel": 2,
+    "total": 6
+  },
+  {
+    "asignatura_id": "51732e8f-adbb-4fbb-be22-4e8acb9be150",
+    "tema_id": "fc9cfc76-600c-48a9-8d56-88ab5d57762f",
+    "asignatura": "Pediatría",
+    "tema": "Desarrollo y nutrición",
+    "nivel": 2,
+    "total": 10
+  },
+  {
+    "asignatura_id": "51732e8f-adbb-4fbb-be22-4e8acb9be150",
+    "tema_id": "e5c73e18-bc27-4158-9b76-7bc9a5bf911f",
+    "asignatura": "Pediatría",
+    "tema": "Enfermedades infecciosas",
+    "nivel": 2,
+    "total": 11
+  },
+  {
+    "asignatura_id": "51732e8f-adbb-4fbb-be22-4e8acb9be150",
+    "tema_id": "dda9f5ec-a07d-4fcf-b4a5-ad42a75a48a7",
+    "asignatura": "Pediatría",
+    "tema": "Metabolopatías",
+    "nivel": 2,
+    "total": 20
+  },
+  {
+    "asignatura_id": "51732e8f-adbb-4fbb-be22-4e8acb9be150",
+    "tema_id": "8e20b62a-ad23-45da-8969-a1e6e3328aeb",
+    "asignatura": "Pediatría",
+    "tema": "Neonatología",
+    "nivel": 2,
+    "total": 23
+  },
+  {
+    "asignatura_id": "51732e8f-adbb-4fbb-be22-4e8acb9be150",
+    "tema_id": "6aa80b6a-d123-4900-a30f-2a494a80317a",
+    "asignatura": "Pediatría",
+    "tema": "Patología digestiva pediátrica",
+    "nivel": 2,
+    "total": 14
+  },
+  {
+    "asignatura_id": "51732e8f-adbb-4fbb-be22-4e8acb9be150",
+    "tema_id": "4e8e1a7b-0ec8-442a-855b-a76c16e51aa9",
+    "asignatura": "Pediatría",
+    "tema": "Patología respiratoria pediátrica",
+    "nivel": 2,
+    "total": 9
+  },
+  {
+    "asignatura_id": "51732e8f-adbb-4fbb-be22-4e8acb9be150",
+    "tema_id": "b6c67f76-2d23-4fb1-ba07-c3ae4ec0edc6",
+    "asignatura": "Pediatría",
+    "tema": "Vacunas",
+    "nivel": 2,
+    "total": 15
+  },
+  {
+    "asignatura_id": "781b2ac6-c406-40b5-860b-4a1f26b727e3",
+    "tema_id": "a6435ccf-7d9f-41ee-aafc-84e9cef251b9",
+    "asignatura": "Psiquiatría",
+    "tema": "Trastornos de la infancia y la adolescencia",
+    "nivel": 2,
+    "total": 5
+  },
+  {
+    "asignatura_id": "781b2ac6-c406-40b5-860b-4a1f26b727e3",
+    "tema_id": "82447a90-f99a-4c11-9727-e808633b85fa",
+    "asignatura": "Psiquiatría",
+    "tema": "Trastornos del estado de ánimo",
+    "nivel": 2,
+    "total": 11
+  },
+  {
+    "asignatura_id": "781b2ac6-c406-40b5-860b-4a1f26b727e3",
+    "tema_id": "01968cd1-0912-445d-9d1a-aeca0e16bf8e",
+    "asignatura": "Psiquiatría",
+    "tema": "Trastornos neurocognitivos",
+    "nivel": 2,
+    "total": 8
+  },
+  {
+    "asignatura_id": "781b2ac6-c406-40b5-860b-4a1f26b727e3",
+    "tema_id": "ff964ab7-c733-41a5-aaa7-c0664d73b3a6",
+    "asignatura": "Psiquiatría",
+    "tema": "Trastornos neuróticos",
+    "nivel": 2,
+    "total": 9
+  },
+  {
+    "asignatura_id": "781b2ac6-c406-40b5-860b-4a1f26b727e3",
+    "tema_id": "0c70e435-08b2-4f9c-9de4-b1a70e166bd1",
+    "asignatura": "Psiquiatría",
+    "tema": "Trastornos relacionados con sustancias",
+    "nivel": 2,
+    "total": 8
+  },
+  {
+    "asignatura_id": "781b2ac6-c406-40b5-860b-4a1f26b727e3",
+    "tema_id": "00000000-0000-0000-0000-000000000000",
+    "asignatura": "Psiquiatría",
+    "tema": null,
+    "nivel": 1,
+    "total": 6
+  },
+  {
+    "asignatura_id": "fcf3971d-c814-489d-973f-d55043a2e0fc",
+    "tema_id": "e78adf5e-72e1-48d5-a6b5-4d5e10d4b8cf",
+    "asignatura": "Radiología",
+    "tema": "Abdomen",
+    "nivel": 2,
+    "total": 17
+  },
+  {
+    "asignatura_id": "fcf3971d-c814-489d-973f-d55043a2e0fc",
+    "tema_id": "bc146a81-557d-4a91-82a0-785e6e1cf1d2",
+    "asignatura": "Radiología",
+    "tema": "Imagen cardíaca",
+    "nivel": 2,
+    "total": 5
+  },
+  {
+    "asignatura_id": "fcf3971d-c814-489d-973f-d55043a2e0fc",
+    "tema_id": "d431c36d-5dae-41d6-85ff-3c409007bbe4",
+    "asignatura": "Radiología",
+    "tema": "Medicina nuclear",
+    "nivel": 2,
+    "total": 9
+  },
+  {
+    "asignatura_id": "fcf3971d-c814-489d-973f-d55043a2e0fc",
+    "tema_id": "70115771-8df5-4b41-8c27-704b011bbf65",
+    "asignatura": "Radiología",
+    "tema": "Musculoesquelético",
+    "nivel": 2,
+    "total": 10
+  },
+  {
+    "asignatura_id": "fcf3971d-c814-489d-973f-d55043a2e0fc",
+    "tema_id": "07728d2c-7f9e-45da-892e-ff19b3af3269",
+    "asignatura": "Radiología",
+    "tema": "Neurorradiología",
+    "nivel": 2,
+    "total": 9
+  },
+  {
+    "asignatura_id": "fcf3971d-c814-489d-973f-d55043a2e0fc",
+    "tema_id": "e6662813-be0b-4cd9-933e-b11ce4e7ada6",
+    "asignatura": "Radiología",
+    "tema": "Tórax",
+    "nivel": 2,
+    "total": 13
+  },
+  {
+    "asignatura_id": "ea4c67d8-147b-48ac-98f6-c32f3fa9983b",
+    "tema_id": "25444fce-fbe7-448a-9646-aeae06d565f8",
+    "asignatura": "Rehabilitación",
+    "tema": "Conceptos básicos de Rehabilitación",
+    "nivel": 2,
+    "total": 16
+  },
+  {
+    "asignatura_id": "aaa6424e-a44e-4249-ac29-b9cd1f7f1e92",
+    "tema_id": "34796073-695f-40bb-9aaf-c1ed9e5f9d18",
+    "asignatura": "Reumatología",
+    "tema": "Amiloidosis y síndromes autoinflamatorios",
+    "nivel": 2,
+    "total": 6
+  },
+  {
+    "asignatura_id": "aaa6424e-a44e-4249-ac29-b9cd1f7f1e92",
+    "tema_id": "0386ae5b-f9c4-4c33-864b-a50f8ecbe14f",
+    "asignatura": "Reumatología",
+    "tema": "Artritis por microcristales",
+    "nivel": 2,
+    "total": 6
+  },
+  {
+    "asignatura_id": "aaa6424e-a44e-4249-ac29-b9cd1f7f1e92",
+    "tema_id": "9c30be41-428f-4b36-9632-66e9cd7937ae",
+    "asignatura": "Reumatología",
+    "tema": "Artritis reumatoide",
+    "nivel": 2,
+    "total": 7
+  },
+  {
+    "asignatura_id": "aaa6424e-a44e-4249-ac29-b9cd1f7f1e92",
+    "tema_id": "8ccb05e4-0db0-40b4-a3d9-d9d3b3e56b08",
+    "asignatura": "Reumatología",
+    "tema": "Enfermedades metabólicas óseas",
+    "nivel": 2,
+    "total": 7
+  },
+  {
+    "asignatura_id": "aaa6424e-a44e-4249-ac29-b9cd1f7f1e92",
+    "tema_id": "22af1b7a-c421-42f7-be1a-a90441b7661a",
+    "asignatura": "Reumatología",
+    "tema": "Esclerosis sistémica",
+    "nivel": 2,
+    "total": 10
+  },
+  {
+    "asignatura_id": "aaa6424e-a44e-4249-ac29-b9cd1f7f1e92",
+    "tema_id": "f7b074e2-933d-4b3e-bc16-f7069f42d11b",
+    "asignatura": "Reumatología",
+    "tema": "Espondiloartritis",
+    "nivel": 2,
+    "total": 9
+  },
+  {
+    "asignatura_id": "aaa6424e-a44e-4249-ac29-b9cd1f7f1e92",
+    "tema_id": "7210cb59-1445-4e58-a351-958da3d2b352",
+    "asignatura": "Reumatología",
+    "tema": "Infecciones osteoarticulares",
+    "nivel": 2,
+    "total": 6
+  },
+  {
+    "asignatura_id": "aaa6424e-a44e-4249-ac29-b9cd1f7f1e92",
+    "tema_id": "ebddb161-2c00-4ee0-a0a3-564b31d03c97",
+    "asignatura": "Reumatología",
+    "tema": "Lupus eritematoso sistémico",
+    "nivel": 2,
+    "total": 7
+  },
+  {
+    "asignatura_id": "aaa6424e-a44e-4249-ac29-b9cd1f7f1e92",
+    "tema_id": "de148072-baea-4ab5-a819-c71aa680c2ae",
+    "asignatura": "Reumatología",
+    "tema": "Otras enfermedades",
+    "nivel": 2,
+    "total": 5
+  },
+  {
+    "asignatura_id": "aaa6424e-a44e-4249-ac29-b9cd1f7f1e92",
+    "tema_id": "2aea52c7-5675-47e6-a184-627a8eb46e44",
+    "asignatura": "Reumatología",
+    "tema": "Síndrome de Sjögren",
+    "nivel": 2,
+    "total": 6
+  },
+  {
+    "asignatura_id": "aaa6424e-a44e-4249-ac29-b9cd1f7f1e92",
+    "tema_id": "31ef5d4b-b0a9-4a5b-afb7-eec4811c8d50",
+    "asignatura": "Reumatología",
+    "tema": "Vasculitis",
+    "nivel": 2,
+    "total": 12
+  },
+  {
+    "asignatura_id": "db5b10e4-7b34-4bd4-9500-b63abee218c0",
+    "tema_id": "96d14053-92b4-44bd-839f-f92ab5d7dc9f",
+    "asignatura": "Traumatología",
+    "tema": "Fracturas",
+    "nivel": 2,
+    "total": 25
+  },
+  {
+    "asignatura_id": "db5b10e4-7b34-4bd4-9500-b63abee218c0",
+    "tema_id": "56e15684-215c-47fe-90d5-c67d34542d34",
+    "asignatura": "Traumatología",
+    "tema": "Lesiones traumáticas e inflamatorias de partes blandas",
+    "nivel": 2,
+    "total": 13
+  },
+  {
+    "asignatura_id": "db5b10e4-7b34-4bd4-9500-b63abee218c0",
+    "tema_id": "b0b44cd1-7694-4ed1-962d-12839e9d0742",
+    "asignatura": "Traumatología",
+    "tema": "Luxaciones",
+    "nivel": 2,
+    "total": 12
+  },
+  {
+    "asignatura_id": "db5b10e4-7b34-4bd4-9500-b63abee218c0",
+    "tema_id": "414fb119-9067-428b-a659-dfd1d833e167",
+    "asignatura": "Traumatología",
+    "tema": "Ortopedia infantil y del adolescente",
+    "nivel": 2,
+    "total": 10
+  },
+  {
+    "asignatura_id": "db5b10e4-7b34-4bd4-9500-b63abee218c0",
+    "tema_id": "a1ebb1ab-137e-42e3-83db-96ccf977c8d3",
+    "asignatura": "Traumatología",
+    "tema": "Otros",
+    "nivel": 2,
+    "total": 9
+  },
+  {
+    "asignatura_id": "db5b10e4-7b34-4bd4-9500-b63abee218c0",
+    "tema_id": "644303f4-8bae-4ca4-b44b-1c33ae4431b9",
+    "asignatura": "Traumatología",
+    "tema": "Patología de la columna vertebral",
+    "nivel": 2,
+    "total": 10
+  },
+  {
+    "asignatura_id": "db5b10e4-7b34-4bd4-9500-b63abee218c0",
+    "tema_id": "3dba7d16-b4e7-464e-8e1c-1184ef51b7a2",
+    "asignatura": "Traumatología",
+    "tema": "Sistema nervioso periférico",
+    "nivel": 2,
+    "total": 6
+  },
+  {
+    "asignatura_id": "db5b10e4-7b34-4bd4-9500-b63abee218c0",
+    "tema_id": "7802bec4-996a-4cc4-b15f-1f27c1b59209",
+    "asignatura": "Traumatología",
+    "tema": "Tumores y lesiones óseas seudotumorales. Tumores de partes blandas",
+    "nivel": 2,
+    "total": 11
+  },
+  {
+    "asignatura_id": "d8a208dd-e875-4eb1-8edc-fca3d36a73c4",
+    "tema_id": "bdfd8b31-2650-4826-9e6f-40ffdcd20aec",
+    "asignatura": "Urgencias",
+    "tema": "Intoxicaciones",
+    "nivel": 2,
+    "total": 6
+  },
+  {
+    "asignatura_id": "d8a208dd-e875-4eb1-8edc-fca3d36a73c4",
+    "tema_id": "95deb290-1c86-42c6-906f-1beb3089ef7d",
+    "asignatura": "Urgencias",
+    "tema": "Otros",
+    "nivel": 2,
+    "total": 12
+  },
+  {
+    "asignatura_id": "d8a208dd-e875-4eb1-8edc-fca3d36a73c4",
+    "tema_id": "dd066da3-96c0-4492-b94a-5b2ee6f3c8c4",
+    "asignatura": "Urgencias",
+    "tema": "Síndromes específicos de Urgencias",
+    "nivel": 2,
+    "total": 19
+  },
+  {
+    "asignatura_id": "d8a208dd-e875-4eb1-8edc-fca3d36a73c4",
+    "tema_id": "25b0f053-ae61-4f56-ad85-430daaabd90b",
+    "asignatura": "Urgencias",
+    "tema": "Situaciones emergentes en Urgencias",
+    "nivel": 2,
+    "total": 11
+  },
+  {
+    "asignatura_id": "d8a208dd-e875-4eb1-8edc-fca3d36a73c4",
+    "tema_id": "7cf1ac5f-a440-467f-9c63-0c45e1dc47d1",
+    "asignatura": "Urgencias",
+    "tema": "Técnicas diagnóstico-terapéuticas en Urgencias",
+    "nivel": 2,
+    "total": 6
+  },
+  {
+    "asignatura_id": "e1f367c5-8fef-42bf-993f-7123ec7896b8",
+    "tema_id": "b199b5c2-5afc-4115-9b6b-dfc5b510c6a3",
+    "asignatura": "Urología",
+    "tema": "Andrología",
+    "nivel": 2,
+    "total": 6
+  },
+  {
+    "asignatura_id": "e1f367c5-8fef-42bf-993f-7123ec7896b8",
+    "tema_id": "03490164-4bcd-403d-8d7b-d0f7e87b500f",
+    "asignatura": "Urología",
+    "tema": "Hiperplasia prostática benigna y carcinoma prostático",
+    "nivel": 2,
+    "total": 11
+  },
+  {
+    "asignatura_id": "e1f367c5-8fef-42bf-993f-7123ec7896b8",
+    "tema_id": "377d68e6-9ac6-4fd7-9f39-fce9b22f5fd9",
+    "asignatura": "Urología",
+    "tema": "Infecciones del tracto urinario. Cistitis intersticial",
+    "nivel": 2,
+    "total": 5
+  },
+  {
+    "asignatura_id": "e1f367c5-8fef-42bf-993f-7123ec7896b8",
+    "tema_id": "9a047e97-5e04-470d-a46b-95d9ce6e51fe",
+    "asignatura": "Urología",
+    "tema": "Tumores renales",
+    "nivel": 2,
+    "total": 5
+  },
+  {
+    "asignatura_id": "e1f367c5-8fef-42bf-993f-7123ec7896b8",
+    "tema_id": "f5d906a9-054f-492b-8505-c9d82053d0a3",
+    "asignatura": "Urología",
+    "tema": "Tumores testiculares",
+    "nivel": 2,
+    "total": 6
+  },
+  {
+    "asignatura_id": "e1f367c5-8fef-42bf-993f-7123ec7896b8",
+    "tema_id": "f8508209-7e62-4cae-9de0-4182357a7130",
+    "asignatura": "Urología",
+    "tema": "Urolitiasis",
+    "nivel": 2,
+    "total": 9
+  }
+]

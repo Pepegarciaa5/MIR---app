@@ -66,8 +66,13 @@ export default function TrackerBar() {
         borderBottom: '1px solid #86efac',
         flexShrink: 0,
       }}>
-        <div style={{ flex: 1, fontSize: 14, fontWeight: 600, color: '#166534', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {activeEntry.descripcion}
+        <div style={{ flex: 1, fontSize: 14, fontWeight: 600, color: '#166534', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6 }}>
+          {activeEntry.isAuto && (
+            <span style={{ fontSize: 11, background: '#dcfce7', color: '#15803d', border: '1px solid #86efac', padding: '2px 6px', borderRadius: 6, fontWeight: 700 }}>
+              AUTO ⚡
+            </span>
+          )}
+          <span>{activeEntry.descripcion}</span>
         </div>
         {activeOffering && (
           <span style={{

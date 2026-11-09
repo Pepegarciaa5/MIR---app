@@ -55,17 +55,22 @@ textarea:focus, button:focus { outline: none; }
 }
 
 /* Estilos para HTML inyectado en BancoPreguntas y otros */
+.comentario-html {
+  font-size: 1.0625rem; /* 17px - lectura cómoda y descansada para comentarios clínicos */
+  line-height: 1.75;
+  color: #1e293b;
+}
 .comentario-html p {
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.85rem;
 }
 .comentario-html p:last-child {
   margin-bottom: 0;
 }
 .comentario-html b, .comentario-html strong {
   font-weight: 800;
-  color: #1e293b;
+  color: #0f172a;
 }
 .comentario-html i, .comentario-html em {
   font-style: italic;
-  color: #475569;
+  color: #334155;
 }

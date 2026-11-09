@@ -5,10 +5,9 @@
  * Última actualización: 2026-05-17
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { TrackerProvider } from './context/TrackerContext'
 import Navbar from './components/Navbar'
-import TrackerBar from './components/TrackerBar'
 import Inicio from './screens/Inicio'
 import Calendario from './screens/Calendario'
 import Repasos from './screens/Repasos'
@@ -21,9 +20,16 @@ import OfreceEstudio from './screens/OfreceEstudio'
 import BancoPreguntas from './screens/BancoPreguntas'
 import EstudioAdaptativo from './screens/EstudioAdaptativo'
 import Desgloses from './screens/Desgloses'
+import TiradorMaestro from './screens/TiradorMaestro'
 import CorreccionSimulacro from './screens/CorreccionSimulacro'
+import PrioridadesTemas from './screens/PrioridadesTemas'
+import EvaluacionP80 from './screens/EvaluacionP80'
+import ErrorBoundary from './components/common/ErrorBoundary'
 import { loadAppData, migrarDesdeLocalStorage } from './data/mockData'
 import { isAdminMode } from './lib/supabase'
+
+// Carga perezosa del buscador para no ralentizar el arranque ni saturar la memoria
+const BuscadorPreguntas = lazy(() => import('./screens/BuscadorPreguntas'))
 
 export default function App() {
   const [tab, setTab] = useState(isAdminMode ? 'inicio' : 'diario')
@@ -49,10 +55,13 @@ export default function App() {
             localStorage.setItem('supabase_migrated', '1')
           }
         }
-        // Load all app data from Supabase
-        await loadAppData()
+        // Load all app data from Supabase (with fallback timeout for 100% offline support)
+        await Promise.race([
+          loadAppData(),
+          new Promise(resolve => setTimeout(resolve, 800))
+        ])
       } catch (err) {
-        console.error('❌ Error initializing app data:', err)
+        console.warn('Notice initializing app data (offline mode):', err)
       } finally {
         setDataReady(true)
       }
@@ -81,21 +90,60 @@ export default function App() {
       }}>
         <Navbar active={tab} setActive={setTab} isAdmin={isAdminMode} />
         <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          {isAdminMode && <TrackerBar />}
           <div style={{ flex: 1, overflow: 'auto', overflowX: 'hidden', padding: '20px' }}>
-            {tab === 'inicio'     && <Inicio setTab={setTab} />}
-            {tab === 'calendario' && <Calendario />}
+            {tab === 'inicio'      && <Inicio setTab={setTab} />}
+            {tab === 'buscador'    && (
+              <Suspense fallback={
+                <div style={{ padding: '60px 20px', textAlign: 'center', color: '#64748b' }}>
+                  <div style={{ fontSize: 40, marginBottom: 12 }}>🔍</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>Cargando Buscador de Preguntas...</div>
+                  <div style={{ fontSize: 13, marginTop: 4, color: '#94a3b8' }}>Accediendo a la base de datos de desgloses y simulacros</div>
+                </div>
+              }>
+                <BuscadorPreguntas setTab={setTab} setBancoFiltros={setBancoFiltros} />
+              </Suspense>
+            )}
+            {tab === 'prioridades' && <PrioridadesTemas />}
+            {tab === 'evaluacion_p80' && <EvaluacionP80 setTab={setTab} />}
+            {tab === 'calendario'  && <Calendario />}
             {tab === 'repasos'    && <Repasos />}
             {tab === 'progreso'   && <Progreso />}
             {tab === 'diario'     && <Diario />}
-            {tab === 'adaptativo' && <EstudioAdaptativo setTab={setTab} />}
+            {(tab === 'preguntas' || tab === 'desgloses' || tab === 'quiz' || tab === 'adaptativo') && (
+              <TiradorMaestro
+                key={tab}
+                initialFiltros={
+                  bancoFiltros
+                    ? {
+                        ...bancoFiltros,
+                        mode: tab === 'quiz' ? 'custom' : (tab === 'adaptativo' ? 'adaptativo' : (tab === 'desgloses' ? 'desgloses' : 'master')),
+                        initialFilters: bancoFiltros
+                      }
+                    : (
+                        tab === 'desgloses'
+                          ? { mode: 'desgloses', fuenteDefault: 'mir', fuente: 'mir' }
+                          : tab === 'quiz'
+                          ? { mode: 'custom' }
+                          : tab === 'adaptativo'
+                          ? { mode: 'adaptativo', preset: 'adaptativo' }
+                          : null
+                      )
+                }
+                mode={
+                  tab === 'desgloses' ? 'desgloses' : (tab === 'adaptativo' ? 'adaptativo' : (tab === 'quiz' ? 'custom' : 'master'))
+                }
+                fuenteDefault={tab === 'desgloses' ? 'mir' : 'todas'}
+                onFiltrosConsumed={() => setBancoFiltros(null)}
+                setTab={setTab}
+              />
+            )}
             {tab === 'correccion' && <CorreccionSimulacro />}
-            {tab === 'desgloses'  && <Desgloses />}
             {tab === 'conceptos'  && <ColaEstudio />}
-            <div style={{ display: tab === 'quiz' ? 'block' : 'none' }}>
-              <BancoPreguntas initialFiltros={bancoFiltros} onFiltrosConsumed={() => setBancoFiltros(null)} />
-            </div>
-            {tab === 'simulacros' && <Simulacros setTab={setTab} setBancoFiltros={setBancoFiltros} />}
+            {tab === 'simulacros' && (
+              <ErrorBoundary>
+                <Simulacros setTab={setTab} setBancoFiltros={setBancoFiltros} />
+              </ErrorBoundary>
+            )}
             {tab === 'publico'    && <PublicView />}
             {tab === 'ofrece'     && <OfreceEstudio />}
           </div>

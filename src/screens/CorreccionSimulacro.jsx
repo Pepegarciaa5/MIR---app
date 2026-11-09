@@ -86,6 +86,23 @@ export default function CorreccionSimulacro() {
     setCurrentIndex(prev => prev + 1);
   };
 
+  // Atajo de teclado Enter o Flecha derecha para avanzar de pregunta
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const active = document.activeElement;
+      if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)) {
+        return;
+      }
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === 'Enter' || e.key === 'ArrowRight') {
+        e.preventDefault();
+        handleNext();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [fullQ]);
+
   // Helper de tiempo format (HH:MM:SS)
   const formatTime = (secs) => {
     const m = Math.floor(secs / 60);
@@ -248,7 +265,7 @@ export default function CorreccionSimulacro() {
                   <h4 className="font-bold text-amber-900 mb-2">Comentario CTO</h4>
                   {fullQ.texto?.comentario ? (
                     <div 
-                      className="text-sm text-amber-800 leading-relaxed max-h-96 overflow-y-auto custom-scrollbar pr-2"
+                      className="comentario-html text-base sm:text-[17px] text-amber-950 leading-relaxed max-h-96 overflow-y-auto custom-scrollbar pr-2"
                       dangerouslySetInnerHTML={{ __html: fullQ.texto.comentario }} 
                     />
                   ) : (
@@ -260,10 +277,15 @@ export default function CorreccionSimulacro() {
 
             <div className="flex flex-col sm:flex-row gap-3">
               <button
+                type="button"
                 onClick={handleNext}
-                className="flex-1 bg-green-500 text-white font-bold text-base py-4 rounded-xl hover:bg-green-600 transition-colors shadow-sm flex items-center justify-center gap-2"
+                className="flex-1 bg-green-500 text-white font-bold text-base py-4 rounded-xl hover:bg-green-600 transition-colors shadow-sm flex items-center justify-center gap-2.5"
               >
-                <span>✓</span> Lo he entendido, Marcar como Aprendida
+                <span>✓</span>
+                <span>Lo he entendido, Marcar como Aprendida</span>
+                <kbd className="hidden sm:inline-block font-mono text-xs px-2 py-0.5 rounded bg-green-600 border border-green-400 text-green-100">
+                  Enter ↵
+                </kbd>
               </button>
 
               <button

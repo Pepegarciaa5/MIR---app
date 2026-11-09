@@ -5,6 +5,8 @@ const QuestionCard = ({ question, onAnswer, onNext, examMode = false, initialAns
   const [selectedOption, setSelectedOption] = useState(initialAnswer?.selectedLetter || null);
   const [discardedOptions, setDiscardedOptions] = useState(initialAnswer?.discardedOptions || []);
   const [showConfidence, setShowConfidence] = useState(Boolean(initialAnswer?.selectedLetter));
+  const [justificacion, setJustificacion] = useState(initialAnswer?.justificacion || '');
+  const [showJustification, setShowJustification] = useState(Boolean(initialAnswer?.justificacion));
   const [seconds, setSeconds] = useState(initialAnswer?.seconds || 0);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [hintMessage, setHintMessage] = useState(null);
@@ -34,8 +36,10 @@ const QuestionCard = ({ question, onAnswer, onNext, examMode = false, initialAns
     setSelectedOption(initialAnswer?.selectedLetter || null);
     setDiscardedOptions(initialAnswer?.discardedOptions || []);
     setShowConfidence(Boolean(initialAnswer?.selectedLetter));
+    setJustificacion(initialAnswer?.justificacion || '');
+    setShowJustification(Boolean(initialAnswer?.justificacion));
     setHintMessage(null);
-  }, [question?.id, initialAnswer?.selectedLetter]);
+  }, [question?.id, initialAnswer?.selectedLetter, initialAnswer?.justificacion]);
 
   // Contador de segundos
   useEffect(() => {
@@ -89,6 +93,7 @@ const QuestionCard = ({ question, onAnswer, onNext, examMode = false, initialAns
       confidence: confidenceLevel, // 'green', 'orange', 'red'
       isCorrect: selectedOption === question.correctOption,
       seconds,
+      justificacion: justificacion.trim()
     });
   };
 
@@ -309,6 +314,44 @@ const QuestionCard = ({ question, onAnswer, onNext, examMode = false, initialAns
           );
         })}
       </div>
+
+      {/* Justificación opcional del razonamiento clínico */}
+      {selectedOption && (
+        <div className="mt-5 pt-4 border-t border-slate-100 animate-in fade-in duration-200">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <button
+              type="button"
+              onClick={() => setShowJustification(prev => !prev)}
+              className="text-xs font-bold text-slate-600 hover:text-cyan-700 transition-colors flex items-center gap-1.5 py-1 px-2.5 rounded-lg hover:bg-slate-100 border border-slate-200 shadow-2xs"
+            >
+              <span>💬</span>
+              <span>
+                {justificacion
+                  ? 'Razonamiento añadido (clic para editar)'
+                  : '+ Justificar mi respuesta (para corrección en chat)'}
+              </span>
+              {justificacion && (
+                <span className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></span>
+              )}
+            </button>
+            <span className="text-[10px] text-slate-400 font-medium hidden sm:inline">
+              Opcional · El chat contrastará tu razonamiento al corregir
+            </span>
+          </div>
+
+          {(showJustification || justificacion) && (
+            <div className="animate-in fade-in slide-in-from-top-1">
+              <textarea
+                value={justificacion}
+                onChange={(e) => setJustificacion(e.target.value)}
+                placeholder="Explica brevemente tu razonamiento (ej: sospecho amiloidosis por la edad y ubicación subcortical sin HTA previa, descarté A porque...)"
+                rows={2}
+                className="w-full p-3 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 outline-none text-slate-800 transition-all resize-y placeholder:text-slate-400"
+              />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Controles de Seguridad (Aparecen al seleccionar una opción) */}
       {showConfidence && (

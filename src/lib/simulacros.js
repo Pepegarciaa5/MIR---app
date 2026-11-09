@@ -47,6 +47,9 @@ export function getSimulacroImageUrl(imagen_nombre) {
   if (trimmed.startsWith('/')) {
     return trimmed;
   }
+  if (trimmed.startsWith('pdf_') || trimmed.startsWith('pdf2v_') || trimmed.startsWith('evalcto_')) {
+    return `/img/${trimmed}`;
+  }
   return `/img/preguntas/${trimmed}`;
 }
 
@@ -122,6 +125,7 @@ export const ASIGNATURA_NOMBRE = {
   HM: 'Hematología',
   IF: 'Infecciosas',
   IG: 'Inmunología',
+  MP: 'Medicina Preventiva y Salud Pública',
   NF: 'Nefrología',
   NM: 'Neumología',
   NR: 'Neurología y Neurocirugía',
@@ -130,8 +134,8 @@ export const ASIGNATURA_NOMBRE = {
   OR: 'Otorrinolaringología',
   PD: 'Pediatría',
   PQ: 'Psiquiatría',
-  RH: 'Reumatología',
-  RM: 'Radiodiagnóstico',
+  RH: 'Rehabilitación',
+  RM: 'Reumatología',
   RX: 'Radiología',
   TM: 'Traumatología',
   UG: 'Urgencias',
