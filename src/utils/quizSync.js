@@ -13,7 +13,11 @@ const LAST_SYNC_KEY = 'mir_last_sync_timestamp';
 // Retrieve or generate a unified user ID stored in localStorage.
 export function getOrCreateAnonUserId() {
   const KEY = 'mir_user_id';
-  localStorage.setItem(KEY, 'mir_user_main');
+  try {
+    localStorage.setItem(KEY, 'mir_user_main');
+  } catch (e) {
+    // Ignorar si localStorage está lleno
+  }
   return 'mir_user_main';
 }
 
@@ -153,7 +157,7 @@ export async function flushOfflineSyncQueue() {
 
   if (pendingStatsList.length === 0 && activeResultsQueue.length === 0) {
     const now = new Date().toISOString();
-    localStorage.setItem(LAST_SYNC_KEY, now);
+    try { localStorage.setItem(LAST_SYNC_KEY, now); } catch {}
     return {
       success: true,
       isOnline: true,
@@ -186,7 +190,7 @@ export async function flushOfflineSyncQueue() {
         if (error) {
           // Si la tabla user_quiz_results no existe en el esquema, no reintentar infinitamente
           if (error.message && (error.message.includes('schema cache') || error.message.includes('does not exist') || error.code === 'PGRST205' || error.code === '42P01')) {
-            localStorage.setItem('mir_quiz_results_table_missing', '1');
+            try { localStorage.setItem('mir_quiz_results_table_missing', '1'); } catch {}
             remainingResults.length = 0;
             break;
           }
@@ -200,7 +204,7 @@ export async function flushOfflineSyncQueue() {
     }
 
     const now = new Date().toISOString();
-    localStorage.setItem(LAST_SYNC_KEY, now);
+    try { localStorage.setItem(LAST_SYNC_KEY, now); } catch {}
 
     return {
       success: true,
