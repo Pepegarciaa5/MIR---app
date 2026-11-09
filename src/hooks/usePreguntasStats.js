@@ -52,7 +52,17 @@ function getGlobalStatsData() {
 
 function setGlobalStatsData(newStats) {
   globalStatsCache = newStats;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(newStats));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(newStats));
+  } catch (err) {
+    console.warn('Error guardando stats en localStorage (posible límite de cuota), liberando espacio:', err);
+    try {
+      localStorage.removeItem('mir_historial_tiradas_v1');
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(newStats));
+    } catch (e2) {
+      console.error('No se pudo persistir mir_banco_preguntas_stats en localStorage:', e2);
+    }
+  }
   listeners.forEach(listener => listener(newStats));
 }
 
@@ -260,45 +270,10 @@ export function usePreguntasStats() {
         }
 
         if (typeof localStorage !== 'undefined') {
-          localStorage.setItem(LAST_CLOUD_PULL_KEY, maxCloudTs || new Date().toISOString());
-
-          // Reconciliación única post-corte offline: sube cualquier nota, [CORREGIDA] o respuesta local reciente
-          if (localStorage.getItem(RECONCILED_FLAG_KEY) !== '1') {
-            localStorage.setItem(RECONCILED_FLAG_KEY, '1');
-            const seenCanon = new Set();
-            let enqueuedDelta = 0;
-            for (const [k, s] of Object.entries(merged)) {
-              if (!s) continue;
-              const canonId = getCanonicalId(k) || simNumToUuidMap[k] || k;
-              if (seenCanon.has(canonId)) continue;
-              seenCanon.add(canonId);
-
-              const hasRecentOffline = s.ultimaFecha && s.ultimaFecha > '2026-10-23T16:50:00.000Z';
-              if (s.corregida || s.nota || s.archivada || hasRecentOffline) {
-                const status = s.archivada
-                  ? 'archived'
-                  : (s.dominada
-                    ? 'mastered'
-                    : (s.fallos > 0 || s.dudosa ? 'needs_review' : 'mastered'));
-                let noteWithTag = s.nota || '';
-                if (s.corregida && !noteWithTag.includes('[CORREGIDA]')) {
-                  noteWithTag = `[CORREGIDA] ${noteWithTag}`.trim();
-                }
-                enqueueQuestionStat(userId, canonId, {
-                  subject: s.subject || 'General',
-                  status,
-                  confidence_history: Array.isArray(s.confidence_history) ? s.confidence_history : [],
-                  note: noteWithTag,
-                  racha_verde: s.rachaVerde || 0,
-                  latencia_hasta: s.latenciaHasta || null,
-                  puntuacion_prioridad: s.puntuacionPrioridad || 7
-                });
-                enqueuedDelta++;
-              }
-            }
-            if (enqueuedDelta > 0) {
-              await flushOfflineSyncQueue();
-            }
+          try {
+            localStorage.setItem(LAST_CLOUD_PULL_KEY, maxCloudTs || new Date().toISOString());
+          } catch (e) {
+            // ignore quota errors
           }
         }
 
