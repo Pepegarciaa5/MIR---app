@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTracker } from '../context/TrackerContext';
+import { getBloquesCompletados, addBloqueCompletado, deleteBloqueCompletado } from '../lib/db';
 import planData from '../data/planDiarioDetallado.json';
 
 function todayKey() {
@@ -15,7 +16,7 @@ export default function Inicio({ setTab }) {
   const planHoy = planData[tKey] || planData['2026-11-03'];
   const { activeEntry, elapsed, entries, startTracking, stopTracking } = useTracker();
 
-  // Estado de checks completados guardados en localStorage
+  // Estado de checks completados (localStorage + sincronización bidireccional con Supabase bloques_completados)
   const [completedMap, setCompletedMap] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem(`mir_plan_completed_${tKey}`) || '{}');
@@ -23,6 +24,45 @@ export default function Inicio({ setTab }) {
       return {};
     }
   });
+
+  const syncBloquesHoyConSupabase = useCallback(async () => {
+    try {
+      const cloudIds = await getBloquesCompletados();
+      const prefix = `${tKey}:`;
+      const cloudForToday = {};
+      for (const id of cloudIds) {
+        if (typeof id === 'string' && id.startsWith(prefix)) {
+          cloudForToday[id.slice(prefix.length)] = true;
+        }
+      }
+
+      let localMap = {};
+      try {
+        localMap = JSON.parse(localStorage.getItem(`mir_plan_completed_${tKey}`) || '{}');
+      } catch {}
+
+      // Subir a Supabase cualquier check que estuviera marcado en localStorage pero aún no en la nube
+      for (const [bId, isChecked] of Object.entries(localMap)) {
+        if (isChecked && !cloudForToday[bId]) {
+          addBloqueCompletado(`${prefix}${bId}`);
+          cloudForToday[bId] = true;
+        }
+      }
+
+      const merged = { ...localMap, ...cloudForToday };
+      try {
+        localStorage.setItem(`mir_plan_completed_${tKey}`, JSON.stringify(merged));
+      } catch {}
+      setCompletedMap(merged);
+    } catch {}
+  }, [tKey]);
+
+  useEffect(() => {
+    syncBloquesHoyConSupabase();
+    const onFocus = () => syncBloquesHoyConSupabase();
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [syncBloquesHoyConSupabase]);
 
   // Estado del auto tracker nativo en vivo
   const [liveTracker, setLiveTracker] = useState(null);
@@ -44,8 +84,17 @@ export default function Inicio({ setTab }) {
 
   const toggleCheck = (blockId) => {
     setCompletedMap(prev => {
-      const next = { ...prev, [blockId]: !prev[blockId] };
-      localStorage.setItem(`mir_plan_completed_${tKey}`, JSON.stringify(next));
+      const nextVal = !prev[blockId];
+      const next = { ...prev, [blockId]: nextVal };
+      try {
+        localStorage.setItem(`mir_plan_completed_${tKey}`, JSON.stringify(next));
+      } catch {}
+      const cloudKey = `${tKey}:${blockId}`;
+      if (nextVal) {
+        addBloqueCompletado(cloudKey);
+      } else {
+        deleteBloqueCompletado(cloudKey);
+      }
       return next;
     });
   };

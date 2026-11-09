@@ -20,7 +20,6 @@ export async function getTrackerEntries() {
       .from('tracker_entries')
       .select('*')
       .order('inicio', { ascending: false })
-      .catch?.(() => ({ data: [], error: null })) || {}
     if (error || !data || !Array.isArray(data)) return []
     // Normalize field names (snake_case → camelCase)
     return data.map(e => ({
@@ -53,13 +52,13 @@ export async function upsertTrackerEntry(entry) {
       fin: entry.fin,
       duracion_segundos: entry.duracionSegundos,
       fecha: entry.fecha,
-    }).catch?.(() => {})
+    })
   } catch {}
 }
 
 export async function deleteTrackerEntry(id) {
   try {
-    await supabase.from('tracker_entries').delete().eq('id', String(id)).catch?.(() => {})
+    await supabase.from('tracker_entries').delete().eq('id', String(id))
   } catch {}
 }
 
@@ -71,7 +70,6 @@ export async function getRepasos() {
       .from('repasos')
       .select('*')
       .order('fecha_proximo_repaso', { ascending: true })
-      .catch?.(() => ({ data: [], error: null })) || {}
     if (error || !data || !Array.isArray(data)) return []
     return data.map(r => ({
       id: r.id,
@@ -101,13 +99,13 @@ export async function upsertRepaso(repaso) {
       fase: repaso.fase,
       fecha_proximo_repaso: repaso.fechaProximoRepaso,
       confianza: repaso.confianza,
-    }).catch?.(() => {})
+    })
   } catch {}
 }
 
 export async function deleteRepaso(id) {
   try {
-    await supabase.from('repasos').delete().eq('id', id).catch?.(() => {})
+    await supabase.from('repasos').delete().eq('id', id)
   } catch {}
 }
 
@@ -116,7 +114,6 @@ export async function deleteRepaso(id) {
 export async function getBloquesCompletados() {
   try {
     const { data, error } = await supabase.from('bloques_completados').select('id')
-      .catch?.(() => ({ data: [], error: null })) || {}
     if (error || !data || !Array.isArray(data)) return []
     return data.map(r => r.id)
   } catch {
@@ -126,7 +123,13 @@ export async function getBloquesCompletados() {
 
 export async function addBloqueCompletado(id) {
   try {
-    await supabase.from('bloques_completados').upsert({ id: String(id) }).catch?.(() => {})
+    await supabase.from('bloques_completados').upsert({ id: String(id) })
+  } catch {}
+}
+
+export async function deleteBloqueCompletado(id) {
+  try {
+    await supabase.from('bloques_completados').delete().eq('id', String(id))
   } catch {}
 }
 
@@ -135,7 +138,6 @@ export async function addBloqueCompletado(id) {
 export async function getBloquesDescartados() {
   try {
     const { data, error } = await supabase.from('bloques_descartados').select('id')
-      .catch?.(() => ({ data: [], error: null })) || {}
     if (error || !data || !Array.isArray(data)) return []
     return data.map(r => r.id)
   } catch {
@@ -145,7 +147,7 @@ export async function getBloquesDescartados() {
 
 export async function addBloqueDescartado(id) {
   try {
-    await supabase.from('bloques_descartados').upsert({ id: String(id) }).catch?.(() => {})
+    await supabase.from('bloques_descartados').upsert({ id: String(id) })
   } catch {}
 }
 
@@ -154,7 +156,6 @@ export async function addBloqueDescartado(id) {
 export async function getPlanesAdicionales() {
   try {
     const { data, error } = await supabase.from('planes_adicionales').select('*')
-      .catch?.(() => ({ data: [], error: null })) || {}
     if (error || !data || !Array.isArray(data)) return {}
     // Rebuild the { 'YYYY-MM-DD': [...] } structure
     const result = {}
@@ -185,7 +186,7 @@ export async function addPlanAdicional(fecha, bloque) {
       titulo: bloque.titulo,
       especialidad: bloque.especialidad || null,
       tema: bloque.tema || null,
-    }).catch?.(() => {})
+    })
   } catch {}
 }
 
@@ -259,7 +260,6 @@ export async function getComentarios() {
       .from('comentarios')
       .select('*')
       .order('created_at', { ascending: true })
-      .catch?.(() => ({ data: [], error: null })) || {}
     if (error || !data || !Array.isArray(data)) return []
     return data.map(c => ({
       id: c.id,
@@ -281,7 +281,7 @@ export async function addComentario({ autor, texto, tipo = 'foro', refId = null 
       texto: texto.trim(),
       tipo,
       ref_id: refId ? String(refId) : null,
-    }).select().single().catch?.(() => ({ data: null, error: null })) || {}
+    }).select().single()
     if (error || !data) return null
     return {
       id: data.id,
@@ -298,7 +298,7 @@ export async function addComentario({ autor, texto, tipo = 'foro', refId = null 
 
 export async function deleteComentario(id) {
   try {
-    await supabase.from('comentarios').delete().eq('id', id).catch?.(() => {})
+    await supabase.from('comentarios').delete().eq('id', id)
   } catch {}
 }
 
@@ -310,7 +310,6 @@ export async function getDiarioPosts() {
       .from('diario_posts')
       .select('*')
       .order('created_at', { ascending: false })
-      .catch?.(() => ({ data: [], error: null })) || {}
     if (error || !data || !Array.isArray(data)) return []
     return data.map(p => ({
       id: p.id,
@@ -337,13 +336,13 @@ export async function upsertDiarioPost(post) {
       horas_estudiadas: post.horasEstudiadas || 0,
       asignaturas: post.asignaturas || [],
       fecha: post.fecha,
-    }).catch?.(() => {})
+    })
   } catch {}
 }
 
 export async function deleteDiarioPost(id) {
   try {
-    await supabase.from('diario_posts').delete().eq('id', id).catch?.(() => {})
+    await supabase.from('diario_posts').delete().eq('id', id)
   } catch {}
 }
 

@@ -33,12 +33,19 @@ export function TrackerProvider({ children }) {
   const [loaded, setLoaded] = useState(false)
   const timerRef = useRef(null)
 
-  // Load entries from Supabase on mount
+  // Load entries from Supabase on mount and when window regains focus
   useEffect(() => {
-    getTrackerEntries().then(data => {
-      setEntries(data)
-      setLoaded(true)
-    })
+    const refreshEntries = () => {
+      getTrackerEntries().then(data => {
+        if (Array.isArray(data)) {
+          setEntries(data)
+        }
+        setLoaded(true)
+      })
+    }
+    refreshEntries()
+    window.addEventListener('focus', refreshEntries)
+    return () => window.removeEventListener('focus', refreshEntries)
   }, [])
 
   const notifiedRef = useRef(false)
