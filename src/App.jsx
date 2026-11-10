@@ -21,6 +21,7 @@ import BancoPreguntas from './screens/BancoPreguntas'
 import EstudioAdaptativo from './screens/EstudioAdaptativo'
 import Desgloses from './screens/Desgloses'
 import TiradorMaestro from './screens/TiradorMaestro'
+import Smartcards from './screens/Smartcards'
 import CorreccionSimulacro from './screens/CorreccionSimulacro'
 import PrioridadesTemas from './screens/PrioridadesTemas'
 import EvaluacionP80 from './screens/EvaluacionP80'
@@ -138,7 +139,8 @@ export default function App() {
               />
             )}
             {tab === 'correccion' && <CorreccionSimulacro />}
-            {tab === 'conceptos'  && <ColaEstudio />}
+            {tab === 'smartcards' && <Smartcards />}
+            {tab === 'conceptos'  && <Smartcards />}
             {tab === 'simulacros' && (
               <ErrorBoundary>
                 <Simulacros setTab={setTab} setBancoFiltros={setBancoFiltros} />

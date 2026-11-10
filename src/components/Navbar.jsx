@@ -142,6 +142,7 @@ const ALL_TABS = [
   { id: 'prioridades', label: 'Prioridades Temas', Icon: IcoTarget },
   { id: 'evaluacion_p80', label: 'Evaluación P80', Icon: IcoTrendingUp },
   { id: 'preguntas',   label: 'Tirador de Preguntas', Icon: IcoQuiz },
+  { id: 'smartcards',  label: 'Smartcards',         Icon: IcoFlashcards },
   { id: 'simulacros',  label: 'Simulacros',         Icon: IcoSimulacros },
   { id: 'calendario',  label: 'Calendario',         Icon: IcoCalendar },
   { id: 'repasos',     label: 'Repasos',            Icon: IcoRepeat },

@@ -77,10 +77,8 @@ El formato de cada pregunta debe seguir esta estructura literal inalterada:
 
 ---
 
-## 5. Inyección Reactiva en Anki (`MIR 2027`)
-- **Regla de oro:** NUNCA inyectes tarjetas de forma automática o masiva al generar la guía. Solo se inyectan en `collection.anki2` **cuando el alumno lo pida explícitamente** (en el chat o en un comentario sobre el artefacto).
-- Antes de escribir en la base de datos, comprueba que `/Applications/Anki.app` esté cerrado (`is_anki_running()` en `scripts/anki_visual_builder.py`).
-- Usa siempre los componentes de `scripts/anki_visual_builder.py`:
-  - `front_card()`: 1 sola pregunta cerrada (no multipregunta).
-  - `back_wrapper(..., atomic_html=...)`: Caja verde con el dato atómico de 1–4 palabras para aprobar en <3 segundos.
-  - `insert_cloze_card()` si el alumno prefiere formato Cloze.
+## 5. Inyección Reactiva en Smartcards de la App (y Anki opcional)
+- **Regla de oro:** NUNCA inyectes tarjetas de forma automática o masiva al generar la guía. Solo se inyectan **cuando el alumno lo pida explícitamente**.
+- **Destino por defecto (Smartcards MIR de la App):** Se inyectan directamente en el banco nativo de Smartcards de la aplicación (`src/data/smartcardsData.json`) usando `upsert_smartcards(..., origen="simulacro", fuente_tag="Simulacro <N>")` de `scripts/smartcards_injector.py` (con peso inicial = `1.0`, sin necesidad de abrir ni cerrar Anki).
+- **Anki (`MIR 2027`) como opción secundaria:** Solo se escribe en `collection.anki2` si el alumno pide expresamente sincronizar con Anki (`sync_to_anki=True` o `scripts/anki_visual_builder.py`), comprobando antes que `/Applications/Anki.app` esté cerrado (`is_anki_running()`).
+- Usa siempre los componentes visuales (`front_card()`, `back_wrapper(..., atomic_html=...)`, `versus()`, `steps()`, `callout()`).

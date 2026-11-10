@@ -29518,5 +29518,203 @@
     "asignatura": "Urología",
     "importancia": "normal",
     "texto": "La uropatía obstructiva puede producir glomerulonefritis focal y segmentaria."
+  },
+  {
+    "id": "S20-Rev-01",
+    "asignatura": "Ginecología y obstetricia",
+    "importancia": "alta",
+    "texto": "¿Qué malformación uterina congénita es la más frecuente y la que más se asocia a abortos de repetición? → Útero septo (tabique interno con contorno seroso externo normal)."
+  },
+  {
+    "id": "S20-Rev-02",
+    "asignatura": "Ginecología y obstetricia",
+    "importancia": "alta",
+    "texto": "Diferencia ecográfica fundamental entre útero septo y útero bicorne: → El útero septo tiene contorno seroso externo normal (plano/convexo); el bicorne tiene hendidura serosa externa profunda (>1 cm)."
+  },
+  {
+    "id": "S20-Rev-03",
+    "asignatura": "Fisiología",
+    "importancia": "alta",
+    "texto": "¿Cómo se define la distensibilidad (compliance) pulmonar y cuál es su relación con la elasticidad? → Capacidad de inflarse/abrirse (inversa a la elasticidad: C = 1/E). A mayor elasticidad (fibrosis), menor distensibilidad."
+  },
+  {
+    "id": "S20-Rev-04",
+    "asignatura": "Fisiología",
+    "importancia": "alta",
+    "texto": "En el enfisema pulmonar, ¿cómo están la distensibilidad y la retracción elástica? → Distensibilidad AUMENTADA (se infla fácil) y retracción elástica DISMINUIDA (atrapamiento aéreo espiratorio)."
+  },
+  {
+    "id": "S20-Rev-05",
+    "asignatura": "Reumatología",
+    "importancia": "alta",
+    "texto": "¿A qué enfermedad es específico y patognomónico el autoanticuerpo Anti-Sm (anti-Smith)? → Al Lupus Eritematoso Sistémico (LES; NO aparece en esclerodermia)."
+  },
+  {
+    "id": "S20-Rev-06",
+    "asignatura": "Reumatología",
+    "importancia": "mnemotecnia",
+    "texto": "Mnemotecnia de autoanticuerpos en esclerodermia (CREST, Difusa, Renal): → 1) Anti-Centrómero = CREST. 2) Anti-Scl-70 = eSCLerodermia difusa (pulmón). 3) Anti-ARN Polimerasa III = POLirrenal (crisis renal y cáncer)."
+  },
+  {
+    "id": "S20-Rev-07",
+    "asignatura": "Traumatología",
+    "importancia": "alta",
+    "texto": "Actitud del miembro inferior en la luxación posterior de cadera («bañista sorprendida»): → Acortamiento, aducción y rotación interna (complicación aguda precoz de prótesis de cadera; dolor intenso)."
+  },
+  {
+    "id": "S20-Rev-08",
+    "asignatura": "Traumatología",
+    "importancia": "alta",
+    "texto": "Conducta recomendada ante sospecha de fractura de escafoides (dolor en tabaquera anatómica) con radiografía inicial NORMAL: → Inmovilizar con escayola (incluyendo 1º dedo) y repetir radiografía en 10-14 días (NO vendaje blando)."
+  },
+  {
+    "id": "S20-Rev-09",
+    "asignatura": "Traumatología",
+    "importancia": "mnemotecnia",
+    "texto": "Mnemotecnia articulaciones del pie en traumatología: Lisfranc vs Chopart: → Lisfranc = Tarso-metatarsiana (nacimiento de los dedos). Chopart = Medio-tarsiana (en medio del tarso)."
+  },
+  {
+    "id": "S20-Rev-10",
+    "asignatura": "Traumatología",
+    "importancia": "alta",
+    "texto": "Regla de punción: ¿Cuándo se pincha una monoartritis vs una bursitis prerrotuliana? → Toda monoartritis aguda (líquido intraarticular) se pincha siempre. La bursitis prerrotuliana fría (extraarticular) NO se pincha por riesgo de sobreinfección."
+  },
+  {
+    "id": "S20-Rev-11",
+    "asignatura": "Cardiología",
+    "importancia": "alta",
+    "texto": "Tiempo recomendado para coronariografía invasiva en un SCASEST con criterios de alto riesgo (troponina elevada): → Coronariografía precoz en las primeras 24 horas (la prueba de esfuerzo ambulatoria está contraindicada)."
+  },
+  {
+    "id": "S20-Rev-12",
+    "asignatura": "Endocrino",
+    "importancia": "alta",
+    "texto": "Marcador clínico más temprano de nefropatía diabética incipiente (cribado anual obligatorio): → Microalbuminuria persistente (30-300 mg/24 horas o índice albúmina/creatinina 30-300 mg/g)."
+  },
+  {
+    "id": "S20-Rev-13",
+    "asignatura": "Infecciosas",
+    "importancia": "mnemotecnia",
+    "texto": "Mnemotecnia «3 P»: Las 3 únicas indicaciones de profilaxis de endocarditis en odontología cruenta: → 1) Prótesis (válvula o anillo). 2) Previa (endocarditis). 3) Pediátrica congénita cianosante no corregida (o prótesis <6m). Valvulopatías nativas = NUNCA."
+  },
+  {
+    "id": "S20-Rev-14",
+    "asignatura": "Traumatología",
+    "importancia": "alta",
+    "texto": "Diferencia quirúrgica entre aflojamiento protésico de cadera aséptico vs séptico: → Aséptico = recambio en 1 tiempo (con injerto óseo). Séptico (infectado) = recambio en 2 tiempos (con espaciador antibiótico)."
+  },
+  {
+    "id": "S20-Rev-15",
+    "asignatura": "Cardiología",
+    "importancia": "alta",
+    "texto": "Hallazgo ECG patognomónico de la Miocardiopatía Hipertrófica Apical (Yamaguchi): → Ondas T negativas gigantes y simétricas (>10 mm) en derivaciones precordiales (V4-V6)."
+  },
+  {
+    "id": "S20-Rev-16",
+    "asignatura": "Neumología",
+    "importancia": "alta",
+    "texto": "Tratamiento de elección de la Neumonía Eosinofílica Aguda en varón joven fumador reciente: → Corticoides sistémicos intravenosos (respuesta clínica espectacular en 24-48 horas sin recidivas)."
+  },
+  {
+    "id": "S20-Rev-17",
+    "asignatura": "Neumología",
+    "importancia": "alta",
+    "texto": "¿En qué enfermedades está indicado el trasplante pulmonar y en cuáles contraindicado? → Indicado solo en enfermedades crónicas terminales irreversibles (FPI, EPOC/alfa-1, FQ, HPA). Contraindicado en cuadros agudos o reversibles."
+  },
+  {
+    "id": "S20-Rev-18",
+    "asignatura": "Neumología",
+    "importancia": "alta",
+    "texto": "¿En qué enfermedades respiratorias es OBLIGATORIO que el trasplante sea BIPULMONAR? → En Fibrosis Quística y Bronquiectasias difusas (para evitar sobreinfección bilateral del injerto) y en Hipertensión Pulmonar."
+  },
+  {
+    "id": "S20-Rev-19",
+    "asignatura": "Genética",
+    "importancia": "mnemotecnia",
+    "texto": "Mnemotecnia «SNOW DROP» de técnicas de biología molecular: → Southern = DNA | Northern = RNA | O = O | Western = Proteínas."
+  },
+  {
+    "id": "S20-Rev-20",
+    "asignatura": "Anestesia",
+    "importancia": "alta",
+    "texto": "Escala de Mallampati de vía aérea difícil: ¿cuántos grados tiene y qué se ve en el Grado IV? → Solo tiene 4 grados (I al IV; no existe grado V). Grado IV = solo es visible el paladar duro."
+  },
+  {
+    "id": "S20-Rev-21",
+    "asignatura": "Ginecología y obstetricia",
+    "importancia": "alta",
+    "texto": "Fármaco de elección para prevenir la preeclampsia precoz (<34 semanas) en gestantes de alto riesgo y ventana de inicio: → Ácido acetilsalicílico a dosis bajas (100-150 mg/día) iniciado ANTES de la semana 16 de gestación."
+  },
+  {
+    "id": "S20-Rev-22",
+    "asignatura": "Pediatría",
+    "importancia": "alta",
+    "texto": "¿Cuánto tiempo deben retrasarse las vacunas de virus vivos (triple vírica/varicela) tras tratar un Kawasaki con IGIV? → 11 meses (por neutralización de los virus vacunales atenuados por los anticuerpos pasivos de la inmunoglobulina)."
+  },
+  {
+    "id": "S20-Rev-23",
+    "asignatura": "Psiquiatría",
+    "importancia": "alta",
+    "texto": "Diferencia clave entre Trastorno Delirante Crónico (Paranoia) y Esquizofrenia: → En la paranoia NO hay deterioro de la personalidad ni alucinaciones prominentes; mantiene funcionamiento sociolaboral fuera del delirio."
+  },
+  {
+    "id": "S20-Rev-24",
+    "asignatura": "Psiquiatría",
+    "importancia": "alta",
+    "texto": "Diferencia entre Delirio (idea delirante) y Delirium (síndrome confusional agudo): → El delirio es un trastorno del contenido del pensamiento (consciente y orientado). El delirium es un fallo orgánico del nivel de conciencia y atención."
+  },
+  {
+    "id": "S20-Rev-25",
+    "asignatura": "Neurología",
+    "importancia": "alta",
+    "texto": "Los 3 territorios arteriales con indicación formal IA de trombectomía mecánica en el ictus isquémico de gran vaso: → Carótida interna terminal intracraneal, segmento M1 de la cerebral media y Arteria Basilar."
+  },
+  {
+    "id": "S20-Rev-26",
+    "asignatura": "Cardiología",
+    "importancia": "alta",
+    "texto": "Manejo de la Miocardiopatía Arritmogénica del VD (MAVD) según presencia o no de síncope/arritmias: → Con síncope o disfunción ventricular = DAI directo. Asintomático sin arritmias = Prohibido deporte de competición + Betabloqueantes."
+  },
+  {
+    "id": "S20-Rev-27",
+    "asignatura": "Cardiología",
+    "importancia": "alta",
+    "texto": "Actitud médica inicial inmediata ante una isquemia arterial aguda periférica con motilidad conservada (Rutherford IIa): → Heparinización sistémica urgente con heparina no fraccionada i.v. (la fibrinólisis sistémica intravenosa está contraindicada)."
+  },
+  {
+    "id": "S20-Rev-28",
+    "asignatura": "Neumología",
+    "importancia": "alta",
+    "texto": "¿Por qué el Carcinoma Microcítico de pulmón produce SIADH, Cushing ectópico y expresa Sinaptofisina/Cromogranina? → Porque deriva de las células de Kulchitsky y es un tumor NEUROENDOCRINO de alto grado."
+  },
+  {
+    "id": "S20-Rev-29",
+    "asignatura": "Nefrología",
+    "importancia": "alta",
+    "texto": "Tríada analítica de la Microangiopatía Trombótica (MAT) por tacrolimus en trasplante renal y actitud: → Fracaso renal agudo + anemia con LDH elevada + trombocitopenia → Confirmar esquistocitos en frotis y retirar/sustituir tacrolimus."
+  },
+  {
+    "id": "S20-Rev-30",
+    "asignatura": "Nefrología",
+    "importancia": "alta",
+    "texto": "Signo patognomónico en el fondo de ojo de la enfermedad ateroembólica (émbolos de colesterol post-cateterismo): → Placas de Hollenhorst (cristales de colesterol birrefringentes impactados en bifurcaciones arteriolares retinianas)."
+  },
+  {
+    "id": "S20-Rev-31",
+    "asignatura": "Nefrología",
+    "importancia": "alta",
+    "texto": "Tratamiento de primera línea del SIADH euvolémico sintomático no comatoso: → Restricción hídrica (800-1000 mL/día) + aportes de sal (NaCl oral) y urea (la desmopresina está contraindicada)."
+  },
+  {
+    "id": "S20-Rev-32",
+    "asignatura": "Hematología",
+    "importancia": "alta",
+    "texto": "¿Qué factor de coagulación permite distinguir una coagulopatía por cirrosis hepática de una CID? → Factor VIII: se sintetiza en células endoteliales (está normal o elevado en cirrosis, pero disminuido por consumo en CID)."
+  },
+  {
+    "id": "S20-Rev-33",
+    "asignatura": "Endocrino",
+    "importancia": "alta",
+    "texto": "Varón con debut de DM1 que nota visión borrosa a las 2 semanas de iniciar insulina y normalizar glucemias: → Presbicia insulínica transitoria (cambios osmóticos de hidratación del cristalino; esperar resolución espontánea en 3-4 semanas)."
   }
 ]

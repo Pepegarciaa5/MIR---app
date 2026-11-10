@@ -137,8 +137,7 @@ Para no quemar energía mental en anécdotas y evitar atascarse en la correcció
 
 ---
 
-## 5. Inyección Reactiva en Anki (`MIR 2027`)
-- **Búsqueda bajo demanda:** La propuesta `🃏 Anki sugerida` ya está redactada en la guía. Solo se inyecta en `collection.anki2` **cuando el alumno lo solicite expresamente**.
-- Comprueba que Anki esté cerrado antes de inyectar (`is_anki_running()` en `scripts/anki_visual_builder.py`).
-- Cumple la **Regla de 3 Segundos**: anverso cerrado con 1 dato + reverso con caja verde de respuesta directa en 1–4 palabras.
-- Admite tarjetas `Basic` (`insert_new_visual_cards`) y tarjetas `Cloze` (`insert_cloze_card`).
+## 5. Inyección Reactiva en Smartcards de la App (y Anki opcional)
+- **Destino por defecto (Smartcards MIR de la App):** La propuesta `🃏 Smartcard / Anki sugerida` ya está redactada en la guía. Cuando el alumno pida guardar las tarjetas de la corrección, se inyectan **por defecto en el banco nativo de Smartcards de la aplicación (`src/data/smartcardsData.json`)** mediante `upsert_smartcards(..., origen="tirada")` de `scripts/smartcards_injector.py` (peso inicial = `1.0`).
+- **Anki (`MIR 2027`) como opción secundaria:** Solo se inyecta en `collection.anki2` si el alumno pide expresamente enviarlo a Anki (`sync_to_anki=True` o `scripts/anki_visual_builder.py`), comprobando antes que Anki esté cerrado (`is_anki_running()`).
+- Cumple siempre la **Regla de 3 Segundos**: anverso cerrado con 1 dato + reverso con caja verde de respuesta directa en 1–4 palabras y apoyo visual (`steps`, `versus`, `callout`).
