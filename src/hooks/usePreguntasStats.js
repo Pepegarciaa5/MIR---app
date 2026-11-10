@@ -209,7 +209,7 @@ export function usePreguntasStats() {
 
         if (allData.length > 0) {
           allData.forEach(item => {
-            if (item.question_id) {
+            if (item.question_id && !item.question_id.startsWith('mir_smartcards_')) {
               const itemTs = item.updated_at || item.created_at || null;
               if (itemTs && (!maxCloudTs || itemTs > maxCloudTs)) {
                 maxCloudTs = itemTs;

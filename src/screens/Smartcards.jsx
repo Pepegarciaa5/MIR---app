@@ -18,6 +18,8 @@ import {
   resetSmartcardsProgress,
   loadSmartcardSettings,
   saveSmartcardSettings,
+  pullSmartcardsFromCloud,
+  pushSmartcardsToCloud,
 } from '../lib/smartcardsEngine'
 import { especialidadNombres, getEspecialidadColor } from '../data/especialidadesMIR'
 
@@ -100,16 +102,66 @@ export default function Smartcards() {
   const [newRespuesta, setNewRespuesta] = useState('')
   const [newPerla, setNewPerla] = useState('')
 
+  const [syncStatus, setSyncStatus] = useState('idle') // 'idle' | 'syncing' | 'synced' | 'error'
+
   const refreshCards = useCallback(() => {
     const loaded = getAllSmartcardsWithState(Date.now())
     setAllCards(loaded)
   }, [])
 
+  const handleManualSync = useCallback(async () => {
+    setSyncStatus('syncing')
+    try {
+      const ok = await pullSmartcardsFromCloud()
+      refreshCards()
+      if (ok) {
+        await pushSmartcardsToCloud()
+        setSyncStatus('synced')
+      } else {
+        setSyncStatus('error')
+      }
+    } catch {
+      setSyncStatus('error')
+    }
+  }, [refreshCards])
+
   useEffect(() => {
     refreshCards()
     const handler = () => refreshCards()
     window.addEventListener('mir_smartcards_updated', handler)
-    return () => window.removeEventListener('mir_smartcards_updated', handler)
+
+    // Sincronización inicial bidireccional con Supabase
+    let mounted = true
+    setSyncStatus('syncing')
+    pullSmartcardsFromCloud()
+      .then(ok => {
+        if (!mounted) return
+        refreshCards()
+        if (ok) {
+          pushSmartcardsToCloud().then(() => {
+            if (mounted) setSyncStatus('synced')
+          })
+        } else {
+          setSyncStatus('idle')
+        }
+      })
+      .catch(() => {
+        if (mounted) setSyncStatus('error')
+      })
+
+    // Sincronización al enfocar la ventana (ej. cambio entre localhost y vercel o dispositivos)
+    const focusHandler = () => {
+      pullSmartcardsFromCloud().then(ok => {
+        if (ok) refreshCards()
+      })
+    }
+    window.addEventListener('focus', focusHandler)
+
+    return () => {
+      mounted = false
+      window.removeEventListener('mir_smartcards_updated', handler)
+      window.removeEventListener('focus', focusHandler)
+    }
   }, [refreshCards])
 
   const asignaturasList = useMemo(() => {
@@ -456,6 +508,27 @@ export default function Smartcards() {
             <span style={{ color: '#dc2626' }}>❌ {sessionStats.forgot}</span> ·{' '}
             <span style={{ color: '#047857' }}>❄️ {summaryStats.dominadas} dom.</span>
           </span>
+
+          <button
+            onClick={handleManualSync}
+            title="Sincronizar Smartcards con Supabase (Nube)"
+            disabled={syncStatus === 'syncing'}
+            style={{
+              background: syncStatus === 'synced' ? '#f0fdf4' : syncStatus === 'error' ? '#fef2f2' : '#f8fafc',
+              color: syncStatus === 'synced' ? '#166534' : syncStatus === 'error' ? '#b91c1c' : '#475569',
+              border: `1px solid ${syncStatus === 'synced' ? '#bbf7d0' : syncStatus === 'error' ? '#fecaca' : '#cbd5e1'}`,
+              borderRadius: 8,
+              padding: '5px 10px',
+              fontSize: 12,
+              fontWeight: 700,
+              cursor: syncStatus === 'syncing' ? 'wait' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+            }}
+          >
+            {syncStatus === 'syncing' ? '🔄 Sincronizando...' : syncStatus === 'error' ? '⚠️ Reintentar Sync' : '☁️ Nube sincronizada'}
+          </button>
 
           <button
             onClick={() => setShowInspector(v => !v)}

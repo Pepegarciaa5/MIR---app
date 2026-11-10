@@ -9,10 +9,13 @@
 
 import baseSmartcards from '../data/smartcardsData.json'
 import legacyFlashcards from '../data/flashcardsData.json'
+import { supabase } from './supabase'
 
 const STATE_STORAGE_KEY = 'mir_smartcards_state_v1'
 const CUSTOM_CARDS_KEY = 'mir_smartcards_custom_v1'
 const SETTINGS_STORAGE_KEY = 'mir_smartcards_settings_v1'
+const CLOUD_SYNC_KEY = 'mir_smartcards_cloud_bundle'
+const USER_ID = 'mir_user_main'
 
 const DAY_MS = 86400000
 
@@ -123,9 +126,10 @@ export function loadSmartcardSettings() {
   }
 }
 
-export function saveSmartcardSettings(settings) {
+export function saveSmartcardSettings(settings, skipCloudSync = false) {
   try {
     localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings))
+    if (!skipCloudSync) schedulePushSmartcardsToCloud()
   } catch {}
 }
 
@@ -138,12 +142,13 @@ export function loadSmartcardsState() {
   }
 }
 
-export function saveSmartcardsState(stateMap) {
+export function saveSmartcardsState(stateMap, skipCloudSync = false) {
   try {
     localStorage.setItem(STATE_STORAGE_KEY, JSON.stringify(stateMap))
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('mir_smartcards_updated'))
     }
+    if (!skipCloudSync) schedulePushSmartcardsToCloud()
   } catch {}
 }
 
@@ -156,13 +161,160 @@ export function loadCustomSmartcards() {
   }
 }
 
-export function saveCustomSmartcards(cards) {
+export function saveCustomSmartcards(cards, skipCloudSync = false) {
   try {
     localStorage.setItem(CUSTOM_CARDS_KEY, JSON.stringify(cards))
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('mir_smartcards_updated'))
     }
+    if (!skipCloudSync) schedulePushSmartcardsToCloud()
   } catch {}
+}
+
+// ─── SINCRONIZACIÓN CLOUD CON SUPABASE ──────────────────────────────────────
+
+let pushTimeout = null
+
+export function schedulePushSmartcardsToCloud(delayMs = 1500) {
+  if (typeof window === 'undefined') return
+  if (pushTimeout) clearTimeout(pushTimeout)
+  pushTimeout = setTimeout(() => {
+    pushSmartcardsToCloud()
+  }, delayMs)
+}
+
+export async function pushSmartcardsToCloud() {
+  try {
+    if (!supabase) return false
+    const stateMap = loadSmartcardsState()
+    const customCards = loadCustomSmartcards()
+    const settings = loadSmartcardSettings()
+
+    const payload = {
+      version: 1,
+      updatedAt: Date.now(),
+      stateMap,
+      customCards,
+      settings,
+    }
+
+    const { error } = await supabase
+      .from('user_question_stats')
+      .upsert(
+        {
+          user_id: USER_ID,
+          question_id: CLOUD_SYNC_KEY,
+          subject: 'Smartcards',
+          status: 'mastered',
+          note: JSON.stringify(payload),
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id,question_id' }
+      )
+
+    if (error) {
+      console.warn('Error subiendo Smartcards a Supabase:', error.message)
+      return false
+    }
+    return true
+  } catch (err) {
+    console.warn('Excepción subiendo Smartcards a Supabase:', err)
+    return false
+  }
+}
+
+export async function pullSmartcardsFromCloud() {
+  try {
+    if (!supabase) return false
+    const { data, error } = await supabase
+      .from('user_question_stats')
+      .select('note, updated_at')
+      .eq('user_id', USER_ID)
+      .eq('question_id', CLOUD_SYNC_KEY)
+      .maybeSingle()
+
+    if (error) {
+      console.warn('Error descargando Smartcards desde Supabase:', error.message)
+      return false
+    }
+
+    if (!data || !data.note) {
+      // Si la nube aún no tiene datos, sincronizamos inmediatamente lo local
+      pushSmartcardsToCloud()
+      return true
+    }
+
+    let cloudPayload = null
+    try {
+      cloudPayload = JSON.parse(data.note)
+    } catch {
+      return false
+    }
+
+    if (!cloudPayload || typeof cloudPayload !== 'object') return false
+
+    const localState = loadSmartcardsState()
+    const localCustom = loadCustomSmartcards()
+    const localSettings = loadSmartcardSettings()
+
+    // 1. Merge State: conservar el progreso más avanzado (más apariciones o fecha más reciente)
+    const cloudState = cloudPayload.stateMap || {}
+    const mergedState = { ...localState }
+    let stateChanged = false
+
+    for (const [cid, cVal] of Object.entries(cloudState)) {
+      const lVal = mergedState[cid]
+      if (!lVal) {
+        mergedState[cid] = cVal
+        stateChanged = true
+      } else {
+        const cTime = cVal.lastReviewedAt || 0
+        const lTime = lVal.lastReviewedAt || 0
+        const cApp = cVal.appearances || 0
+        const lApp = lVal.appearances || 0
+
+        if (cApp > lApp || (cApp === lApp && cTime > lTime)) {
+          mergedState[cid] = cVal
+          stateChanged = true
+        }
+      }
+    }
+
+    if (stateChanged) {
+      saveSmartcardsState(mergedState, /* skipCloudSync */ true)
+    }
+
+    // 2. Merge Tarjetas personalizadas
+    const cloudCustom = Array.isArray(cloudPayload.customCards) ? cloudPayload.customCards : []
+    const customMap = new Map()
+    for (const c of localCustom) {
+      if (c && c.id) customMap.set(c.id, c)
+    }
+    let customChanged = false
+    for (const c of cloudCustom) {
+      if (c && c.id && !customMap.has(c.id)) {
+        customMap.set(c.id, c)
+        customChanged = true
+      }
+    }
+    if (customChanged) {
+      saveCustomSmartcards(Array.from(customMap.values()), /* skipCloudSync */ true)
+    }
+
+    // 3. Merge Ajustes
+    if (cloudPayload.settings && typeof cloudPayload.settings === 'object') {
+      const mergedSettings = { ...localSettings, ...cloudPayload.settings }
+      saveSmartcardSettings(mergedSettings, /* skipCloudSync */ true)
+    }
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('mir_smartcards_updated'))
+    }
+    return true
+  } catch (err) {
+    console.warn('Excepción en pullSmartcardsFromCloud:', err)
+    return false
+  }
 }
 
 export function addCustomSmartcard({
