@@ -338,7 +338,8 @@ export default function BancoPreguntas({ initialFiltros = null, onFiltrosConsume
     
     registrarRespuesta(questionForCard.id, answerData.isCorrect, answerData.selectedOption, {
       confidence: answerData.confidence,
-      subject: currentQuestionData?.asignatura
+      subject: currentQuestionData?.asignatura,
+      justificacion: answerData.justificacion
     });
 
     const nuevaEntrada = {

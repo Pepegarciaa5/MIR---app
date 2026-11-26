@@ -7,7 +7,7 @@ import rawSimulacrosData from '../data/simulacrosCTO.json';
 
 const STORAGE_KEY = 'mir_banco_preguntas_stats';
 const LAST_CLOUD_PULL_KEY = 'mir_last_cloud_pull_ts';
-const RECONCILED_FLAG_KEY = 'mir_reconciled_nov2026_v1';
+const RECONCILED_FLAG_KEY = 'mir_reconciled_oct24_reset_20261118';
 
 // Bidirectional alias maps between pregunta_id (UUID) and simulacro-numero (e.g. "14-12")
 const uuidToSimNumMap = {};
@@ -151,10 +151,13 @@ export function usePreguntasStats() {
   const [isSyncing, setIsSyncing] = useState(globalIsSyncing);
 
   const sincronizarDesdeNube = useCallback(async (silent = true, force = false) => {
-    if (!force && isInitialFetched && silent) {
+    const needsReconcile = typeof localStorage !== 'undefined' && localStorage.getItem(RECONCILED_FLAG_KEY) !== '1';
+    const effectiveForce = force || needsReconcile;
+
+    if (!effectiveForce && isInitialFetched && silent) {
       return Object.keys(getGlobalStatsData()).length;
     }
-    if (initialFetchPromise && !force) {
+    if (initialFetchPromise && !effectiveForce) {
       return initialFetchPromise;
     }
 
@@ -163,7 +166,7 @@ export function usePreguntasStats() {
         const userId = getOrCreateAnonUserId();
         const currentStats = getGlobalStatsData();
         const hasLocalData = Object.keys(currentStats).length > 0;
-        const lastPullTs = (!force && hasLocalData && typeof localStorage !== 'undefined')
+        const lastPullTs = (!effectiveForce && hasLocalData && typeof localStorage !== 'undefined')
           ? localStorage.getItem(LAST_CLOUD_PULL_KEY)
           : null;
 
@@ -204,10 +207,11 @@ export function usePreguntasStats() {
 
         isInitialFetched = true;
 
-        const merged = { ...currentStats };
-        let maxCloudTs = lastPullTs || null;
+        // En reconciliación tras reset en la nube, partir de {} para purgar estadísticas borradas de localStorage
+        const merged = needsReconcile ? {} : { ...currentStats };
+        let maxCloudTs = needsReconcile ? null : (lastPullTs || null);
 
-        if (allData.length > 0) {
+        if (allData.length > 0 || needsReconcile) {
           allData.forEach(item => {
             if (item.question_id && !item.question_id.startsWith('mir_smartcards_')) {
               const itemTs = item.updated_at || item.created_at || null;
@@ -244,7 +248,7 @@ export function usePreguntasStats() {
                 status: localIsNewer && prev.status ? prev.status : item.status,
                 archivada: item.status === 'archived' || prev.archivada || false,
                 dudosa: localIsNewer ? (prev.dudosa || false) : (item.status === 'needs_review' && item.confidence === 'yellow'),
-                dominada: localIsNewer ? (prev.dominada ?? (item.status === 'mastered')) : (item.status === 'mastered'),
+                dominada: localIsNewer ? (prev.dominada ?? (vistasCloud > 0 && item.status === 'mastered')) : (vistasCloud > 0 && item.status === 'mastered'),
                 corregida: isCorregida,
                 nota: cleanNote,
                 confidence_history: activeHist,
@@ -272,6 +276,9 @@ export function usePreguntasStats() {
         if (typeof localStorage !== 'undefined') {
           try {
             localStorage.setItem(LAST_CLOUD_PULL_KEY, maxCloudTs || new Date().toISOString());
+            if (needsReconcile) {
+              localStorage.setItem(RECONCILED_FLAG_KEY, '1');
+            }
           } catch (e) {
             // ignore quota errors
           }
@@ -378,8 +385,27 @@ export function usePreguntasStats() {
       const autoSync = async () => {
         try {
           setGlobalSyncing(true);
-          await flushOfflineSyncQueue();
-          await sincronizarDesdeNube(true, false);
+          const needsReconcile = typeof localStorage !== 'undefined' && localStorage.getItem(RECONCILED_FLAG_KEY) !== '1';
+          if (needsReconcile) {
+            try {
+              const rawQ = localStorage.getItem('mir_offline_stats_queue');
+              if (rawQ) {
+                const parsedQ = JSON.parse(rawQ);
+                const filteredQ = {};
+                const cutoffMs = new Date('2026-10-23T22:00:00.000Z').getTime();
+                for (const [k, v] of Object.entries(parsedQ)) {
+                  const hasPost = Array.isArray(v?.confidence_history) && v.confidence_history.some(h => h?.t && new Date(h.t).getTime() >= cutoffMs);
+                  if (hasPost) filteredQ[k] = v;
+                }
+                localStorage.setItem('mir_offline_stats_queue', JSON.stringify(filteredQ));
+              }
+            } catch { /* ignore */ }
+            await sincronizarDesdeNube(true, true);
+            await flushOfflineSyncQueue();
+          } else {
+            await flushOfflineSyncQueue();
+            await sincronizarDesdeNube(true, false);
+          }
         } catch (err) {
           console.warn('Auto cloud sync error:', err);
         } finally {
@@ -444,6 +470,7 @@ export function usePreguntasStats() {
       p
     );
 
+    const cleanJustif = typeof extraData.justificacion === 'string' ? extraData.justificacion.trim() : '';
     const updated = {
       ...p,
       vecesVistas: p.vecesVistas + 1,
@@ -453,6 +480,7 @@ export function usePreguntasStats() {
       ultimaFecha: nowIso,
       confidence_history: newHistory,
       subject: extraData.subject || p.subject || 'General',
+      ...(cleanJustif ? { nota: cleanJustif } : {}),
       rachaVerde,
       latenciaHasta,
       puntuacionPrioridad,

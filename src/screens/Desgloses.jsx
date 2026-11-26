@@ -1022,7 +1022,8 @@ export default function Desgloses() {
     // Registrar en estadísticas locales con nivel de confianza y asignatura
     registrarRespuesta(questionForCard.id, answerData.isCorrect, answerData.selectedOption, {
       confidence: answerData.confidence,
-      subject: currentQuestionData.asignatura
+      subject: currentQuestionData.asignatura,
+      justificacion: answerData.justificacion
     });
 
     const nuevaEntrada = {

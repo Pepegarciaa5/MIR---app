@@ -18,6 +18,8 @@ import {
 } from '../lib/bancoUnificado';
 import { getAnalisisPrioridadesTemas, getRankingTemasDeAsignatura } from '../lib/prioridadesTemas';
 import planDetalladoData from '../data/planDiarioDetallado.json';
+import tiradasCuradasData from '../data/tiradasCuradasSemana.json';
+import simulacrosCTOData from '../data/simulacrosCTO.json';
 import QuestionCard from '../components/quiz/QuestionCard';
 import NotaPersonal from '../components/quiz/NotaPersonal';
 import TutorGemini from '../components/quiz/TutorGemini';
@@ -277,12 +279,37 @@ export default function TiradorMaestro({
   const [respuestasDesglose, setRespuestasDesglose] = useState(() => getSession('respuestas', {}));
   const [resumenCola, setResumenCola] = useState(() => getSession('resumenCola', null));
   const [quizFinished, setQuizFinished] = useState(() => getSession('quizFinished', false));
+  const [tiempoLimiteSeg, setTiempoLimiteSeg] = useState(() => {
+    const res = getSession('resumenCola', null);
+    return res?.duracionLimiteMin > 0 ? res.duracionLimiteMin * 60 : null;
+  });
+  const [segundosRestantes, setSegundosRestantes] = useState(() => {
+    const res = getSession('resumenCola', null);
+    return res?.duracionLimiteMin > 0 ? res.duracionLimiteMin * 60 : null;
+  });
 
   useEffect(() => { setSession('cola', cola); }, [cola]);
   useEffect(() => { setSession('currentIndex', currentIndex); }, [currentIndex]);
   useEffect(() => { setSession('respuestas', respuestasDesglose); }, [respuestasDesglose]);
   useEffect(() => { setSession('resumenCola', resumenCola); }, [resumenCola]);
   useEffect(() => { setSession('quizFinished', quizFinished); }, [quizFinished]);
+
+  useEffect(() => {
+    if (tiempoLimiteSeg === null || cola.length === 0 || quizFinished) return;
+    const id = setInterval(() => {
+      setSegundosRestantes(prev => (prev === null ? null : prev - 1));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [tiempoLimiteSeg, cola.length, quizFinished]);
+
+  const formatCountdown = (secs) => {
+    if (secs === null || secs === undefined) return '';
+    const abs = Math.abs(secs);
+    const m = Math.floor(abs / 60);
+    const s = abs % 60;
+    const base = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    return secs < 0 ? `+${base}` : base;
+  };
 
   // Online / Offline listener
   useEffect(() => {
@@ -377,6 +404,22 @@ export default function TiradorMaestro({
   // Global pool of canonical questions
   const bancoCompleto = useMemo(() => getBancoUnificado(), []);
 
+  // Canonical IDs of simulacros answered right while marking doubt (aciertos por azar/duda)
+  const acertadasConDudaIds = useMemo(() => {
+    const s = new Set();
+    const simQs = simulacrosCTOData?.preguntas || [];
+    for (const p of simQs) {
+      if (p.ignorar || !p.acertada || Number(p.dudas) !== 1) continue;
+      if (p.pregunta_id) {
+        s.add(getCanonicalId(String(p.pregunta_id)));
+      }
+      if (p.simulacro && p.numero) {
+        s.add(getCanonicalId(`${p.simulacro}-${p.numero}`));
+      }
+    }
+    return s;
+  }, []);
+
   // Status helper
   const isPreguntaHecha = useCallback((id) => {
     const canonId = getCanonicalId(id);
@@ -406,12 +449,14 @@ export default function TiradorMaestro({
       const month = String(d.getMonth() + 1).padStart(2, '0');
       const day = String(d.getDate()).padStart(2, '0');
       const tKey = `${year}-${month}-${day}`;
-      const plan = planDetalladoData[tKey] || planDetalladoData['2026-11-03'] || null;
+      const fechasPlan = Object.keys(planDetalladoData).sort();
+      const latestPlanKey = fechasPlan[fechasPlan.length - 1] || '2026-11-03';
+      const plan = planDetalladoData[tKey] || planDetalladoData[latestPlanKey] || null;
       if (!plan || !plan.bloques) return null;
       if (tipo === 'manana') {
-        return plan.bloques.find(b => b.categoria === 'test' && (b.id?.includes('m') || b.id?.includes('1') || b.hora?.includes('11:00'))) || null;
+        return plan.bloques.find(b => b.categoria === 'test' && (b.id?.includes('m') || b.id?.includes('1') || b.hora?.includes('10:00') || b.hora?.includes('11:00'))) || null;
       }
-      return plan.bloques.find(b => b.categoria === 'test' && (b.id?.includes('t') || b.id?.includes('2') || b.hora?.includes('17:10'))) || null;
+      return plan.bloques.find(b => b.categoria === 'test' && (b.id?.includes('t') || b.id?.includes('2') || b.hora?.includes('15:30') || b.hora?.includes('17:10'))) || null;
     } catch {
       return null;
     }
@@ -423,6 +468,9 @@ export default function TiradorMaestro({
       alert('No se encontraron preguntas que coincidan con los filtros seleccionados.');
       return;
     }
+    const limSeg = resumen?.duracionLimiteMin > 0 ? resumen.duracionLimiteMin * 60 : null;
+    setTiempoLimiteSeg(limSeg);
+    setSegundosRestantes(limSeg);
     setCola(nuevaCola);
     setResumenCola(resumen);
     setCurrentIndex(0);
@@ -647,12 +695,17 @@ export default function TiradorMaestro({
   }, [filtros.asignatura, filtros.temas, catalogoAsignaturas, temasDisponibles, bancoCompleto, isArchivada, isEnLatencia, isPreguntaHecha, iniciarNuevaCola]);
 
   // --------------------------------------------------------------------------
-  // MOTOR 3: Mixto P80 con Pregunta Hermana y Cuota Huérfanas
+  // MOTOR 3: Evaluación Global Balanceada (50p · Cascada Tier 1->4 · sin test2v)
   // --------------------------------------------------------------------------
-  const lanzarMotor3 = useCallback(() => {
-    const asigExcluida = filtros.asignatura || '';
-    const cupo = 75;
+  const lanzarMotor3 = useCallback((duracionArg = 42) => {
+    const duracionLimiteMin = (typeof duracionArg === 'number' && duracionArg > 0) ? duracionArg : 42;
+    const planManana = getTodayPlanBlock('manana');
+    const asigExcluida = (filtros.asignatura && filtros.asignatura !== 'Todas' && filtros.asignatura !== 'Varias')
+      ? filtros.asignatura
+      : (planManana?.asignatura || 'Digestivo');
+    const cupo = 50;
     const usados = new Set();
+    const countPorAsig = new Map();
     const seleccion = [];
 
     let countLatencia = 0;
@@ -660,13 +713,29 @@ export default function TiradorMaestro({
     let countFallosP80 = 0;
     let countMirGlobal = 0;
 
+    setModoExamen(true);
+
+    const getMaxPorAsig = (asig) => (asig === 'Traumatología' ? 4 : 3);
     const esDisponibleOtraAsig = (q) =>
+      !q.anulada &&
       q.asignatura !== asigExcluida &&
       !isArchivada(q.id) &&
       !usados.has(q.id) &&
       !(isEnLatencia && isEnLatencia(q.id));
 
-    // 1. Repaso Espaciado: Vencidas de Latencia + Pregunta Hermana
+    const puedeAnadir = (q, maxCustom = null) => {
+      if (!esDisponibleOtraAsig(q)) return false;
+      const cap = maxCustom ?? getMaxPorAsig(q.asignatura);
+      return (countPorAsig.get(q.asignatura) || 0) < cap;
+    };
+
+    const registrarSeleccion = (q, origenTirada, extra = {}) => {
+      seleccion.push({ ...q, origenTirada, ...extra });
+      usados.add(q.id);
+      countPorAsig.set(q.asignatura, (countPorAsig.get(q.asignatura) || 0) + 1);
+    };
+
+    // 1. Repaso Espaciado: Vencidas de Latencia + Pregunta Hermana (12–14 slots)
     const vencidasPrioritarias = bancoCompleto.filter(q => {
       if (!esDisponibleOtraAsig(q)) return false;
       const st = getStatsPregunta(q.id);
@@ -678,30 +747,28 @@ export default function TiradorMaestro({
       return pb - pa;
     });
 
-    const maxLatencia = vencidasPrioritarias.length >= 20 ? 24 : 16;
+    const maxLatencia = vencidasPrioritarias.length >= 20 ? 14 : 12;
     const maxBaseLatencia = Math.ceil(maxLatencia / 2);
 
     const buscarPreguntaHermana = (qBase) => {
       const targetSub = normText(qBase.subtema);
       const targetTema = normText(qBase.tema);
-      // 1º Mismo subtema exacto virgen
       if (targetSub && targetSub.length > 3) {
         const porSubtema = bancoCompleto.find(cand =>
           cand.id !== qBase.id &&
           cand.asignatura === qBase.asignatura &&
           !isPreguntaHecha(cand.id) &&
-          esDisponibleOtraAsig(cand) &&
+          puedeAnadir(cand) &&
           normText(cand.subtema) === targetSub
         );
         if (porSubtema) return porSubtema;
       }
-      // 2º Mismo tema virgen (MIR >=2015 o Sim >=45% pob)
       if (targetTema && targetTema.length > 3 && targetTema !== 'general') {
         const porTema = bancoCompleto.find(cand =>
           cand.id !== qBase.id &&
           cand.asignatura === qBase.asignatura &&
           !isPreguntaHecha(cand.id) &&
-          esDisponibleOtraAsig(cand) &&
+          puedeAnadir(cand) &&
           matchTemaFlexible(cand.tema, cand.subtema, new Set([targetTema])) &&
           ((cand.anualidad || cand.año || 0) >= 2015 || (cand.pct_pob ?? 60) >= 45)
         );
@@ -710,84 +777,207 @@ export default function TiradorMaestro({
       return null;
     };
 
-    vencidasPrioritarias.slice(0, maxBaseLatencia).forEach(q => {
-      if (countLatencia >= maxLatencia) return;
-      seleccion.push({ ...q, origenTirada: 'repaso_latencia' });
-      usados.add(q.id);
+    for (const q of vencidasPrioritarias.slice(0, maxBaseLatencia * 2)) {
+      if (countLatencia >= maxLatencia || seleccion.length >= cupo) break;
+      if (!puedeAnadir(q)) continue;
+      registrarSeleccion(q, 'repaso_latencia');
       countLatencia++;
 
-      if (countLatencia < maxLatencia) {
+      if (countLatencia < maxLatencia && seleccion.length < cupo) {
         const hermana = buscarPreguntaHermana(q);
         if (hermana) {
-          seleccion.push({ ...hermana, origenTirada: 'pregunta_hermana', hermanaDeId: q.id });
-          usados.add(hermana.id);
+          registrarSeleccion(hermana, 'pregunta_hermana', { hermanaDeId: q.id });
           countLatencia++;
         }
       }
-    });
+    }
 
-    // 2. Cuota protegida para 9 Asignaturas Huérfanas (0 días lectivos en 3ª Vuelta)
+    // 2. Cuota Forense Validada (p < 0,05): Traumatología (hasta 4) + Con Imagen (hasta 6)
+    if (asigExcluida !== 'Traumatología') {
+      const poolTm = barajarCola(bancoCompleto.filter(q =>
+        q.asignatura === 'Traumatología' &&
+        !isPreguntaHecha(q.id) &&
+        puedeAnadir(q, 4) &&
+        ((q.pct_pob != null && q.pct_pob >= 50) || (q.es_oficial_mir && (q.anualidad || q.año || 0) >= 2015))
+      ));
+      for (const q of poolTm.slice(0, Math.min(4, cupo - seleccion.length))) {
+        registrarSeleccion(q, 'cuota_trauma_forense');
+        countFallosP80++;
+      }
+    }
+
+    const poolImg = barajarCola(bancoCompleto.filter(q =>
+      Boolean(q.imagen || q.image || q.imagen_nombre) &&
+      !isPreguntaHecha(q.id) &&
+      puedeAnadir(q, 2) &&
+      ((q.pct_pob != null && q.pct_pob >= 45) || (q.es_oficial_mir && (q.anualidad || q.año || 0) >= 2015))
+    ));
+    let countImg = 0;
+    for (const q of poolImg) {
+      if (countImg >= 6 || seleccion.length >= cupo) break;
+      if (!puedeAnadir(q, 2)) continue;
+      registrarSeleccion(q, 'cuota_imagen_clinica');
+      countImg++;
+    }
+
+    // 3. Cuota Asignaturas Huérfanas (hasta 6 slots, barajada, máx 2 por huérfana)
     const ASIGNATURAS_HUERFANAS = new Set([
       'Otorrinolaringología', 'Urgencias', 'Genética', 'Fisiología',
       'Farmacología', 'Bioquímica', 'Alergología', 'Rehabilitación', 'Anatomía'
     ]);
-
-    const poolHuerfanas = bancoCompleto.filter(q =>
+    const poolHuerfanas = barajarCola(bancoCompleto.filter(q =>
       ASIGNATURAS_HUERFANAS.has(q.asignatura) &&
       !isPreguntaHecha(q.id) &&
-      esDisponibleOtraAsig(q)
-    );
-
-    poolHuerfanas.slice(0, Math.min(12, cupo - seleccion.length)).forEach(q => {
-      seleccion.push({ ...q, origenTirada: 'huerfana_absorcion' });
-      usados.add(q.id);
+      !(q.fuentes?.length === 1 && q.fuentes[0] === 'test2v') &&
+      puedeAnadir(q, 2)
+    ));
+    for (const q of poolHuerfanas) {
+      if (countHuerfanas >= 6 || seleccion.length >= cupo) break;
+      if (!puedeAnadir(q, 2)) continue;
+      registrarSeleccion(q, 'huerfana_absorcion');
       countHuerfanas++;
-    });
+    }
 
-    // 3. Hasta 25 Fallos P80 (>=50% pob) ponderados por vulnerabilidad global
+    // 4. Fallos P80 + Acertadas con Duda Globales (>=50% pob, hasta 14 slots)
     const { rankingAsignaturas } = getAnalisisPrioridadesTemas();
     const scoreAsigMap = new Map(rankingAsignaturas.map(r => [r.asignatura, r.totalScore]));
 
-    const fallosGlobalesP80 = bancoCompleto.filter(q =>
-      q.fallada_cto &&
+    const fallosYDudasP80 = bancoCompleto.filter(q =>
+      (q.fallada_cto || acertadasConDudaIds.has(q.id) || q.cto_dudas) &&
       (q.pct_pob ?? 50) >= 50 &&
       !isPreguntaHecha(q.id) &&
-      esDisponibleOtraAsig(q)
+      puedeAnadir(q)
     ).sort((a, b) => {
-      const sa = (scoreAsigMap.get(a.asignatura) || 10) * ((a.pct_pob || 50) / 100);
-      const sb = (scoreAsigMap.get(b.asignatura) || 10) * ((b.pct_pob || 50) / 100);
+      const ba = (a.fallada_cto ? 1.15 : 1.0) * (acertadasConDudaIds.has(a.id) ? 1.1 : 1.0);
+      const bb = (b.fallada_cto ? 1.15 : 1.0) * (acertadasConDudaIds.has(b.id) ? 1.1 : 1.0);
+      const sa = (scoreAsigMap.get(a.asignatura) || 10) * ((a.pct_pob || 50) / 100) * ba;
+      const sb = (scoreAsigMap.get(b.asignatura) || 10) * ((b.pct_pob || 50) / 100) * bb;
       return sb - sa;
     });
 
-    fallosGlobalesP80.slice(0, Math.min(25, cupo - seleccion.length)).forEach(q => {
-      seleccion.push({ ...q, origenTirada: 'fallo_p80_global' });
-      usados.add(q.id);
+    let addedP80 = 0;
+    for (const q of fallosYDudasP80) {
+      if (addedP80 >= 14 || seleccion.length >= cupo) break;
+      if (!puedeAnadir(q)) continue;
+      registrarSeleccion(q, q.fallada_cto ? 'fallo_p80_global' : 'acierto_duda_global');
       countFallosP80++;
-    });
+      addedP80++;
+    }
 
-    // 4. Absorción de déficit: Desgloses MIR 2015-2025 y Test 2V
-    const poolDeficit = bancoCompleto.filter(q =>
-      (q.es_oficial_mir || q.fuentes.includes('test2v')) &&
-      (q.anualidad || q.año || 0) >= 2015 &&
-      !isPreguntaHecha(q.id) &&
-      esDisponibleOtraAsig(q)
-    );
+    // 5. Cascada Pedagógica Estricta Tier 1->4 (sin test2v salvo rebose)
+    const tierPools = [
+      // Tier 1: MIR 2015-2025 (priorizando B1/B2 y 70% global en B1/B2)
+      barajarCola(bancoCompleto.filter(q =>
+        q.es_oficial_mir &&
+        (q.anualidad || q.año || 0) >= 2015 &&
+        !isPreguntaHecha(q.id) &&
+        (q.pct_pob == null || q.pct_pob >= 50)
+      )),
+      // Tier 2: Simulacros CTO B1/B2 (incluye acertadas para cazar azar)
+      barajarCola(bancoCompleto.filter(q =>
+        q.fuentes?.includes('simulacro') &&
+        (q.pct_pob ?? 60) >= 50 &&
+        !isPreguntaHecha(q.id)
+      )),
+      // Tier 3: MIR 2010-2014
+      barajarCola(bancoCompleto.filter(q =>
+        q.es_oficial_mir &&
+        (q.anualidad || q.año || 0) >= 2010 &&
+        (q.anualidad || q.año || 0) < 2015 &&
+        !isPreguntaHecha(q.id)
+      )),
+      // Tier 4: Evaluaciones CTO
+      barajarCola(bancoCompleto.filter(q =>
+        q.fuentes?.includes('evaluacion') &&
+        !isPreguntaHecha(q.id)
+      )),
+      // Tier 5: test2v SOLO si después de Tiers 1-4 siguen faltando para 50
+      barajarCola(bancoCompleto.filter(q =>
+        q.fuentes?.includes('test2v') &&
+        !isPreguntaHecha(q.id)
+      )),
+    ];
 
-    poolDeficit.slice(0, cupo - seleccion.length).forEach(q => {
-      seleccion.push({ ...q, origenTirada: 'tema_estudiado' });
-      usados.add(q.id);
-      countMirGlobal++;
-    });
+    for (const pool of tierPools) {
+      if (seleccion.length >= cupo) break;
+      for (const q of pool) {
+        if (seleccion.length >= cupo) break;
+        if (!puedeAnadir(q)) continue;
+        registrarSeleccion(q, 'tema_estudiado');
+        countMirGlobal++;
+      }
+    }
+
+    // Fallback final si el techo por asignatura bloqueó llegar a 50
+    if (seleccion.length < cupo) {
+      for (const pool of tierPools) {
+        for (const q of pool) {
+          if (seleccion.length >= cupo) break;
+          if (!esDisponibleOtraAsig(q)) continue;
+          registrarSeleccion(q, 'tema_estudiado');
+          countMirGlobal++;
+        }
+      }
+    }
 
     iniciarNuevaCola(barajarCola(seleccion), {
-      modo: `🌍 Motor 3 · Mixto P80 (75p${asigExcluida ? ` · sin ${asigExcluida}` : ''})`,
+      modo: `🌍 Motor 3 · Global Balanceada (50p${asigExcluida ? ` · sin ${asigExcluida}` : ''})`,
       total: seleccion.length,
+      asignatura: 'Mixto',
+      duracionLimiteMin,
       deTema: countMirGlobal,
       simulacrosAsig: countFallosP80,
       rellenoAsig: countHuerfanas,
       rellenoGlobal: countLatencia
     });
-  }, [filtros.asignatura, bancoCompleto, isArchivada, isEnLatencia, isPreguntaHecha, getStatsPregunta, iniciarNuevaCola]);
+  }, [filtros.asignatura, bancoCompleto, acertadasConDudaIds, isArchivada, isEnLatencia, isPreguntaHecha, getStatsPregunta, iniciarNuevaCola]);
+
+  // --------------------------------------------------------------------------
+  // TIRADA CURADA DEL DÍA (1 clic desde Inicio o TiradorMaestro)
+  // --------------------------------------------------------------------------
+  const lanzarTiradaCurada = useCallback((tiradaId) => {
+    const allSessions = Object.values(tiradasCuradasData || {}).flat();
+    const sesion = allSessions.find(s => s && s.id === tiradaId);
+    if (!sesion || !Array.isArray(sesion.questionIds)) {
+      alert(`No se encontró la tirada curada "${tiradaId}".`);
+      return;
+    }
+    const resueltas = sesion.questionIds
+      .map(id => {
+        const q = getPreguntaPorId(id);
+        if (!q) return null;
+        return { ...q, origenTirada: sesion.motivos?.[id] || 'curada_piloto' };
+      })
+      .filter(Boolean);
+
+    if (resueltas.length === 0) {
+      alert('No se pudieron resolver las preguntas de la tirada curada.');
+      return;
+    }
+
+    setModoExamen(sesion.modoExamen !== false);
+    if (sesion.asignatura) {
+      setFiltros(prev => ({
+        ...prev,
+        asignatura: sesion.asignatura,
+        asignaturas: [sesion.asignatura],
+        temas: [],
+        subtema: '',
+      }));
+    }
+
+    iniciarNuevaCola(resueltas, {
+      modo: sesion.titulo,
+      total: resueltas.length,
+      asignatura: sesion.asignatura || 'Digestivo',
+      duracionLimiteMin: sesion.duracionLimiteMin || null,
+      tiradaCuradaId: sesion.id,
+      deTema: resueltas.length,
+      simulacrosAsig: 0,
+      rellenoAsig: 0,
+      rellenoGlobal: 0,
+    });
+  }, [iniciarNuevaCola]);
 
   // --------------------------------------------------------------------------
   // TIRADA PERSONALIZADA / LIBRE CON FILTROS FACETADOS
@@ -910,7 +1100,13 @@ export default function TiradorMaestro({
     if (onFiltrosConsumed) onFiltrosConsumed();
     if (onFiltersConsumed) onFiltersConsumed();
 
-    if (ext.autoStart) {
+    if (ext.tiradaCuradaId) {
+      setCurrentMode('motor1');
+      setTimeout(() => lanzarTiradaCurada(ext.tiradaCuradaId), 60);
+    } else if (ext.motorLaunch === 'motor3') {
+      setCurrentMode('motor3');
+      setTimeout(() => lanzarMotor3(ext.duracionLimiteMin || 42), 60);
+    } else if (ext.autoStart) {
       setTimeout(() => {
         generarColaPersonalizada({
           asignatura: ext.asignatura,
@@ -921,7 +1117,7 @@ export default function TiradorMaestro({
         });
       }, 80);
     }
-  }, [initialFiltros, initialFilters, onFiltrosConsumed, onFiltersConsumed, generarColaPersonalizada, stats]);
+  }, [initialFiltros, initialFilters, onFiltrosConsumed, onFiltersConsumed, generarColaPersonalizada, lanzarTiradaCurada, lanzarMotor3, stats]);
 
   // --------------------------------------------------------------------------
   // CURRENT QUESTION FORMATTING & QUESTION CARD
@@ -966,11 +1162,15 @@ export default function TiradorMaestro({
   // ANSWER SUBMISSION & FLOW
   // --------------------------------------------------------------------------
   const finalizarYExportarTirada = useCallback(async (colaActual, respuestasActuales) => {
-    const contestadas = colaActual.filter(q => respuestasActuales[q.id] && !respuestasActuales[q.id].skipped);
+    const contestadas = colaActual.filter(q =>
+      respuestasActuales[q.id] && (!respuestasActuales[q.id].skipped || Boolean(respuestasActuales[q.id].justificacion))
+    );
     const payload = construirPayloadTirada({
       origen: 'TiradorMaestro',
-      asignatura: filtros.asignatura || 'Mixto',
-      temas: filtros.temas || [],
+      asignatura: resumenCola?.asignatura || filtros.asignatura || 'Mixto',
+      temas: resumenCola?.tiradaCuradaId
+        ? [...new Set(colaActual.map(q => q.tema).filter(Boolean))]
+        : (filtros.temas || []),
       resumenCola,
       cola: contestadas.length > 0 ? contestadas : colaActual,
       respuestasDesglose: respuestasActuales
@@ -989,7 +1189,7 @@ export default function TiradorMaestro({
     if (currentIndex < cola.length - 1) {
       setCurrentIndex(prev => prev + 1);
     } else {
-      const contestadas = cola.filter(q => mapResp[q.id] && !mapResp[q.id].skipped);
+      const contestadas = cola.filter(q => mapResp[q.id] && (!mapResp[q.id].skipped || Boolean(mapResp[q.id].justificacion)));
       if (contestadas.length > 0) {
         finalizarYExportarTirada(cola, mapResp);
       }
@@ -1007,7 +1207,11 @@ export default function TiradorMaestro({
       }
       const nextResp = {
         ...respuestasDesglose,
-        [qId]: { skipped: true }
+        [qId]: {
+          skipped: true,
+          seconds: answerData.seconds || 0,
+          justificacion: answerData.justificacion || ''
+        }
       };
       setRespuestasDesglose(nextResp);
       handleNext(nextResp);
@@ -1018,7 +1222,8 @@ export default function TiradorMaestro({
 
     registrarRespuesta(qId, answerData.isCorrect, answerData.selectedOption, {
       confidence: answerData.confidence,
-      subject: currentQuestionData.asignatura
+      subject: currentQuestionData.asignatura,
+      justificacion: answerData.justificacion
     });
 
     const nuevaEntrada = {
@@ -1044,22 +1249,26 @@ export default function TiradorMaestro({
   };
 
   const handleFinalizarSesion = async () => {
-    const contestadas = cola.filter(q => respuestasDesglose[q.id] && !respuestasDesglose[q.id].skipped);
-    if (contestadas.length === 0) {
+    const exportables = cola.filter(q =>
+      respuestasDesglose[q.id] && (!respuestasDesglose[q.id].skipped || Boolean(respuestasDesglose[q.id].justificacion))
+    );
+    if (exportables.length === 0) {
       if (typeof window !== 'undefined' && window.confirm && window.confirm('¿Deseas cerrar esta tirada sin guardar?')) {
         handleResetTirada();
       }
       return;
     }
 
-    // Vaciar únicamente lo que haya quedado pendiente en la cola offline (evita duplicar los 75 upserts)
+    // Vaciar únicamente lo que haya quedado pendiente en la cola offline (evita duplicar los upserts)
     await flushOfflineSyncQueue().catch(err => console.warn('Sync flush warning:', err));
-    await finalizarYExportarTirada(contestadas, respuestasDesglose);
-    setCola(contestadas);
+    await finalizarYExportarTirada(exportables, respuestasDesglose);
+    setCola(exportables);
     setQuizFinished(true);
   };
 
   const handleResetTirada = () => {
+    setTiempoLimiteSeg(null);
+    setSegundosRestantes(null);
     setCola([]);
     setResumenCola(null);
     setCurrentIndex(0);
@@ -1108,6 +1317,115 @@ export default function TiradorMaestro({
     const fallbackTop3 = top3.length > 0 ? top3 : rankingTemas.slice(0, 3).map(t => t.tema);
     setFiltros(prev => ({ ...prev, temas: fallbackTop3 }));
   };
+
+  // --------------------------------------------------------------------------
+  // RADAR 360º DE CIERRE: Agujeros de Netas (Simulacros + Tiradas) + Puntos Ciegos
+  // --------------------------------------------------------------------------
+  const lanzarRondaCierreRadar = useCallback((cupo = 15) => {
+    const asig = singleAsignaturaActiva || (filtros.asignatura && filtros.asignatura !== 'Todas' ? filtros.asignatura : 'Hematología');
+    const asigNorm = normText(asig);
+    const matchesAsig = (q) => q.asignatura === asig || (q._normAsig || normText(q.asignatura)) === asigNorm;
+
+    const poolAsig = bancoCompleto.filter(q => {
+      if (!matchesAsig(q) || isArchivada(q.id)) return false;
+      // Excluir preguntas marcianas (<35% acierto poblacional) para centrar en rentabilidad MIR
+      if (q.pct_pob != null && Number(q.pct_pob) > 0 && Number(q.pct_pob) < 35) return false;
+      const canonId = getCanonicalId(q.id);
+      const st = stats[canonId] || stats[q.id];
+      // Excluir preguntas ya consolidadas (rachaVerde >= 3)
+      if (st && (st.rachaVerde >= 3 || st.dominada)) return false;
+      return true;
+    });
+
+    // 1. Detectar temas en punto ciego (0 preguntas hechas) y agujeros de netas (rankingTemas + fallos personales)
+    const statsPorTema = new Map();
+    for (const q of poolAsig) {
+      const t = q.tema || 'General';
+      if (!statsPorTema.has(t)) {
+        statsPorTema.set(t, { total: 0, hechas: 0, fallosPropios: 0, fallosCTO: 0 });
+      }
+      const b = statsPorTema.get(t);
+      b.total++;
+      const canonId = getCanonicalId(q.id);
+      const st = stats[canonId] || stats[q.id];
+      if (st && st.vecesVistas > 0) {
+        b.hechas++;
+        if ((st.rachaVerde || 0) === 0) b.fallosPropios++;
+      }
+      if (q.fallada_cto) b.fallosCTO++;
+    }
+
+    const rankMap = new Map((rankingTemas || []).map((r, idx) => [normText(r.tema), { ...r, rankIdx: idx }]));
+
+    // Puntuar cada pregunta candidata según jerarquía pedagógica (Tier 1 -> Tier 2 -> Tier 3) y urgencia del tema
+    const scored = poolAsig.map(q => {
+      const pInfo = getPrioridadPedagogica(q);
+      const canonId = getCanonicalId(q.id);
+      const st = stats[canonId] || stats[q.id];
+      const hecha = Boolean(st && st.vecesVistas > 0);
+      const falladaApp = Boolean(st && st.vecesVistas > 0 && (st.rachaVerde || 0) === 0);
+      const tInfo = statsPorTema.get(q.tema || 'General') || { hechas: 0, fallosPropios: 0, fallosCTO: 0 };
+      const rInfo = rankMap.get(normText(q.tema || ''));
+
+      const esTemaCiego = tInfo.hechas === 0;
+      const esP1 = rInfo?.prioridad === 'P1';
+
+      // Menor score = mayor prioridad
+      let score = pInfo.tier * 20;
+      if (q.fallada_cto && !hecha) score -= 35;
+      if (falladaApp) score -= 25;
+      if (esTemaCiego && !hecha) score -= 22;
+      if (esP1) score -= 15;
+      score -= Math.min(10, (tInfo.fallosCTO * 2) + (tInfo.fallosPropios * 3));
+
+      return { q, score, tier: pInfo.tier, tema: q.tema || 'General' };
+    });
+
+    scored.sort((a, b) => a.score - b.score);
+
+    // Diversificar por temas (máximo 2 preguntas por tema en primera pasada para barrer todos los agujeros)
+    const maxPorTema = cupo <= 6 ? 1 : 2;
+    const conteoTema = new Map();
+    const seleccion = [];
+    const usados = new Set();
+
+    for (const item of scored) {
+      if (seleccion.length >= cupo) break;
+      const c = conteoTema.get(item.tema) || 0;
+      if (c >= maxPorTema) continue;
+      seleccion.push({ ...item.q, origenTirada: 'ronda_cierre_radar' });
+      usados.add(item.q.id);
+      conteoTema.set(item.tema, c + 1);
+    }
+
+    if (seleccion.length < cupo) {
+      for (const item of scored) {
+        if (seleccion.length >= cupo) break;
+        if (usados.has(item.q.id)) continue;
+        seleccion.push({ ...item.q, origenTirada: 'ronda_cierre_radar' });
+        usados.add(item.q.id);
+      }
+    }
+
+    const conteoTiers = {
+      tier1_desgloses_25_15: seleccion.filter(q => getPrioridadPedagogica(q).tier === 1).length,
+      tier2_simulacros: seleccion.filter(q => getPrioridadPedagogica(q).tier === 2).length,
+      tier3_desgloses_15_10: seleccion.filter(q => getPrioridadPedagogica(q).tier === 3).length,
+      tier4_evaluaciones: seleccion.filter(q => getPrioridadPedagogica(q).tier === 4).length,
+      tier5_segunda_vuelta: seleccion.filter(q => getPrioridadPedagogica(q).tier === 5).length
+    };
+
+    setModoExamen(true);
+    iniciarNuevaCola(barajarCola(seleccion), {
+      modo: `📡 Ronda Cierre Radar · ${asig} (${seleccion.length}p A Ciegas)`,
+      total: seleccion.length,
+      deTema: conteoTiers.tier1_desgloses_25_15 + conteoTiers.tier3_desgloses_15_10,
+      simulacrosAsig: conteoTiers.tier2_simulacros,
+      rellenoAsig: conteoTiers.tier4_evaluaciones + conteoTiers.tier5_segunda_vuelta,
+      rellenoGlobal: 0,
+      conteoTiers
+    });
+  }, [singleAsignaturaActiva, filtros.asignatura, bancoCompleto, isArchivada, stats, rankingTemas, iniciarNuevaCola]);
 
   // Active session exists?
   const hasActiveSession = cola.length > 0;
@@ -1361,7 +1679,22 @@ export default function TiradorMaestro({
             )}
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
+            {segundosRestantes !== null && (
+              <div
+                className={`text-xs font-mono font-black px-3 py-1.5 rounded-xl border ${
+                  segundosRestantes < 0
+                    ? 'bg-rose-50 text-rose-700 border-rose-300 animate-pulse'
+                    : segundosRestantes <= 300
+                      ? 'bg-amber-50 text-amber-800 border-amber-300'
+                      : 'bg-slate-100 text-slate-800 border-slate-200'
+                }`}
+                title="Cuenta atrás del bloque (no cierra automáticamente al acabar)"
+              >
+                {segundosRestantes < 0 ? `⏰ ${formatCountdown(segundosRestantes)}` : `⏱ ${formatCountdown(segundosRestantes)}`}
+              </div>
+            )}
+
             {/* Exam Mode Toggle */}
             <button
               onClick={() => setModoExamen(!modoExamen)}
@@ -1448,14 +1781,22 @@ export default function TiradorMaestro({
                 </span>
               );
             })()}
-            {currentQuestionData.tema && (
-              <span className="bg-slate-100 text-slate-700 text-xs font-semibold px-2.5 py-1 rounded-md">
-                {currentQuestionData.tema}
-              </span>
-            )}
-            {currentQuestionData.subtema && (
-              <span className="bg-slate-50 text-slate-600 border border-slate-200 text-[11px] font-medium px-2 py-0.5 rounded-md">
-                {currentQuestionData.subtema}
+            {!modoExamen && currentAnswer && !currentAnswer.skipped ? (
+              <>
+                {currentQuestionData.tema && (
+                  <span className="bg-slate-100 text-slate-700 text-xs font-semibold px-2.5 py-1 rounded-md">
+                    {currentQuestionData.tema}
+                  </span>
+                )}
+                {currentQuestionData.subtema && (
+                  <span className="bg-slate-50 text-slate-600 border border-slate-200 text-[11px] font-medium px-2 py-0.5 rounded-md">
+                    {currentQuestionData.subtema}
+                  </span>
+                )}
+              </>
+            ) : (
+              <span className="bg-slate-100 text-slate-500 text-[11px] font-semibold px-2.5 py-0.5 rounded-md" title="El tema y subtema se ocultan antes de responder para evitar spoilers diagnósticos">
+                🙈 Tema oculto (Sin Spoilers)
               </span>
             )}
             {currentQuestionData.horquilla_p80 && (
@@ -1594,12 +1935,77 @@ export default function TiradorMaestro({
         )}
       </div>
 
+      {/* Tiradas Preparadas del Día (1 clic) */}
+      {(() => {
+        const fechasCuradas = Object.keys(tiradasCuradasData || {}).sort();
+        if (fechasCuradas.length === 0) return null;
+        const dNow = new Date();
+        const todayStr = `${dNow.getFullYear()}-${String(dNow.getMonth() + 1).padStart(2, '0')}-${String(dNow.getDate()).padStart(2, '0')}`;
+        const activeDate = tiradasCuradasData[todayStr] ? todayStr : fechasCuradas[fechasCuradas.length - 1];
+        const sessions = tiradasCuradasData[activeDate] || [];
+        const adaptedTarde = sessions.find(s => s?.adaptadaDeManana);
+        const adaptRes = adaptedTarde?.adaptacionResumen || {};
+        return (
+          <div className="bg-gradient-to-r from-emerald-50 via-cyan-50 to-indigo-50 rounded-2xl border border-emerald-200 p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-black uppercase tracking-wider text-emerald-800">
+                  📅 Tiradas Preparadas · {activeDate} ({sessions[0]?.asignatura || 'Digestivo'})
+                </span>
+                {adaptedTarde && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-black bg-indigo-100 text-indigo-800 border border-indigo-200">
+                    🧬 Adaptada a tu Mañana
+                  </span>
+                )}
+              </div>
+              <div className="text-xs text-slate-600 mt-0.5">
+                Lanzamiento en 1 clic en Modo Examen + cronómetro objetivo + Voz Auto ([M])
+              </div>
+              {adaptedTarde && (
+                <div className="text-[11px] text-slate-700 mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+                  {adaptRes.rescate?.length > 0 && (
+                    <span>
+                      <b>🔴 Rescate:</b> {adaptRes.rescate.join(', ')}
+                    </span>
+                  )}
+                  {adaptRes.solidos?.length > 0 && (
+                    <span>
+                      <b>🟢 Confirmación rápida (2–3p):</b> {adaptRes.solidos.join(', ')}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {sessions.map(s => (
+                <button
+                  key={s.id}
+                  onClick={() => lanzarTiradaCurada(s.id)}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black px-3.5 py-2 rounded-xl shadow-xs transition-colors flex items-center gap-1.5"
+                  title={s.subtitulo}
+                >
+                  <span>{s.franja === 'manana' ? '🌅' : '🌤️'}</span>
+                  <span>{s.franja === 'manana' ? 'Mañana' : 'Tarde'} {s.questionIds?.length || 0}p ({s.duracionLimiteMin}m)</span>
+                </button>
+              ))}
+              <button
+                onClick={() => lanzarMotor3(42)}
+                className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-black px-3.5 py-2 rounded-xl shadow-xs transition-colors flex items-center gap-1.5"
+              >
+                <span>🌍</span>
+                <span>Noche Global 50p (42m)</span>
+              </button>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Mode Selector Tabs */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         {[
           { id: 'motor1', icon: '🌅', label: 'Motor 1 · Mañana', sub: '75p Post-Estudio Tema' },
           { id: 'motor2', icon: '🌤️', label: 'Motor 2 · Tarde', sub: '75p Barrido Asignatura' },
-          { id: 'motor3', icon: '🌍', label: 'Motor 3 · Mixto P80', sub: '75p Latencia + Hermana' },
+          { id: 'motor3', icon: '🌍', label: 'Motor 3 · Global 50p', sub: '50p Balanceada · Tier 1–4' },
           { id: 'adaptativo', icon: '🧠', label: 'Adaptativo', sub: 'Rentabilidad + Cooldown' },
           { id: 'custom', icon: '🛠️', label: 'Tirada Libre', sub: 'Filtros Facetados a Medida' },
         ].map(m => {
@@ -1693,13 +2099,23 @@ export default function TiradorMaestro({
                 Extrae hasta 48 Desgloses MIR oficiales no hechos del tema de hoy, fallos de simulacros CTO (≥35% pob) y completa hasta 75 con preguntas P80 y reserva Test 2ª Vuelta.
               </p>
             </div>
-            <button
-              onClick={lanzarMotor1}
-              className="bg-orange-500 hover:bg-orange-600 text-white font-black px-8 py-4 rounded-2xl shadow-lg shadow-orange-200 transition-all text-base flex items-center gap-2"
-            >
-              <span>Empezar Motor 1 (75p)</span>
-              <span>→</span>
-            </button>
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <button
+                type="button"
+                onClick={() => lanzarRondaCierreRadar(15)}
+                className="bg-slate-900 hover:bg-slate-800 text-white font-black px-4 py-4 rounded-2xl shadow-md transition-all text-xs sm:text-sm flex items-center gap-2"
+                title="Selecciona 15 preguntas nucleares (Tier 1 MIR -> Tier 2 Simu >=35%) de tus agujeros de netas en simulacros y temas en punto ciego"
+              >
+                <span>📡 Ronda Cierre Radar (15p)</span>
+              </button>
+              <button
+                onClick={lanzarMotor1}
+                className="bg-orange-500 hover:bg-orange-600 text-white font-black px-8 py-4 rounded-2xl shadow-lg shadow-orange-200 transition-all text-base flex items-center gap-2"
+              >
+                <span>Empezar Motor 1 (75p)</span>
+                <span>→</span>
+              </button>
+            </div>
           </div>
 
           {/* Subject & Topics Quick Preselection for Motor 1 */}
@@ -1777,13 +2193,23 @@ export default function TiradorMaestro({
                 Barre el bloque de la tarde con desgloses MIR oficiales, fallos acumulados en simulacros CTO y evaluaciones de toda la asignatura hasta 75 preguntas.
               </p>
             </div>
-            <button
-              onClick={lanzarMotor2}
-              className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black px-8 py-4 rounded-2xl shadow-lg shadow-amber-200 transition-all text-base flex items-center gap-2"
-            >
-              <span>Empezar Motor 2 (75p)</span>
-              <span>→</span>
-            </button>
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <button
+                type="button"
+                onClick={() => lanzarRondaCierreRadar(15)}
+                className="bg-slate-900 hover:bg-slate-800 text-white font-black px-4 py-4 rounded-2xl shadow-md transition-all text-xs sm:text-sm flex items-center gap-2"
+                title="Selecciona 15 preguntas nucleares (Tier 1 MIR -> Tier 2 Simu >=35%) de tus agujeros de netas en simulacros y temas en punto ciego"
+              >
+                <span>📡 Ronda Cierre Radar (15p)</span>
+              </button>
+              <button
+                onClick={lanzarMotor2}
+                className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black px-8 py-4 rounded-2xl shadow-lg shadow-amber-200 transition-all text-base flex items-center gap-2"
+              >
+                <span>Empezar Motor 2 (75p)</span>
+                <span>→</span>
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
@@ -1811,36 +2237,40 @@ export default function TiradorMaestro({
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
               <span className="text-xs font-black uppercase tracking-wider text-purple-600 bg-purple-50 px-3 py-1 rounded-full border border-purple-200">
-                🌍 Sesión 3 · Adaptativo Mixto P80
+                🌍 Sesión 3 · Motor 3 Global Balanceada (50p)
               </span>
               <h2 className="text-2xl font-black text-slate-900 mt-2">
-                Mixto P80: Repaso Espaciado + Pregunta Hermana
+                Global Balanceada 50p: Repaso Espaciado + Pregunta Hermana
               </h2>
               <p className="text-slate-600 text-sm mt-1 max-w-2xl">
-                Excluye la asignatura en estudio ({filtros.asignatura || 'del día'}) para entrenar el cambio de contexto del MIR real. Empareja fallos en latencia con su <em>Pregunta Hermana</em> virgen del mismo subtema y protege cuota de asignaturas huérfanas.
+                Excluye la asignatura en estudio ({filtros.asignatura || 'del día'}) para entrenar el cambio de contexto real. Empareja fallos en latencia con su <em>Pregunta Hermana</em> virgen, blinda cuota forense (Trauma + Imagen + Huérfanas) y rellena en cascada estricta Tier 1→4 sin test2v.
               </p>
             </div>
             <button
               onClick={lanzarMotor3}
               className="bg-purple-600 hover:bg-purple-700 text-white font-black px-8 py-4 rounded-2xl shadow-lg shadow-purple-200 transition-all text-base flex items-center gap-2"
             >
-              <span>Empezar Motor 3 (75p)</span>
+              <span>Empezar Motor 3 (50p)</span>
               <span>→</span>
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-slate-100 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 pt-4 border-t border-slate-100 text-xs">
             <div className="p-3 bg-purple-50 rounded-xl border border-purple-100">
               <span className="font-black text-purple-900 block mb-1">1. Preguntas Hermanas</span>
-              <span className="text-purple-700">16–24 slots emparejando preguntas falladas con clones vírgenes del mismo subtema.</span>
+              <span className="text-purple-700">12–14 slots emparejando fallos vencidos con clones vírgenes del mismo subtema.</span>
+            </div>
+            <div className="p-3 bg-rose-50 rounded-xl border border-rose-100">
+              <span className="font-black text-rose-900 block mb-1">2. Cuota Forense (TM + Img)</span>
+              <span className="text-rose-700">Hasta 4 de Traumatología y 6 con Imagen clínica para frenar fugas detectadas.</span>
             </div>
             <div className="p-3 bg-indigo-50 rounded-xl border border-indigo-100">
-              <span className="font-black text-indigo-900 block mb-1">2. Asignaturas Huérfanas</span>
-              <span className="text-indigo-700">12 slots blindados para ORL, Urgencias, Genética, Fisiología, Farmacología, etc.</span>
+              <span className="font-black text-indigo-900 block mb-1">3. Asignaturas Huérfanas</span>
+              <span className="text-indigo-700">Hasta 6 slots barajados (máx. 2/asig) para ORL, Urgencias, Genética, etc.</span>
             </div>
             <div className="p-3 bg-cyan-50 rounded-xl border border-cyan-100">
-              <span className="font-black text-cyan-900 block mb-1">3. Fallos P80 Globales</span>
-              <span className="text-cyan-700">Hasta 25 preguntas de Simulacros con ≥50% de acierto poblacional.</span>
+              <span className="font-black text-cyan-900 block mb-1">4. Fallos P80 + Acertadas Dudas</span>
+              <span className="text-cyan-700">Hasta 14 slots ≥50% pob + relleno en cascada MIR 25–15 → Sims B1/B2 → MIR 14–10 → Eval.</span>
             </div>
           </div>
         </div>
@@ -1875,14 +2305,36 @@ export default function TiradorMaestro({
               <h2 className="text-xl font-black text-slate-900">Filtros Facetados a Medida</h2>
               <p className="text-slate-500 text-xs mt-0.5">Combina múltiples dimensiones para aislar exactamente las preguntas que necesitas.</p>
             </div>
-            <button
-              id="banco-btn-generar"
-              onClick={() => generarColaPersonalizada()}
-              className="bg-slate-900 hover:bg-slate-800 text-white font-black px-6 py-3 rounded-xl transition-all shadow-md text-sm flex items-center gap-2"
-            >
-              <span>Generar Tirada</span>
-              <span>→</span>
-            </button>
+            <div className="flex items-center gap-2 flex-wrap">
+              {singleAsignaturaActiva && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => lanzarRondaCierreRadar(5)}
+                    className="bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 font-black px-3.5 py-3 rounded-xl transition-all text-xs flex items-center gap-1.5"
+                    title="Sprint rápido de 5 preguntas a ciegas sobre los mayores agujeros de netas y temas no vistos de la asignatura"
+                  >
+                    <span>⚡ Sprint Radar (5p)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => lanzarRondaCierreRadar(15)}
+                    className="bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-black px-4 py-3 rounded-xl transition-all shadow-sm text-xs sm:text-sm flex items-center gap-1.5"
+                    title="Ronda de cierre de 15 preguntas nucleares (Tier 1 MIR -> Tier 2 Simu >=35%) de tus puntos débiles y temas a cero"
+                  >
+                    <span>📡 Ronda Cierre Radar (15p)</span>
+                  </button>
+                </>
+              )}
+              <button
+                id="banco-btn-generar"
+                onClick={() => generarColaPersonalizada()}
+                className="bg-slate-900 hover:bg-slate-800 text-white font-black px-6 py-3 rounded-xl transition-all shadow-md text-sm flex items-center gap-2"
+              >
+                <span>Generar Tirada</span>
+                <span>→</span>
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
